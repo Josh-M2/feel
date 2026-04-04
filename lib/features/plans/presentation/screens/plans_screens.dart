@@ -11,6 +11,7 @@ import '../../domain/models/reading_plan.dart';
 import '../widgets/plan_day_focus_card.dart';
 import '../widgets/plan_info_card.dart';
 import '../widgets/plan_list_card.dart';
+import '../widgets/plan_progress_summary_card.dart';
 
 class PlansListScreen extends StatelessWidget {
   const PlansListScreen({super.key});
@@ -487,6 +488,135 @@ class PlanDayReadScreen extends StatelessWidget {
   }
 }
 
+class PlansProgressScreen extends StatelessWidget {
+  const PlansProgressScreen({super.key});
+
+  static const MockPlansRepository _repository = MockPlansRepository();
+
+  @override
+  Widget build(BuildContext context) {
+    final List<ReadingPlan> plans = _repository.getPlans();
+    final int totalPlanCount = plans.length;
+    final int totalDays = plans.fold<int>(
+      0,
+      (int sum, ReadingPlan plan) => sum + plan.durationDays,
+    );
+    final int completedDays = plans.fold<int>(
+      0,
+      (int sum, ReadingPlan plan) =>
+          sum +
+          ((plan.currentDayNumber - 1) < 0 ? 0 : plan.currentDayNumber - 1),
+    );
+    final int activePlans = plans.where((ReadingPlan plan) {
+      return plan.currentDayNumber <= plan.durationDays;
+    }).length;
+    final int percent = totalDays == 0
+        ? 0
+        : (((completedDays / totalDays) * 100).round().clamp(0, 100) as int);
+
+    return TabScreenScaffold(
+      title: 'Progress',
+      subtitle: 'Plans',
+      showBackButton: true,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Your progress rhythm',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Progress should feel supportive, not like pressure',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'This screen gives a gentle summary of how your current plans are moving without turning Bible reading into a stressful performance metric.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: <Widget>[
+                    _ProgressPill(label: 'Plans', value: '$totalPlanCount'),
+                    _ProgressPill(label: 'Active', value: '$activePlans'),
+                    _ProgressPill(
+                      label: 'Completed days',
+                      value: '$completedDays',
+                    ),
+                    _ProgressPill(label: 'Overall', value: '$percent%'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          PlanInfoCard(
+            title: 'What this progress means',
+            subtitle:
+                'The point is steady scripture engagement, not guilt over imperfect streaks.',
+            icon: Icons.favorite_border_rounded,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _PlanBullet(
+                  text:
+                      'Progress helps the user remember where they are, not measure their worth.',
+                ),
+                _PlanBullet(
+                  text:
+                      'Missing a day should feel recoverable and calm in the eventual production flow.',
+                ),
+                _PlanBullet(
+                  text:
+                      'This screen can later expand into streaks, completion states, and gentle reminders.',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Plan summaries', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.md),
+          ...plans.map(
+            (ReadingPlan plan) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: PlanProgressSummaryCard(
+                plan: plan,
+                onOpenPlan: () {
+                  context.push(
+                    AppRoutes.plansPlanDetail,
+                    extra: PlanDetailRouteArgs(planId: plan.id),
+                  );
+                },
+                onContinue: () {
+                  context.push(
+                    AppRoutes.plansDayRead,
+                    extra: PlanDayReadRouteArgs(
+                      planId: plan.id,
+                      dayNumber: plan.currentDayNumber,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PlanBullet extends StatelessWidget {
   const _PlanBullet({required this.text});
 
@@ -548,6 +678,46 @@ class _PlanDayTile extends StatelessWidget {
         trailing: isCurrent
             ? const Icon(Icons.play_circle_outline_rounded)
             : const Icon(Icons.arrow_forward_rounded),
+      ),
+    );
+  }
+}
+
+class _ProgressPill extends StatelessWidget {
+  const _ProgressPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
@@ -295,6 +296,189 @@ class SavedNotesScreen extends StatelessWidget {
   }
 }
 
+class SavedHistoryScreen extends StatelessWidget {
+  const SavedHistoryScreen({super.key});
+
+  static const MockSavedRepository _repository = MockSavedRepository();
+
+  @override
+  Widget build(BuildContext context) {
+    final List<SavedHistoryEntry> history = _repository.getHistory();
+    final int todayCount = history.where((SavedHistoryEntry entry) {
+      return entry.occurredAtLabel.toLowerCase().contains('today');
+    }).length;
+    final int reflectionCount = history.where((SavedHistoryEntry entry) {
+      return entry.kind == SavedHistoryKind.wroteNote;
+    }).length;
+    final int readingCount = history.where((SavedHistoryEntry entry) {
+      return entry.kind == SavedHistoryKind.readChapter ||
+          entry.kind == SavedHistoryKind.viewedVerse ||
+          entry.kind == SavedHistoryKind.openedPlanDay;
+    }).length;
+
+    return TabScreenScaffold(
+      title: 'History',
+      subtitle: 'Saved',
+      showBackButton: true,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Recent activity history',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'A gentle memory of where you have been in the app',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'History should help the user return to meaningful reading moments without making the app feel noisy or over-tracked.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: <Widget>[
+                    _SummaryPill(label: 'Entries', value: '${history.length}'),
+                    _SummaryPill(label: 'Today', value: '$todayCount'),
+                    _SummaryPill(label: 'Reading', value: '$readingCount'),
+                    _SummaryPill(
+                      label: 'Reflections',
+                      value: '$reflectionCount',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SavedInfoCard(
+            title: 'Why history matters in V1',
+            subtitle:
+                'This keeps history useful even before real persistence and sync are added.',
+            icon: Icons.history_rounded,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _HistoryBullet(
+                  text:
+                      'It helps the user return to verses, reading sessions, and plan days worth revisiting.',
+                ),
+                _HistoryBullet(
+                  text:
+                      'It can later become a smarter resume layer without changing the screen structure.',
+                ),
+                _HistoryBullet(
+                  text:
+                      'The tone stays reflective instead of making activity feel overly quantified.',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Recent entries', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.md),
+          ...history.map(
+            (SavedHistoryEntry entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _SavedHistoryCard(entry: entry),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SavedHistoryCard extends StatelessWidget {
+  const _SavedHistoryCard({required this.entry});
+
+  final SavedHistoryEntry entry;
+
+  IconData get _icon {
+    switch (entry.kind) {
+      case SavedHistoryKind.viewedVerse:
+        return Icons.wb_sunny_outlined;
+      case SavedHistoryKind.readChapter:
+        return Icons.menu_book_outlined;
+      case SavedHistoryKind.openedPlanDay:
+        return Icons.event_note_outlined;
+      case SavedHistoryKind.savedVerse:
+        return Icons.bookmark_outline_rounded;
+      case SavedHistoryKind.wroteNote:
+        return Icons.edit_note_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(_icon, color: AppColors.primary),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _MiniBadge(label: entry.sourceLabel),
+                    _MiniBadge(label: entry.occurredAtLabel),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  entry.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  entry.reference,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  entry.detail,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummaryPill extends StatelessWidget {
   const _SummaryPill({required this.label, required this.value});
 
@@ -330,6 +514,59 @@ class _SummaryPill extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MiniBadge extends StatelessWidget {
+  const _MiniBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryBullet extends StatelessWidget {
+  const _HistoryBullet({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Icon(Icons.circle, size: 8, color: AppColors.accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+        ],
       ),
     );
   }

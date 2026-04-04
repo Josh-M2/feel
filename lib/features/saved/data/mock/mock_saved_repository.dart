@@ -151,6 +151,71 @@ class MockSavedRepository {
     ];
   }
 
+  List<SavedHistoryEntry> getHistory() {
+    return const <SavedHistoryEntry>[
+      SavedHistoryEntry(
+        id: 'hist_1',
+        title: 'Opened today’s verse',
+        reference: 'Philippians 4:6–7',
+        detail:
+            'You revisited the daily verse and opened its context after reading the encouragement summary.',
+        occurredAtLabel: 'Today • 7:03 AM',
+        sourceLabel: 'Today tab',
+        kind: SavedHistoryKind.viewedVerse,
+      ),
+      SavedHistoryEntry(
+        id: 'hist_2',
+        title: 'Read a chapter',
+        reference: 'John 3',
+        detail:
+            'You continued reading in John and opened the chapter on new birth and God’s love.',
+        occurredAtLabel: 'Today • 6:41 AM',
+        sourceLabel: 'Read tab',
+        kind: SavedHistoryKind.readChapter,
+      ),
+      SavedHistoryEntry(
+        id: 'hist_3',
+        title: 'Opened a plan day',
+        reference: 'Peace When Anxiety Feels Loud • Day 3',
+        detail:
+            'You resumed the current plan and revisited the focus on a mind stayed on God.',
+        occurredAtLabel: 'Yesterday • 8:15 PM',
+        sourceLabel: 'Plans tab',
+        kind: SavedHistoryKind.openedPlanDay,
+      ),
+      SavedHistoryEntry(
+        id: 'hist_4',
+        title: 'Saved a verse',
+        reference: 'Isaiah 26:3',
+        detail:
+            'You bookmarked this verse after reading it as part of your peace-related content flow.',
+        occurredAtLabel: 'Yesterday • 7:48 PM',
+        sourceLabel: 'Saved tab',
+        kind: SavedHistoryKind.savedVerse,
+      ),
+      SavedHistoryEntry(
+        id: 'hist_5',
+        title: 'Wrote a private note',
+        reference: 'John 15:5',
+        detail:
+            'You updated a reflection about purpose, pressure, and abiding in Christ.',
+        occurredAtLabel: '3 days ago',
+        sourceLabel: 'Saved tab',
+        kind: SavedHistoryKind.wroteNote,
+      ),
+      SavedHistoryEntry(
+        id: 'hist_6',
+        title: 'Read a psalm',
+        reference: 'Psalm 23',
+        detail:
+            'You opened Psalm 23 and spent time in the section about God’s presence in the valley.',
+        occurredAtLabel: '1 week ago',
+        sourceLabel: 'Read tab',
+        kind: SavedHistoryKind.readChapter,
+      ),
+    ];
+  }
+
   SavedLibrarySummary getSummary() {
     return SavedLibrarySummary(
       bookmarkCount: getBookmarks().length,

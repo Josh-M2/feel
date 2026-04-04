@@ -241,14 +241,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
               ),
               GoRoute(
                 path: AppRoutes.plansProgress,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'Progress',
-                  subtitle: 'Plans',
-                  description:
-                      'Displays streaks, completion pacing, and visual progress without turning the app into pressure-heavy productivity software.',
-                  tags: <String>['Progress', 'Gentle pacing', 'Streaks later'],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const PlansProgressScreen(),
               ),
             ],
           ),
@@ -269,18 +262,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
               ),
               GoRoute(
                 path: AppRoutes.savedHistory,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'History',
-                  subtitle: 'Saved',
-                  description:
-                      'A lightweight reading and interaction history view that remains useful even in guest-first mode.',
-                  tags: <String>[
-                    'Reading history',
-                    'Guest-first',
-                    'Recent activity',
-                  ],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const SavedHistoryScreen(),
               ),
             ],
           ),
