@@ -12,8 +12,8 @@ import '../../features/foundation/presentation/screens/placeholder_screens.dart'
         SavedBookmarksScreen,
         SettingsHomeScreen,
         ProfileOverviewScreen,
-        SupportCoffeeScreen,
         SupportMaintenanceFundScreen,
+        SupportCoffeeScreen,
         SupportHomeScreen;
 import '../../features/global_profile/presentation/screens/global_profile_screens.dart';
 import '../../features/global_settings/presentation/screens/global_settings_screens.dart';
@@ -116,33 +116,11 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
               ),
               GoRoute(
                 path: AppRoutes.todayVerseAiExplain,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'AI explain',
-                  subtitle: 'Today',
-                  description:
-                      'LLM stays support-only here: explain, simplify, and guide reflection without choosing scripture truth.',
-                  tags: <String>[
-                    'Support-only AI',
-                    'Plain-language explanation',
-                    'Reflection prompt',
-                  ],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const TodayVerseAiExplainScreen(),
               ),
               GoRoute(
                 path: AppRoutes.todaySharePreview,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'Share preview',
-                  subtitle: 'Today',
-                  description:
-                      'Preview how a verse card share will look before exporting or sharing later in the product.',
-                  tags: <String>[
-                    'Share card',
-                    'Preview layout',
-                    'Rounded visual style',
-                  ],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const TodaySharePreviewScreen(),
               ),
             ],
           ),
