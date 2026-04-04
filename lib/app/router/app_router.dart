@@ -4,17 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../bootstrap/app_bootstrap_controller.dart';
 import '../shell/main_tab_shell.dart';
 import 'app_routes.dart';
-import '../../features/foundation/presentation/screens/placeholder_screens.dart'
-    hide
-        TodayHomeScreen,
-        ReadBooksScreen,
-        PlansListScreen,
-        SavedBookmarksScreen,
-        SettingsHomeScreen,
-        ProfileOverviewScreen,
-        SupportMaintenanceFundScreen,
-        SupportCoffeeScreen,
-        SupportHomeScreen;
 import '../../features/global_profile/presentation/screens/global_profile_screens.dart';
 import '../../features/global_settings/presentation/screens/global_settings_screens.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screens.dart';
@@ -158,33 +147,11 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
               ),
               GoRoute(
                 path: AppRoutes.readReferenceSearch,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'Reference search',
-                  subtitle: 'Read',
-                  description:
-                      'Search by verse reference first in V1, with a clean input flow and calm result presentation.',
-                  tags: <String>[
-                    'Reference search',
-                    'Direct lookup',
-                    'Fast access',
-                  ],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const ReadReferenceSearchScreen(),
               ),
               GoRoute(
                 path: AppRoutes.readContinueReading,
-                builder: (context, state) => const PlaceholderTabRouteScreen(
-                  title: 'Continue reading',
-                  subtitle: 'Read',
-                  description:
-                      'A simple entry back into the user’s most recent reading context and chapter flow.',
-                  tags: <String>[
-                    'Resume context',
-                    'Progress cue',
-                    'Lightweight memory',
-                  ],
-                  showBackButton: true,
-                ),
+                builder: (context, state) => const ReadContinueReadingScreen(),
               ),
             ],
           ),
