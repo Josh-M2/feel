@@ -27,7 +27,7 @@ class SavedBookmarksScreen extends StatelessWidget {
 
     return TabScreenScaffold(
       title: 'Saved',
-      subtitle: 'Bookmarks, notes, reflections, and history',
+      subtitle: 'Bookmarks, highlights, notes, and history',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -44,14 +44,14 @@ class SavedBookmarksScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'A calm place for verses worth returning to',
+                  'A calm place to return to verses that stayed with you',
                   style: Theme.of(
                     context,
                   ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Saved is structured to remain useful in guest-first mode now, while staying ready for optional sync later.',
+                  'Keep important verses, highlights, and reflections together in one simple space.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -77,7 +77,7 @@ class SavedBookmarksScreen extends StatelessWidget {
           SavedInfoCard(
             title: 'Quick routes',
             subtitle:
-                'Bookmarks acts as the entry view, while Highlights and Notes become focused library screens.',
+                'Move easily between bookmarks, highlights, notes, and recent activity.',
             icon: Icons.auto_awesome_outlined,
             child: Column(
               children: <Widget>[
@@ -101,18 +101,17 @@ class SavedBookmarksScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () => context.push(AppRoutes.savedHistory),
-                    child: const Text('Open history route'),
+                    child: const Text('Open history'),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
           if (pinnedNotes.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.lg),
             SavedInfoCard(
               title: 'Pinned reflections',
-              subtitle:
-                  'A lightweight way to surface the notes most worth revisiting.',
+              subtitle: 'A few thoughts worth returning to again and again.',
               icon: Icons.push_pin_outlined,
               child: Column(
                 children: pinnedNotes
@@ -126,8 +125,8 @@ class SavedBookmarksScreen extends StatelessWidget {
                     .toList(),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
           ],
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'Recent bookmarks',
             style: Theme.of(context).textTheme.titleLarge,
@@ -162,9 +161,9 @@ class SavedHighlightsScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SavedInfoCard(
-            title: 'Highlights library',
+            title: 'Highlighted verses',
             subtitle:
-                'This screen keeps highlighted phrases readable and reflection-aware instead of feeling like raw marked text.',
+                'Use highlights to return to the lines that stayed with you most.',
             icon: Icons.highlight_alt_rounded,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +180,7 @@ class SavedHighlightsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'In a later phase, these can become real filters without changing the layout structure.',
+                  'Highlights can help you revisit a passage quickly and remember what first drew your attention.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -200,7 +199,7 @@ class SavedHighlightsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related route',
+                  'Keep going',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -241,12 +240,12 @@ class SavedNotesScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SavedInfoCard(
-            title: 'Private verse reflections',
+            title: 'Private reflections',
             subtitle:
-                'Notes stay connected to scripture and remain readable even before sync, folders, or richer journaling features exist.',
+                'A quiet place to keep personal thoughts connected to scripture.',
             icon: Icons.edit_note_rounded,
             child: Text(
-              'This screen is shaped to support timestamped, editable reflections later while already feeling calm and personal now.',
+              'Notes can help turn reading into something more personal, memorable, and prayerful.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
@@ -276,7 +275,7 @@ class SavedNotesScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related route',
+                  'Keep going',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -301,20 +300,26 @@ class SavedHistoryScreen extends StatelessWidget {
 
   static const MockSavedRepository _repository = MockSavedRepository();
 
+  IconData _iconForKind(SavedHistoryKind kind) {
+    switch (kind) {
+      case SavedHistoryKind.verseViewed:
+        return Icons.visibility_outlined;
+      case SavedHistoryKind.chapterRead:
+        return Icons.menu_book_outlined;
+      case SavedHistoryKind.planOpened:
+        return Icons.event_note_outlined;
+      case SavedHistoryKind.bookmarkSaved:
+        return Icons.bookmark_border_rounded;
+      case SavedHistoryKind.highlightSaved:
+        return Icons.highlight_alt_rounded;
+      case SavedHistoryKind.noteWritten:
+        return Icons.edit_note_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<SavedHistoryEntry> history = _repository.getHistory();
-    final int todayCount = history.where((SavedHistoryEntry entry) {
-      return entry.occurredAtLabel.toLowerCase().contains('today');
-    }).length;
-    final int reflectionCount = history.where((SavedHistoryEntry entry) {
-      return entry.kind == SavedHistoryKind.wroteNote;
-    }).length;
-    final int readingCount = history.where((SavedHistoryEntry entry) {
-      return entry.kind == SavedHistoryKind.readChapter ||
-          entry.kind == SavedHistoryKind.viewedVerse ||
-          entry.kind == SavedHistoryKind.openedPlanDay;
-    }).length;
+    final List<SavedHistoryEntry> entries = _repository.getHistory();
 
     return TabScreenScaffold(
       title: 'History',
@@ -323,154 +328,55 @@ class SavedHistoryScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Recent activity history',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'A gentle memory of where you have been in the app',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontSize: 30),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'History should help the user return to meaningful reading moments without making the app feel noisy or over-tracked.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: <Widget>[
-                    _SummaryPill(label: 'Entries', value: '${history.length}'),
-                    _SummaryPill(label: 'Today', value: '$todayCount'),
-                    _SummaryPill(label: 'Reading', value: '$readingCount'),
-                    _SummaryPill(
-                      label: 'Reflections',
-                      value: '$reflectionCount',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
           SavedInfoCard(
-            title: 'Why history matters in V1',
+            title: 'Recent activity',
             subtitle:
-                'This keeps history useful even before real persistence and sync are added.',
+                'A simple timeline of where you have been reading, saving, and reflecting.',
             icon: Icons.history_rounded,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _HistoryBullet(
-                  text:
-                      'It helps the user return to verses, reading sessions, and plan days worth revisiting.',
-                ),
-                _HistoryBullet(
-                  text:
-                      'It can later become a smarter resume layer without changing the screen structure.',
-                ),
-                _HistoryBullet(
-                  text:
-                      'The tone stays reflective instead of making activity feel overly quantified.',
-                ),
-              ],
+            child: Text(
+              'Use this to quickly remember the verses, notes, and reading moments you have revisited recently.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Recent entries', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.md),
-          ...history.map(
+          ...entries.map(
             (SavedHistoryEntry entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _SavedHistoryCard(entry: entry),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SavedHistoryCard extends StatelessWidget {
-  const _SavedHistoryCard({required this.entry});
-
-  final SavedHistoryEntry entry;
-
-  IconData get _icon {
-    switch (entry.kind) {
-      case SavedHistoryKind.viewedVerse:
-        return Icons.wb_sunny_outlined;
-      case SavedHistoryKind.readChapter:
-        return Icons.menu_book_outlined;
-      case SavedHistoryKind.openedPlanDay:
-        return Icons.event_note_outlined;
-      case SavedHistoryKind.savedVerse:
-        return Icons.bookmark_outline_rounded;
-      case SavedHistoryKind.wroteNote:
-        return Icons.edit_note_rounded;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-            ),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Icon(_icon, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    _MiniBadge(label: entry.sourceLabel),
-                    _MiniBadge(label: entry.occurredAtLabel),
-                  ],
+              padding: const EdgeInsets.only(bottom: 12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(AppRadii.xl),
+                  border: Border.all(color: AppColors.border),
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  entry.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  entry.reference,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  leading: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                    ),
+                    child: SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Icon(
+                        _iconForKind(entry.kind),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    entry.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('${entry.subtitle} · ${entry.timeLabel}'),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  entry.detail,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -514,59 +420,6 @@ class _SummaryPill extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HistoryBullet extends StatelessWidget {
-  const _HistoryBullet({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Icon(Icons.circle, size: 8, color: AppColors.accent),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
-          ),
-        ],
       ),
     );
   }

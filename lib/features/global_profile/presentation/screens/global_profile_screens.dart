@@ -34,7 +34,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Current profile mode',
+                      'Current mode',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
@@ -43,7 +43,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       bootstrap.isGuestMode
-                          ? 'You are using the app in guest-first mode'
+                          ? 'You are using the app in guest mode'
                           : 'Your account mode is active',
                       style: Theme.of(
                         context,
@@ -51,7 +51,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Core Bible reading stays usable without forced login. Profile explains the current mode clearly and keeps future sync/account paths easy to understand.',
+                      'Core reading stays available without requiring a sign-in.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -79,16 +79,16 @@ class ProfileOverviewScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'Profile actions',
+                title: 'Profile options',
                 subtitle:
-                    'These routes help explain current app state and future optional account features.',
+                    'Manage how this device is being used and learn about optional account features.',
                 icon: Icons.person_outline_rounded,
                 child: Column(
                   children: <Widget>[
                     ProfileNavTile(
                       title: 'Auth status',
                       subtitle:
-                          'See whether you are in guest mode and what an account can add later.',
+                          'See whether you are currently using guest mode or account mode.',
                       icon: Icons.badge_outlined,
                       trailingLabel: _modeLabel,
                       onTap: () => context.push(AppRoutes.profileAuthStatus),
@@ -97,7 +97,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Data sync',
                       subtitle:
-                          'Understand what stays local now and what can sync later with optional sign-in.',
+                          'Understand what stays on this device and what account features can add later.',
                       icon: Icons.sync_outlined,
                       onTap: () => context.push(AppRoutes.profileDataSync),
                     ),
@@ -105,7 +105,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign in',
                       subtitle:
-                          'Future optional sign-in entry for cross-device sync.',
+                          'Learn about optional sign-in for backup and continuity.',
                       icon: Icons.login_rounded,
                       onTap: () => context.push(AppRoutes.profileSignIn),
                     ),
@@ -113,7 +113,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign up',
                       subtitle:
-                          'Future optional account creation path without blocking core app usage.',
+                          'See how an account can help if you want sync later on.',
                       icon: Icons.person_add_alt_1_rounded,
                       onTap: () => context.push(AppRoutes.profileSignUp),
                     ),
@@ -121,7 +121,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign out',
                       subtitle:
-                          'Review how sign-out should behave once optional account mode exists.',
+                          'Review how the app handles account and guest use on this device.',
                       icon: Icons.logout_rounded,
                       onTap: () => context.push(AppRoutes.profileSignOut),
                     ),
@@ -130,24 +130,24 @@ class ProfileOverviewScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'Why guest-first matters here',
+                title: 'Why guest-first matters',
                 subtitle:
-                    'This keeps the app aligned with your locked usage policy.',
+                    'The app is designed to stay simple and welcoming from the first open.',
                 icon: Icons.favorite_border_rounded,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Users can complete core reading flows without being blocked by login prompts.',
+                          'You can read, reflect, and explore plans without being blocked by login prompts.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Profile makes the current mode understandable instead of hidden or confusing.',
+                          'Optional account features can be added later without changing the core reading flow.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Optional account features can be introduced later without redesigning the shell.',
+                          'The experience stays calm and usable whether you sign in or not.',
                     ),
                   ],
                 ),
@@ -174,14 +174,14 @@ class AuthStatusScreen extends StatelessWidget {
 
         return GlobalScreenScaffold(
           title: 'Auth status',
-          subtitle: 'Current access mode and future account path',
+          subtitle: 'Current access mode',
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               ProfileInfoCard(
                 title: 'Current status',
                 subtitle:
-                    'This explains the current mode without pressuring the user into account creation.',
+                    'A simple view of how this device is being used right now.',
                 icon: Icons.verified_user_outlined,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -223,8 +223,8 @@ class AuthStatusScreen extends StatelessWidget {
                               const SizedBox(height: AppSpacing.sm),
                               Text(
                                 isGuest
-                                    ? 'You can keep using the core app without signing in.'
-                                    : 'Account-based features can build on this later.',
+                                    ? 'You can keep using the app normally without signing in.'
+                                    : 'Account features can help with continuity across devices.',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
@@ -237,48 +237,48 @@ class AuthStatusScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What guest mode includes',
+                title: 'Guest mode includes',
                 subtitle:
-                    'A transparent summary of what the user can already do right now.',
+                    'A clear summary of what is already available without an account.',
                 icon: Icons.check_circle_outline_rounded,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Browse scripture, daily verse flows, plans, and saved-library UI without forced login.',
+                          'Browse daily verses, reading plans, saved items, and settings without interruption.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Use local preferences like category choices and reminder time in the UI-first phase.',
+                          'Use category preferences and reminder time on this device.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Keep the experience simple before deciding whether sync is needed.',
+                          'Keep the experience simple while you decide whether sync matters to you.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What optional account mode can add later',
+                title: 'Optional account features',
                 subtitle:
-                    'This keeps the future value clear without turning it into a gate.',
+                    'An account is there for continuity, not as a gate to reading.',
                 icon: Icons.cloud_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Cross-device sync for bookmarks, highlights, notes, and preferences.',
+                          'Sync bookmarks, highlights, notes, and preferences across devices.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Backup and recovery for saved reflections and reading state.',
+                          'Keep your reading life easier to restore when you change devices.',
                     ),
                     _ProfileBullet(
                       text:
-                          'A smoother transition from guest use to persistent personal data later.',
+                          'Add continuity without taking away the guest-first experience.',
                     ),
                   ],
                 ),
@@ -289,7 +289,7 @@ class AuthStatusScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Future auth routes',
+                      'Related profile pages',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -333,7 +333,7 @@ class DataSyncScreen extends StatelessWidget {
 
         return GlobalScreenScaffold(
           title: 'Data sync',
-          subtitle: 'What is local now and what can sync later',
+          subtitle: 'This device and future account sync',
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -342,7 +342,7 @@ class DataSyncScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Current sync mode',
+                      'Current sync view',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
@@ -351,17 +351,15 @@ class DataSyncScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       isGuest
-                          ? 'Your current experience is local-first'
-                          : 'Your current experience can later support sync',
+                          ? 'Your reading setup is currently tied to this device'
+                          : 'Your account can support continuity across devices',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      isGuest
-                          ? 'In the current UI-first phase, your profile is not using real cross-device sync yet. This screen explains that clearly instead of pretending sync already exists.'
-                          : 'This screen is structured for future sync status messaging once account-backed storage is added.',
+                      'Bookmarks, notes, and preferences are easiest to keep together when the app can follow you from one device to another.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -371,7 +369,7 @@ class DataSyncScreen extends StatelessWidget {
                       children: <Widget>[
                         _SummaryPill(
                           label: 'Mode',
-                          value: isGuest ? 'Local-only' : 'Sync-ready',
+                          value: isGuest ? 'On this device' : 'Account-ready',
                         ),
                         _SummaryPill(
                           label: 'Prefs',
@@ -389,48 +387,48 @@ class DataSyncScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What is represented locally right now',
+                title: 'What stays close at hand',
                 subtitle:
-                    'These are the kinds of states already present in the UI-first phase.',
+                    'A simple picture of the things that matter most in day-to-day use.',
                 icon: Icons.phone_android_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Selected verse categories and daily reminder time.',
+                          'Category choices and reminder timing on this device.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Guest-first reading and settings flows across the app shell.',
+                          'Saved verses, highlights, and notes you return to most.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Saved-library UI structure that can later map to real local or remote storage.',
+                          'A reading flow that stays available even without signing in.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What sync can cover later',
+                title: 'What account features can add',
                 subtitle:
-                    'These are the natural next-step benefits once optional account sync is added.',
+                    'A simple picture of the continuity an account can support.',
                 icon: Icons.sync_rounded,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Bookmarks, highlights, notes, and reading progress across devices.',
+                          'Carry bookmarks, notes, and progress across devices.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Preferences and daily reminder settings that follow the user.',
+                          'Make it easier to return to your reading life after changing phones.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Backup and recovery for saved reflections and personal reading state.',
+                          'Keep the guest-first flow available while adding backup and continuity later.',
                     ),
                   ],
                 ),
@@ -441,7 +439,7 @@ class DataSyncScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Related routes',
+                      'Related profile pages',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -488,40 +486,31 @@ class SignInScreen extends StatelessWidget {
           ProfileInfoCard(
             title: 'Sign in is optional',
             subtitle:
-                'This route is polished for the current phase, but real auth is not wired yet.',
+                'You can keep using the app without interruption even if you never sign in.',
             icon: Icons.login_rounded,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Signing in will later be used for cross-device sync, backup, and continuity of saved content. It should never block core Bible reading.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {},
-                    child: const Text('Continue with future sign-in'),
-                  ),
-                ),
-              ],
+            child: Text(
+              'Sign in is mainly for people who want continuity, backup, and easier movement between devices.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           ProfileInfoCard(
-            title: 'What sign in will add later',
+            title: 'Why people sign in',
             icon: Icons.cloud_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _ProfileBullet(
-                  text: 'Sync bookmarks, highlights, notes, and progress.',
+                  text:
+                      'Keep bookmarks, highlights, notes, and preferences together.',
                 ),
-                _ProfileBullet(text: 'Recover saved data across devices.'),
                 _ProfileBullet(
                   text:
-                      'Keep guest-first reading available even before sign-in.',
+                      'Make it easier to return to your reading life on another device.',
+                ),
+                _ProfileBullet(
+                  text:
+                      'Add continuity without replacing the guest-first experience.',
                 ),
               ],
             ),
@@ -532,7 +521,7 @@ class SignInScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related profile routes',
+                  'Related profile pages',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -569,51 +558,38 @@ class SignUpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlobalScreenScaffold(
       title: 'Sign up',
-      subtitle: 'Create an optional account later',
+      subtitle: 'Create an optional account',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           ProfileInfoCard(
-            title: 'Account creation is not required',
+            title: 'An account is not required',
             subtitle:
-                'This screen explains the future role of sign-up without turning it into a gate.',
+                'Reading stays open and available whether you create an account or not.',
             icon: Icons.person_add_alt_1_rounded,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'A future account will mainly support sync, backup, and device continuity. The app should still remain usable without forcing account creation.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {},
-                    child: const Text('Continue with future sign-up'),
-                  ),
-                ),
-              ],
+            child: Text(
+              'An account is simply there for people who want their saved reading life to travel more easily with them.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           ProfileInfoCard(
-            title: 'Why this route exists now',
+            title: 'What an account can help with',
             icon: Icons.info_outline_rounded,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _ProfileBullet(
                   text:
-                      'It lets the future account flow feel intentional in the UI-first phase.',
+                      'Keep bookmarks, highlights, notes, and progress connected across devices.',
                 ),
                 _ProfileBullet(
                   text:
-                      'It prevents auth routes from feeling like missing pieces later.',
+                      'Make it easier to come back to your saved reflections later on.',
                 ),
                 _ProfileBullet(
                   text:
-                      'It stays consistent with the guest-first policy already locked for V1.',
+                      'Support continuity while keeping the app welcoming to guest users.',
                 ),
               ],
             ),
@@ -624,7 +600,7 @@ class SignUpScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related profile routes',
+                  'Related profile pages',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -663,57 +639,41 @@ class SignOutScreen extends StatelessWidget {
 
     return GlobalScreenScaffold(
       title: 'Sign out',
-      subtitle: 'Future account exit behavior',
+      subtitle: 'Account and guest use on this device',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           ProfileInfoCard(
-            title: isGuest ? 'No active account session' : 'Sign out preview',
+            title: isGuest
+                ? 'You are already in guest mode'
+                : 'Signed-in access',
             subtitle:
-                'This screen stays honest about current limitations in the UI-first phase.',
+                'A simple explanation of how the app handles account and guest use.',
             icon: Icons.logout_rounded,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  isGuest
-                      ? 'You are currently in guest mode, so there is no real account session to sign out from yet.'
-                      : 'This is where sign-out confirmation and sync-aware messaging will live once real auth exists.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {},
-                    child: Text(
-                      isGuest
-                          ? 'No active sign-out action yet'
-                          : 'Future sign-out action',
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              isGuest
+                  ? 'There is no account session to end right now, so you can simply keep reading in guest mode.'
+                  : 'Signing out should always leave the app calm, clear, and easy to keep using.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           ProfileInfoCard(
-            title: 'Future sign-out behavior',
+            title: 'What matters most here',
             icon: Icons.shield_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _ProfileBullet(
                   text:
-                      'Clarify what stays on-device and what remains synced remotely.',
+                      'The app should remain easy to use even after leaving account mode.',
+                ),
+                _ProfileBullet(
+                  text: 'Guest-first reading should stay available and clear.',
                 ),
                 _ProfileBullet(
                   text:
-                      'Allow users to return to guest-first reading without losing clarity.',
-                ),
-                _ProfileBullet(
-                  text:
-                      'Explain sync and saved-data expectations honestly before sign-out.',
+                      'Saved content and continuity should be explained simply and honestly.',
                 ),
               ],
             ),
@@ -724,7 +684,7 @@ class SignOutScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related profile routes',
+                  'Related profile pages',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),

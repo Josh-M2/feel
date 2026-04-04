@@ -26,7 +26,7 @@ class _BibleAppState extends State<BibleApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Bible App V1',
+      title: 'Feel',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: _router,

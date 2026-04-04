@@ -29,7 +29,7 @@ class ReadBooksScreen extends StatelessWidget {
 
     return TabScreenScaffold(
       title: 'Read',
-      subtitle: 'Books, chapters, references, and resume flow',
+      subtitle: 'Books, chapters, references, and resume reading',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -82,22 +82,22 @@ class ReadBooksScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
-            title: 'How the Read tab is shaped',
+            title: 'How to use Read',
             subtitle:
-                'Built for calm reading first, then later for real source integration and richer verse actions.',
+                'Browse books, jump to a chapter, or return to where you left off.',
             icon: Icons.menu_book_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _ReadBullet(
-                  text: 'Browse books in a calm, clean library-style flow.',
+                  text: 'Browse books in a calm, library-style flow.',
                 ),
                 _ReadBullet(
-                  text: 'Open a book detail page before jumping into reading.',
+                  text: 'Open a book before moving into chapter reading.',
                 ),
                 _ReadBullet(
                   text:
-                      'Enter chapter reading with space for later verse interactions.',
+                      'Use reference search when you already know where you want to go.',
                 ),
               ],
             ),
@@ -153,7 +153,7 @@ class ReadBookDetailScreen extends StatelessWidget {
                   children: <Widget>[
                     Chip(label: Text(book.testament)),
                     Chip(label: Text('${book.chapterCount} chapters')),
-                    Chip(label: const Text('Mock reading source')),
+                    const Chip(label: Text('Reading')),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -211,7 +211,7 @@ class ReadBookDetailScreen extends StatelessWidget {
           ReadInfoCard(
             title: 'Overview',
             subtitle:
-                'A simple book-level entry point before deeper reading features exist.',
+                'A short introduction to the book before you begin reading.',
             icon: Icons.description_outlined,
             child: Text(
               book.overview,
@@ -241,9 +241,8 @@ class ReadBookDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
-            title: 'Mock chapters available in this build',
-            subtitle:
-                'These are the chapters currently mocked for UI-first reading.',
+            title: 'Chapters in this reading set',
+            subtitle: 'Choose a chapter to begin or return to.',
             icon: Icons.view_list_outlined,
             child: Column(
               children: book.mockChapters
@@ -273,7 +272,7 @@ class ReadBookDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related routes',
+                  'More ways to continue',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -282,7 +281,7 @@ class ReadBookDetailScreen extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () =>
                         context.push(AppRoutes.readReferenceSearch),
-                    child: const Text('Open reference search'),
+                    child: const Text('Search by reference'),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -291,7 +290,7 @@ class ReadBookDetailScreen extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () =>
                         context.push(AppRoutes.readContinueReading),
-                    child: const Text('Open continue reading route'),
+                    child: const Text('Continue reading'),
                   ),
                 ),
               ],
@@ -344,7 +343,7 @@ class ChapterReadScreen extends StatelessWidget {
                   children: <Widget>[
                     Chip(label: Text(book.name)),
                     Chip(label: Text('Chapter ${chapter.number}')),
-                    const Chip(label: Text('KJV mock preview')),
+                    const Chip(label: Text('KJV')),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -373,8 +372,7 @@ class ChapterReadScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
             title: 'Reading focus',
-            subtitle:
-                'This keeps the reading calm and guided without becoming cluttered.',
+            subtitle: 'A single thought to carry through the chapter.',
             icon: Icons.center_focus_strong_outlined,
             child: Text(
               chapter.focusLine,
@@ -390,7 +388,7 @@ class ChapterReadScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
-            title: 'Next reading actions',
+            title: 'Keep reading',
             icon: Icons.auto_awesome_outlined,
             child: Column(
               children: <Widget>[
@@ -453,13 +451,26 @@ class ChapterReadScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Design note for later',
+                  'More ways to move through scripture',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'This screen is intentionally structured so real verse actions, highlights, notes, bookmarks, reading progress, translation switching, and source-backed text can be added later without changing the route shell.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () =>
+                        context.push(AppRoutes.readReferenceSearch),
+                    child: const Text('Search by reference'),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () =>
+                        context.push(AppRoutes.readContinueReading),
+                    child: const Text('Continue reading'),
+                  ),
                 ),
               ],
             ),
@@ -590,7 +601,7 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
           ReadInfoCard(
             title: 'Search by reference',
             subtitle:
-                'This screen is focused on direct scripture lookup in a calm, simple flow.',
+                'Go straight to a chapter by entering a book and chapter.',
             icon: Icons.search_rounded,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,9 +644,8 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
           const SizedBox(height: AppSpacing.lg),
           if (_query.trim().isEmpty)
             ReadInfoCard(
-              title: 'Quick reference ideas',
-              subtitle:
-                  'Start with a known chapter or familiar phrase from the current mock reading set.',
+              title: 'Quick references',
+              subtitle: 'Choose a familiar chapter to jump in right away.',
               icon: Icons.flash_on_outlined,
               child: Column(
                 children: <Widget>[
@@ -685,12 +695,12 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
             )
           else if (matches.isEmpty)
             ReadInfoCard(
-              title: 'No matching reference found',
+              title: 'No matching result',
               subtitle:
-                  'Try a book and chapter format like “John 3” or “Psalm 23”.',
+                  'Try another reference or choose one of the suggestions above.',
               icon: Icons.search_off_rounded,
               child: Text(
-                'The current UI-first mock source only contains a limited set of chapters, so some searches will not return results yet.',
+                'A short list of chapter suggestions is a good place to start if you are not sure where to go next.',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             )
@@ -698,7 +708,7 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
             ReadInfoCard(
               title: 'Search results',
               subtitle:
-                  '${matches.length} matching chapter${matches.length == 1 ? '' : 's'} in the current mock reading source.',
+                  '${matches.length} matching chapter${matches.length == 1 ? '' : 's'}.',
               icon: Icons.menu_book_outlined,
               child: Column(
                 children: matches
@@ -752,7 +762,7 @@ class ReadContinueReadingScreen extends StatelessWidget {
       _ContinueItem(
         book: _repository.getBookById('john'),
         chapter: _repository.getChapter(bookId: 'john', chapterNumber: 1),
-        label: 'Earlier session',
+        label: 'Earlier reading',
       ),
     ];
 
@@ -812,24 +822,23 @@ class ReadContinueReadingScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
-            title: 'How continue reading should feel',
-            subtitle:
-                'This route should feel calm and memory-friendly, not like a noisy activity log.',
+            title: 'Pick up again',
+            subtitle: 'A simple way to return to recent reading points.',
             icon: Icons.history_edu_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _ReadBullet(
                   text:
-                      'Make it easy to return to the last meaningful reading point.',
+                      'Return to the last chapter that was most recently opened.',
                 ),
                 _ReadBullet(
                   text:
-                      'Keep the choices limited and readable instead of overwhelming.',
+                      'Keep the choices few so the screen stays calm and easy to use.',
                 ),
                 _ReadBullet(
                   text:
-                      'Later, this can connect to real persisted reading history.',
+                      'Move back into reading without needing to search again.',
                 ),
               ],
             ),
@@ -837,8 +846,7 @@ class ReadContinueReadingScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           ReadInfoCard(
             title: 'Recent reading points',
-            subtitle:
-                'A small set of recent chapter entries based on the current mock reading flow.',
+            subtitle: 'A short list of meaningful places to return to.',
             icon: Icons.schedule_rounded,
             child: Column(
               children: recentItems
@@ -857,7 +865,7 @@ class ReadContinueReadingScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related Read routes',
+                  'More ways to continue',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -866,7 +874,7 @@ class ReadContinueReadingScreen extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () =>
                         context.push(AppRoutes.readReferenceSearch),
-                    child: const Text('Open reference search'),
+                    child: const Text('Search by reference'),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),

@@ -57,8 +57,7 @@ _SupportPreviewMetrics _supportMetrics(SupportState state) {
 
   return const _SupportPreviewMetrics(
     statusLabel: 'CLOSED',
-    caption:
-        'Maintenance support is currently closed because the monthly target is considered reached.',
+    caption: 'The monthly maintenance target has already been reached for now.',
     currentAmount: 500,
     targetAmount: 500,
     supporterCount: 26,
@@ -88,7 +87,7 @@ class SettingsHomeScreen extends StatelessWidget {
 
         return GlobalScreenScaffold(
           title: 'Settings',
-          subtitle: 'Content, notifications, widgets, support, and app info',
+          subtitle: 'Content, reminders, widgets, support, and app info',
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -97,7 +96,7 @@ class SettingsHomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Your current preferences',
+                      'Your preferences',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
@@ -105,14 +104,14 @@ class SettingsHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'A calm control center for how the app feels day to day',
+                      'A calm place to shape how the app feels day to day',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'In this UI-first phase, these settings already update local state so the screens feel real before backend wiring begins.',
+                      'Adjust reading themes, reminders, widget style, and support information in one place.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -129,8 +128,8 @@ class SettingsHomeScreen extends StatelessWidget {
                           value: bootstrap.dailyNotificationLabel,
                         ),
                         _SummaryPill(
-                          label: 'Notifications',
-                          value: notificationsEnabled ? 'Enabled' : 'Off',
+                          label: 'Reminders',
+                          value: notificationsEnabled ? 'On' : 'Off',
                         ),
                         _SummaryPill(
                           label: 'Support',
@@ -144,15 +143,14 @@ class SettingsHomeScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
                 title: 'Core settings',
-                subtitle:
-                    'These are the most important adjustable experiences for V1.',
+                subtitle: 'The main places to shape your reading experience.',
                 icon: Icons.tune_rounded,
                 child: Column(
                   children: <Widget>[
                     SettingsNavTile(
                       title: 'Content preferences',
                       subtitle:
-                          'Choose verse categories and view translation scope for the UI-first phase.',
+                          'Choose the verse categories you want to see most often.',
                       icon: Icons.auto_stories_outlined,
                       trailingLabel: '$categoryCount selected',
                       onTap: () =>
@@ -162,9 +160,9 @@ class SettingsHomeScreen extends StatelessWidget {
                     SettingsNavTile(
                       title: 'Notifications',
                       subtitle:
-                          'Control daily reminders and your selected delivery time.',
+                          'Choose whether reminders are on and when they appear.',
                       icon: Icons.notifications_none_rounded,
-                      trailingLabel: notificationsEnabled ? 'Enabled' : 'Off',
+                      trailingLabel: notificationsEnabled ? 'On' : 'Off',
                       onTap: () =>
                           context.push(AppRoutes.settingsNotifications),
                     ),
@@ -172,7 +170,7 @@ class SettingsHomeScreen extends StatelessWidget {
                     SettingsNavTile(
                       title: 'Widget preferences',
                       subtitle:
-                          'Preview and adjust how the daily verse widget should look.',
+                          'Choose how the daily verse looks on the widget.',
                       icon: Icons.widgets_outlined,
                       trailingLabel: _widgetStyleLabel(
                         bootstrap.widgetPreviewStyle,
@@ -187,7 +185,7 @@ class SettingsHomeScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Widget preview',
                 subtitle:
-                    'The widget is designed to stay aligned with the same daily assignment and daily-time rhythm as the app.',
+                    'A simple look at how the daily verse can appear on the widget.',
                 icon: Icons.widgets_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,15 +213,16 @@ class SettingsHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Support and transparency',
-                subtitle: 'Maintenance support stays optional and transparent.',
+                title: 'Support and information',
+                subtitle:
+                    'Support stays optional, and important app information stays easy to find.',
                 icon: Icons.favorite_border_rounded,
                 child: Column(
                   children: <Widget>[
                     SettingsNavTile(
                       title: 'Support',
                       subtitle:
-                          'Open the support hub for maintenance, transparency, and coffee state.',
+                          'See support availability, transparency, and coffee support.',
                       icon: Icons.volunteer_activism_outlined,
                       trailingLabel: _supportStateLabel(bootstrap.supportState),
                       onTap: () => context.push(AppRoutes.settingsSupportHome),
@@ -232,7 +231,7 @@ class SettingsHomeScreen extends StatelessWidget {
                     SettingsNavTile(
                       title: 'Privacy',
                       subtitle:
-                          'Review guest-first behavior and future sync/privacy information.',
+                          'Read how the app handles guest use and optional account features.',
                       icon: Icons.shield_outlined,
                       onTap: () => context.push(AppRoutes.settingsPrivacy),
                     ),
@@ -240,7 +239,7 @@ class SettingsHomeScreen extends StatelessWidget {
                     SettingsNavTile(
                       title: 'About',
                       subtitle:
-                          'Mission, app version, scripture source notes, and app philosophy.',
+                          'Read the mission, direction, and heart behind the app.',
                       icon: Icons.info_outline_rounded,
                       onTap: () => context.push(AppRoutes.settingsAbout),
                     ),
@@ -269,14 +268,14 @@ class ContentPreferencesScreen extends StatelessWidget {
 
         return GlobalScreenScaffold(
           title: 'Content preferences',
-          subtitle: 'Category choices and content scope',
+          subtitle: 'Category choices and reading focus',
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SettingsInfoCard(
                 title: 'Verse categories',
                 subtitle:
-                    'These preferences help shape which daily verse themes feel most relevant for the user.',
+                    'Choose the themes you would like to see more often in daily reading.',
                 icon: Icons.local_offer_outlined,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +295,7 @@ class ContentPreferencesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'At least one category stays selected so the daily verse flow always has a valid preference base.',
+                      'Keep at least one category selected so daily reading always has a direction to draw from.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -304,9 +303,9 @@ class ContentPreferencesScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Current selection preview',
+                title: 'Current selection',
                 subtitle:
-                    'A quick summary of the categories currently shaping the local UI-first experience.',
+                    'A quick view of the themes guiding your reading right now.',
                 icon: Icons.visibility_outlined,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,9 +330,9 @@ class ContentPreferencesScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Translation scope for V1',
+                title: 'Reading source',
                 subtitle:
-                    'This keeps the product aligned with your locked source rules during the UI-first phase.',
+                    'A simple note about the reading source used throughout the app.',
                 icon: Icons.translate_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,13 +342,12 @@ class ContentPreferencesScreen extends StatelessWidget {
                       runSpacing: 8,
                       children: const <Widget>[
                         Chip(label: Text('Public-domain Bible source')),
-                        Chip(label: Text('Mock translation preview')),
-                        Chip(label: Text('NLT out of scope')),
+                        Chip(label: Text('KJV reading style')),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'For now, this screen communicates scope clearly and keeps the UI ready for later allowed translation options without implying unsupported source choices.',
+                      'This helps keep daily reading and chapter reading consistent.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -393,17 +391,17 @@ class NotificationsSettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SettingsInfoCard(
-                title: 'Daily reminder',
+                title: 'Daily reminders',
                 subtitle:
-                    'Notifications stay optional and should never block core Bible usage.',
+                    'Choose whether daily reminders are part of your reading rhythm.',
                 icon: Icons.notifications_active_outlined,
                 child: Column(
                   children: <Widget>[
                     _SettingsSwitchRow(
                       title: 'Enable daily verse reminders',
                       subtitle: enabled
-                          ? 'Reminders are currently enabled in local app state.'
-                          : 'Reminders are currently off in local app state.',
+                          ? 'Daily reminders are currently on.'
+                          : 'Daily reminders are currently off.',
                       value: enabled,
                       onChanged: bootstrap.setNotificationsEnabled,
                     ),
@@ -414,7 +412,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Reminder time',
                 subtitle:
-                    'This selected time will later align with both the in-app daily verse and the widget.',
+                    'Choose the time that best fits your usual reading rhythm.',
                 icon: Icons.schedule_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,8 +462,8 @@ class NotificationsSettingsScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.lg),
                     Text(
                       enabled
-                          ? 'The reminder time is active in your current local preferences.'
-                          : 'You can still set a time now so the flow feels ready even before enabling reminders.',
+                          ? 'This time will be used for your daily reminder.'
+                          : 'You can still choose a time now and turn reminders on whenever you are ready.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -473,24 +471,24 @@ class NotificationsSettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'V1 notification behavior',
+                title: 'How reminders fit in',
                 subtitle:
-                    'This clarifies the intended user experience during the UI-first phase.',
+                    'A gentle reminder flow works best when it supports reading rather than interrupting it.',
                 icon: Icons.info_outline_rounded,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _SettingsBullet(
                       text:
-                          'Notification permission remains optional and skippable.',
+                          'Reminders should make it easier to return to scripture, not create pressure.',
                     ),
                     _SettingsBullet(
                       text:
-                          'Daily verse timing should stay aligned across app, notification, and widget.',
+                          'Daily timing works best when it matches your natural reading rhythm.',
                     ),
                     _SettingsBullet(
                       text:
-                          'This screen currently updates local preview state only, not real OS notification delivery.',
+                          'The daily verse and the reminder time are designed to stay aligned.',
                     ),
                   ],
                 ),
@@ -520,14 +518,14 @@ class WidgetPreferencesScreen extends StatelessWidget {
 
         return GlobalScreenScaffold(
           title: 'Widget preferences',
-          subtitle: 'Preview and display behavior',
+          subtitle: 'Style and display choices',
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SettingsInfoCard(
                 title: 'Widget preview',
                 subtitle:
-                    'This preview is driven by your local settings so the UI feels real before OS widget wiring exists.',
+                    'See how the daily verse can look with your current widget settings.',
                 icon: Icons.widgets_outlined,
                 child: WidgetPreviewCard(
                   sample: widgetSample,
@@ -542,8 +540,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
                 title: 'Display style',
-                subtitle:
-                    'Keep the widget calm and readable with a small number of meaningful visual choices.',
+                subtitle: 'Choose the look that feels most readable to you.',
                 icon: Icons.palette_outlined,
                 child: SegmentedButton<WidgetPreviewStyle>(
                   showSelectedIcon: false,
@@ -568,8 +565,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
                 title: 'Display elements',
-                subtitle:
-                    'These toggles control what appears in the widget preview.',
+                subtitle: 'Choose which details appear alongside the verse.',
                 icon: Icons.view_compact_alt_outlined,
                 child: Column(
                   children: <Widget>[
@@ -591,8 +587,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     _SettingsSwitchRow(
                       title: 'Show date marker',
-                      subtitle:
-                          'Display a small “today” marker in the widget preview.',
+                      subtitle: 'Display a small “today” marker in the widget.',
                       value: bootstrap.widgetShowDate,
                       onChanged: bootstrap.setWidgetShowDate,
                     ),
@@ -601,9 +596,9 @@ class WidgetPreferencesScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Alignment with daily verse timing',
+                title: 'Daily timing',
                 subtitle:
-                    'The widget should remain tied to the same daily assignment logic as the app.',
+                    'The widget follows the same daily reading rhythm used by the rest of the app.',
                 icon: Icons.schedule_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,32 +648,8 @@ class WidgetPreferencesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'The real widget should update in step with the same daily verse timing used by the app and notifications.',
+                      'Keeping the widget in step with your daily reminder makes it easier to return to the same verse throughout the day.',
                       style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SettingsInfoCard(
-                title: 'V1 widget scope',
-                subtitle:
-                    'This keeps the screen honest about what exists now and what comes later.',
-                icon: Icons.info_outline_rounded,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _SettingsBullet(
-                      text:
-                          'This screen controls local preview state only in the UI-first phase.',
-                    ),
-                    _SettingsBullet(
-                      text:
-                          'Real home-screen widget installation and OS sync are still future work.',
-                    ),
-                    _SettingsBullet(
-                      text:
-                          'The preview is intentionally aligned to the same daily assignment concept used in the app.',
                     ),
                   ],
                 ),
@@ -717,38 +688,21 @@ class SupportHomeScreen extends StatelessWidget {
                     ? 'Maintenance support is currently open'
                     : 'Maintenance support is currently closed',
                 subtitle:
-                    'The support flow should react meaningfully to the current preview state without pretending payment is already implemented.',
+                    'Support remains optional and never changes what the app unlocks.',
                 icon: Icons.volunteer_activism_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    SupportProgressCard(
-                      statusLabel: metrics.statusLabel,
-                      caption: metrics.caption,
-                      currentAmount: metrics.currentAmount,
-                      targetAmount: metrics.targetAmount,
-                      supporterCount: metrics.supporterCount,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: bootstrap.toggleSupportState,
-                        child: Text(
-                          isOpen
-                              ? 'Preview CLOSED state'
-                              : 'Preview OPEN state',
-                        ),
-                      ),
-                    ),
-                  ],
+                child: SupportProgressCard(
+                  statusLabel: metrics.statusLabel,
+                  caption: metrics.caption,
+                  currentAmount: metrics.currentAmount,
+                  targetAmount: metrics.targetAmount,
+                  supporterCount: metrics.supporterCount,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
                 title: 'Current support path',
                 subtitle:
-                    'This changes based on whether maintenance support is open or closed.',
+                    'Support visibility changes depending on whether the monthly maintenance goal is open or closed.',
                 icon: Icons.account_tree_outlined,
                 child: Column(
                   children: <Widget>[
@@ -756,7 +710,7 @@ class SupportHomeScreen extends StatelessWidget {
                       SettingsNavTile(
                         title: 'Maintenance fund',
                         subtitle:
-                            'This is the active optional support path while maintenance support is open.',
+                            'This is the current support path while maintenance support is open.',
                         icon: Icons.savings_outlined,
                         trailingLabel: 'OPEN',
                         onTap: () => context.push(
@@ -767,9 +721,9 @@ class SupportHomeScreen extends StatelessWidget {
                       SettingsNavTile(
                         title: 'Buy me a coffee',
                         subtitle:
-                            'This becomes the visible optional support path when maintenance support is closed.',
+                            'This becomes the visible support path when the maintenance goal has been reached.',
                         icon: Icons.coffee_outlined,
-                        trailingLabel: 'VISIBLE',
+                        trailingLabel: 'AVAILABLE',
                         onTap: () =>
                             context.push(AppRoutes.settingsSupportCoffee),
                       ),
@@ -777,7 +731,7 @@ class SupportHomeScreen extends StatelessWidget {
                     SettingsNavTile(
                       title: 'Support transparency',
                       subtitle:
-                          'This page stays visible regardless of support state.',
+                          'This page stays available so the current support state is always easy to understand.',
                       icon: Icons.receipt_long_outlined,
                       trailingLabel: 'ALWAYS',
                       onTap: () =>
@@ -789,15 +743,14 @@ class SupportHomeScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
                 title: 'Support rules',
-                subtitle:
-                    'These stay locked no matter which support state is active.',
+                subtitle: 'The support flow stays simple and transparent.',
                 icon: Icons.rule_folder_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _SettingsBullet(
                       text:
-                          'Support is optional and never tied to feature unlocks.',
+                          'Support is optional and never tied to feature access.',
                     ),
                     _SettingsBullet(
                       text:
@@ -805,7 +758,7 @@ class SupportHomeScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'Transparency stays visible even when maintenance support is closed.',
+                          'Transparency stays visible whether support is open or closed.',
                     ),
                   ],
                 ),
@@ -839,9 +792,8 @@ class SupportTransparencyScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SettingsInfoCard(
-                title: 'Current monthly preview',
-                subtitle:
-                    'This screen is always visible so users can understand the current support state clearly.',
+                title: 'Current monthly support view',
+                subtitle: 'A simple summary of the current support state.',
                 icon: Icons.receipt_long_outlined,
                 child: SupportProgressCard(
                   statusLabel: metrics.statusLabel,
@@ -853,8 +805,9 @@ class SupportTransparencyScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'What this page should explain',
-                subtitle: 'The purpose is transparency, not sales pressure.',
+                title: 'What this page explains',
+                subtitle:
+                    'Transparency is here to make the support flow easy to understand.',
                 icon: Icons.visibility_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -865,24 +818,13 @@ class SupportTransparencyScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'What the monthly target represents at a high level.',
+                          'How the monthly target affects support visibility.',
                     ),
                     _SettingsBullet(
                       text:
-                          'Why coffee support appears only when maintenance support is closed.',
+                          'Why coffee support is shown only when the maintenance goal has already been reached.',
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SettingsInfoCard(
-                title: 'Current UI-first limitation',
-                subtitle:
-                    'This keeps the screen honest during the current phase.',
-                icon: Icons.info_outline_rounded,
-                child: Text(
-                  'The figures shown here are local preview values for UI development. Real totals, processing, and verification are still future work.',
-                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
             ],
@@ -916,41 +858,24 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
             children: <Widget>[
               SettingsInfoCard(
                 title: isOpen
-                    ? 'Maintenance fund is available'
-                    : 'Maintenance fund is currently closed',
+                    ? 'Maintenance support is available'
+                    : 'Maintenance support is currently closed',
                 subtitle:
-                    'This screen behaves like a real support surface, but remains honest that payment flow is not yet implemented.',
+                    'This support path opens and closes with the monthly maintenance target.',
                 icon: Icons.savings_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    SupportProgressCard(
-                      statusLabel: metrics.statusLabel,
-                      caption: metrics.caption,
-                      currentAmount: metrics.currentAmount,
-                      targetAmount: metrics.targetAmount,
-                      supporterCount: metrics.supporterCount,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: isOpen ? () {} : null,
-                        child: Text(
-                          isOpen
-                              ? 'Future maintenance support action'
-                              : 'Maintenance support closed',
-                        ),
-                      ),
-                    ),
-                  ],
+                child: SupportProgressCard(
+                  statusLabel: metrics.statusLabel,
+                  caption: metrics.caption,
+                  currentAmount: metrics.currentAmount,
+                  targetAmount: metrics.targetAmount,
+                  supporterCount: metrics.supporterCount,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'What support is for',
+                title: 'What this support helps with',
                 subtitle:
-                    'The messaging should stay practical and transparent.',
+                    'The focus is on maintaining the app rather than creating access tiers.',
                 icon: Icons.build_circle_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -960,12 +885,11 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
                           'Support helps cover ongoing maintenance and core operating costs.',
                     ),
                     _SettingsBullet(
-                      text:
-                          'Support never unlocks app features or creates access tiers.',
+                      text: 'Support never unlocks extra product features.',
                     ),
                     _SettingsBullet(
                       text:
-                          'Once the monthly goal is considered reached, maintenance support should close.',
+                          'When the monthly target is reached, this support path closes for the rest of the cycle.',
                     ),
                   ],
                 ),
@@ -977,12 +901,12 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'When closed',
+                        'When it is closed',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'When maintenance support is closed, the coffee route becomes the visible optional support path instead.',
+                        'When the maintenance goal has already been reached, coffee support becomes the visible support path instead.',
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -1016,53 +940,36 @@ class SupportCoffeeScreen extends StatelessWidget {
 
     return GlobalScreenScaffold(
       title: 'Buy me a coffee',
-      subtitle: 'Visible when maintenance support is closed',
+      subtitle: 'A simple way to show appreciation',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SettingsInfoCard(
             title: isOpen
-                ? 'Coffee support should stay hidden in open state'
-                : 'Coffee support is the visible optional path right now',
+                ? 'Coffee support appears after maintenance support closes'
+                : 'Coffee support is currently available',
             subtitle:
-                'This screen still exists in development so you can design the route early.',
+                'This support path is shown once the monthly maintenance goal has already been reached.',
             icon: Icons.coffee_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  isOpen
-                      ? 'In the real product, coffee support should not be the visible support path while maintenance support is open.'
-                      : 'When maintenance support is closed, coffee support becomes the visible optional support route.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: !isOpen ? () {} : null,
-                    child: Text(
-                      isOpen
-                          ? 'Coffee support hidden in live flow'
-                          : 'Future coffee support action',
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              isOpen
+                  ? 'Maintenance support is the current visible path right now.'
+                  : 'Coffee support is a lighter, optional way to show appreciation once maintenance support is closed.',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SettingsInfoCard(
-            title: 'Why this route exists',
+            title: 'How it fits in',
             subtitle:
-                'It keeps the support system aligned with your locked state logic.',
+                'Coffee support stays simple and never changes what the app gives to the reader.',
             icon: Icons.info_outline_rounded,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _SettingsBullet(
                   text:
-                      'Coffee appears only when maintenance support is disabled or closed.',
+                      'Coffee support appears only when maintenance support is closed.',
                 ),
                 _SettingsBullet(
                   text:
@@ -1070,7 +977,7 @@ class SupportCoffeeScreen extends StatelessWidget {
                 ),
                 _SettingsBullet(
                   text:
-                      'The route can already be designed now without real payment integration.',
+                      'It is simply a small way to support the app after the monthly maintenance target has been met.',
                 ),
               ],
             ),
@@ -1090,63 +997,63 @@ class PrivacyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlobalScreenScaffold(
       title: 'Privacy',
-      subtitle: 'Guest-first and transparent',
+      subtitle: 'Guest-first and straightforward',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SettingsInfoCard(
-            title: 'Current privacy posture',
+            title: 'A simple privacy posture',
             subtitle:
-                'This screen stays honest about what exists in the UI-first phase.',
+                'The app is designed to stay readable, usable, and respectful of the person using it.',
             icon: Icons.shield_outlined,
             child: Text(
-              'The app is currently operating in a guest-first, local-preview phase. Real backend storage, cross-device sync, and final production privacy handling are not yet wired.',
+              'You can use the core reading experience without being forced into account creation first.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SettingsInfoCard(
-            title: 'What is true right now',
+            title: 'What matters most here',
             subtitle:
-                'A simple explanation of the current phase without overclaiming.',
+                'A simple picture of how the app is meant to feel in everyday use.',
             icon: Icons.visibility_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _SettingsBullet(
-                  text: 'Core reading flows do not require forced login.',
+                  text: 'Core reading stays available without forcing sign-in.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Current settings and preview states are local app state for UI development.',
+                      'Settings and reading flows are designed to stay clear and easy to manage.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Real sync, persistence, and production privacy details will be finalized later.',
+                      'Optional account features are there for continuity, not as a gate to scripture.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SettingsInfoCard(
-            title: 'Future privacy scope',
+            title: 'Account features later on',
             subtitle:
-                'This helps the user understand where the product is going later.',
+                'Optional account features are meant to support continuity and backup.',
             icon: Icons.lock_outline_rounded,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _SettingsBullet(
                   text:
-                      'Optional account mode can later support synced bookmarks, notes, and preferences.',
+                      'Carry bookmarks, highlights, notes, and preferences more easily across devices.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Privacy and sync behavior should remain transparent and never misleading.',
+                      'Keep the guest-first experience available even when account features are added.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Guest-first usage should remain possible without forcing account creation.',
+                      'Make the app easier to return to without making it harder to begin.',
                 ),
               ],
             ),
@@ -1166,62 +1073,62 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlobalScreenScaffold(
       title: 'About',
-      subtitle: 'Mission, scope, and current phase',
+      subtitle: 'Mission, direction, and heart',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SettingsInfoCard(
-            title: 'Bible App V1',
+            title: 'Bible App',
             subtitle:
-                'A calm, guest-first Bible experience with daily verses, reading flows, plans, saved reflections, and future widget support.',
+                'A calm, guest-first Bible experience with daily verses, reading flows, plans, saved reflections, and widget support.',
             icon: Icons.auto_stories_rounded,
             child: Text(
-              'This app is being shaped around a modern, cozy, and polished mobile experience that stays usable without forced login and keeps scripture central.',
+              'The app is shaped to feel warm, clear, and approachable while keeping scripture central.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SettingsInfoCard(
-            title: 'Locked V1 direction',
-            subtitle:
-                'A quick summary of what the product is intentionally aiming for.',
+            title: 'Core direction',
+            subtitle: 'A short summary of what the app is built around.',
             icon: Icons.flag_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _SettingsBullet(
-                  text: 'Guest-first usage with optional login later for sync.',
+                  text:
+                      'Guest-first reading with optional account features later on.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Daily personalized verse experience shaped by selected categories.',
+                      'Daily verses shaped by selected categories and a calm reading rhythm.',
                 ),
                 _SettingsBullet(
                   text:
-                      'Optional support that stays transparent and never unlocks features.',
+                      'Optional support that stays transparent and never changes what the app unlocks.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SettingsInfoCard(
-            title: 'Source and scope notes',
+            title: 'Reading source and scope',
             subtitle:
-                'This keeps the screen aligned with the current build rules.',
+                'A quick note about the reading direction used in this version.',
             icon: Icons.menu_book_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _SettingsBullet(
-                  text: 'V1 uses a public-domain Bible source, not NLT.',
+                  text: 'This version uses a public-domain Bible source.',
                 ),
                 _SettingsBullet(
                   text:
-                      'LLM is support-only for explanation and reflection, not for choosing scripture truth.',
+                      'AI is used to support explanation and reflection, while scripture stays central.',
                 ),
                 _SettingsBullet(
                   text:
-                      'The app is still in the UI/UX-first phase with dummy/local/mock state.',
+                      'The app is designed to be simple, readable, and easy to return to each day.',
                 ),
               ],
             ),

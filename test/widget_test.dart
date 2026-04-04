@@ -11,7 +11,7 @@ void main() {
 
     await tester.pumpWidget(BibleApp(bootstrap: bootstrap));
 
-    expect(find.text('Bible App V1'), findsOneWidget);
+    expect(find.text('Feel'), findsOneWidget);
     expect(
       find.text(
         'Calm, guest-first scripture reading with a modern cozy shell.',
@@ -33,7 +33,7 @@ void main() {
 
     await tester.pumpWidget(BibleApp(bootstrap: bootstrap));
 
-    expect(find.text('Bible App V1'), findsOneWidget);
+    expect(find.text('Feel'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 950));
     await tester.pumpAndSettle();

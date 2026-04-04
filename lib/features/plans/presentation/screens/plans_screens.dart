@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
@@ -11,7 +12,6 @@ import '../../domain/models/reading_plan.dart';
 import '../widgets/plan_day_focus_card.dart';
 import '../widgets/plan_info_card.dart';
 import '../widgets/plan_list_card.dart';
-import '../widgets/plan_progress_summary_card.dart';
 
 class PlansListScreen extends StatelessWidget {
   const PlansListScreen({super.key});
@@ -38,7 +38,7 @@ class PlansListScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Continue your current plan',
+                  'Continue your plan',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
@@ -85,24 +85,23 @@ class PlansListScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
-            title: 'How plans are framed in V1',
+            title: 'How plans are shaped',
             subtitle:
-                'The goal is encouragement and consistency, not pressure-heavy productivity.',
+                'Short, supportive reading rhythms that are easy to return to.',
             icon: Icons.event_note_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _PlanBullet(
-                  text:
-                      'Plans are short, approachable, and supportive for daily use.',
+                  text: 'Plans are designed to feel approachable and steady.',
                 ),
                 _PlanBullet(
                   text:
-                      'Progress language stays gentle and calm instead of stressful.',
+                      'Each day focuses on one main thought, one reflection, and one prayer prompt.',
                 ),
                 _PlanBullet(
                   text:
-                      'Each day keeps one main focus, one reflection prompt, and one prayer prompt.',
+                      'Progress is meant to encourage consistency without pressure.',
                 ),
               ],
             ),
@@ -218,7 +217,7 @@ class PlanDetailScreen extends StatelessWidget {
           PlanInfoCard(
             title: 'Overview',
             subtitle:
-                'A calm explanation of what the plan is meant to help with.',
+                'A short introduction to what this plan is meant to support.',
             icon: Icons.description_outlined,
             child: Text(
               plan.description,
@@ -237,16 +236,14 @@ class PlanDetailScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
             title: 'Current day focus',
-            subtitle:
-                'A quick preview of where the reader currently is in the plan.',
+            subtitle: 'A quick look at where you are right now in the plan.',
             icon: Icons.play_circle_outline_rounded,
             child: PlanDayFocusCard(day: currentDay),
           ),
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
             title: 'Days in this plan',
-            subtitle:
-                'Each day stays short and readable so the flow remains approachable.',
+            subtitle: 'Choose a day to continue or start from the beginning.',
             icon: Icons.view_list_outlined,
             child: Column(
               children: plan.days
@@ -277,7 +274,7 @@ class PlanDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related routes',
+                  'More ways to continue',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -285,7 +282,7 @@ class PlanDetailScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () => context.push(AppRoutes.plansProgress),
-                    child: const Text('Open progress route'),
+                    child: const Text('View progress'),
                   ),
                 ),
               ],
@@ -338,7 +335,7 @@ class PlanDayReadScreen extends StatelessWidget {
                   children: <Widget>[
                     Chip(label: Text(plan.title)),
                     Chip(label: Text('Day ${day.dayNumber}')),
-                    Chip(label: Text('${plan.durationDays} days total')),
+                    Chip(label: Text('${plan.durationDays} days')),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -364,8 +361,7 @@ class PlanDayReadScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
             title: 'Today’s focus',
-            subtitle:
-                'One main thought to carry through the reading instead of too many tasks.',
+            subtitle: 'One clear thought to carry through the reading.',
             icon: Icons.center_focus_strong_outlined,
             child: Text(
               day.focusLine,
@@ -375,8 +371,7 @@ class PlanDayReadScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
             title: 'Passage references',
-            subtitle:
-                'In this UI-first phase, references are shown cleanly and can later connect to full reading screens.',
+            subtitle: 'A simple set of passages for today’s reading.',
             icon: Icons.menu_book_outlined,
             child: Wrap(
               spacing: 8,
@@ -408,7 +403,7 @@ class PlanDayReadScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
-            title: 'Next reading actions',
+            title: 'Keep going',
             icon: Icons.auto_awesome_outlined,
             child: Column(
               children: <Widget>[
@@ -465,23 +460,6 @@ class PlanDayReadScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Design note for later',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'This screen is intentionally shaped so full passage reading, completion check-ins, note-saving, streaks, and real progress state can be added later without changing the route shell.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -496,23 +474,18 @@ class PlansProgressScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<ReadingPlan> plans = _repository.getPlans();
-    final int totalPlanCount = plans.length;
+    final int activePlans = plans.length;
     final int totalDays = plans.fold<int>(
       0,
-      (int sum, ReadingPlan plan) => sum + plan.durationDays,
+      (sum, plan) => sum + plan.durationDays,
     );
-    final int completedDays = plans.fold<int>(
+    final int currentDays = plans.fold<int>(
       0,
-      (int sum, ReadingPlan plan) =>
-          sum +
-          ((plan.currentDayNumber - 1) < 0 ? 0 : plan.currentDayNumber - 1),
+      (sum, plan) => sum + plan.currentDayNumber,
     );
-    final int activePlans = plans.where((ReadingPlan plan) {
-      return plan.currentDayNumber <= plan.durationDays;
-    }).length;
-    final int percent = totalDays == 0
+    final double overallProgress = totalDays == 0
         ? 0
-        : (((completedDays / totalDays) * 100).round().clamp(0, 100));
+        : (currentDays / totalDays).clamp(0, 1);
 
     return TabScreenScaffold(
       title: 'Progress',
@@ -526,7 +499,7 @@ class PlansProgressScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Your progress rhythm',
+                  'Your reading progress',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
@@ -534,28 +507,36 @@ class PlansProgressScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Progress should feel supportive, not like pressure',
+                  'A simple view of where you are across your plans',
                   style: Theme.of(
                     context,
                   ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'This screen gives a gentle summary of how your current plans are moving without turning Bible reading into a stressful performance metric.',
+                  'Progress is here to encourage steady reading, not to create pressure.',
                   style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  child: LinearProgressIndicator(
+                    value: overallProgress,
+                    minHeight: 12,
+                    backgroundColor: AppColors.surfaceMuted,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: <Widget>[
-                    _ProgressPill(label: 'Plans', value: '$totalPlanCount'),
-                    _ProgressPill(label: 'Active', value: '$activePlans'),
-                    _ProgressPill(
-                      label: 'Completed days',
-                      value: '$completedDays',
-                    ),
-                    _ProgressPill(label: 'Overall', value: '$percent%'),
+                    _ProgressPill(label: 'Plans', value: '$activePlans'),
+                    _ProgressPill(label: 'Current days', value: '$currentDays'),
+                    _ProgressPill(label: 'Total days', value: '$totalDays'),
                   ],
                 ),
               ],
@@ -563,52 +544,40 @@ class PlansProgressScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           PlanInfoCard(
-            title: 'What this progress means',
+            title: 'Plan snapshots',
+            subtitle: 'A quick way to see where each plan currently stands.',
+            icon: Icons.insights_outlined,
+            child: Column(
+              children: plans
+                  .map(
+                    (ReadingPlan plan) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _PlanProgressTile(plan: plan),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          PlanInfoCard(
+            title: 'Keep the rhythm gentle',
             subtitle:
-                'The point is steady scripture engagement, not guilt over imperfect streaks.',
-            icon: Icons.favorite_border_rounded,
+                'A little consistency matters more than trying to rush ahead.',
+            icon: Icons.self_improvement_outlined,
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _PlanBullet(
-                  text:
-                      'Progress helps the user remember where they are, not measure their worth.',
+                  text: 'A missed day does not erase the value of returning.',
                 ),
                 _PlanBullet(
                   text:
-                      'Missing a day should feel recoverable and calm in the eventual production flow.',
+                      'Small, steady reading rhythms can carry more than a rushed catch-up.',
                 ),
                 _PlanBullet(
-                  text:
-                      'This screen can later expand into streaks, completion states, and gentle reminders.',
+                  text: 'Let progress support your reading, not take it over.',
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Plan summaries', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.md),
-          ...plans.map(
-            (ReadingPlan plan) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: PlanProgressSummaryCard(
-                plan: plan,
-                onOpenPlan: () {
-                  context.push(
-                    AppRoutes.plansPlanDetail,
-                    extra: PlanDetailRouteArgs(planId: plan.id),
-                  );
-                },
-                onContinue: () {
-                  context.push(
-                    AppRoutes.plansDayRead,
-                    extra: PlanDayReadRouteArgs(
-                      planId: plan.id,
-                      dayNumber: plan.currentDayNumber,
-                    ),
-                  );
-                },
-              ),
             ),
           ),
         ],
@@ -694,7 +663,7 @@ class _ProgressPill extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
         border: Border.all(color: AppColors.border),
       ),
       child: Padding(
@@ -710,11 +679,57 @@ class _ProgressPill extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanProgressTile extends StatelessWidget {
+  const _PlanProgressTile({required this.plan});
+
+  final ReadingPlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final double progress = (plan.currentDayNumber / plan.durationDays).clamp(
+      0,
+      1,
+    );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(plan.title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
             Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+              plan.progressLabel,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 10,
+                backgroundColor: AppColors.surfaceMuted,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primary,
+                ),
+              ),
             ),
           ],
         ),

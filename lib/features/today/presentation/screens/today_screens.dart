@@ -24,7 +24,7 @@ class TodayHomeScreen extends StatelessWidget {
 
     return TabScreenScaffold(
       title: 'Today',
-      subtitle: 'Daily verse, reflection, and calm encouragement',
+      subtitle: 'Daily verse, reflection, and encouragement',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -37,7 +37,7 @@ class TodayHomeScreen extends StatelessWidget {
           TodayInfoCard(
             title: 'A gentle focus for today',
             subtitle:
-                'Your daily assignment is matched to a chosen category in the UI-first mock flow.',
+                'A simple way to begin the day with scripture, reflection, and prayer.',
             icon: Icons.light_mode_outlined,
             child: Text(
               verse.encouragementLine,
@@ -46,7 +46,7 @@ class TodayHomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'Quick actions',
+            title: 'Open today’s verse',
             icon: Icons.auto_awesome_outlined,
             child: Column(
               children: <Widget>[
@@ -62,7 +62,7 @@ class TodayHomeScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () => context.push(AppRoutes.todayVerseContext),
-                    child: const Text('Open verse context'),
+                    child: const Text('Read verse context'),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -91,7 +91,7 @@ class TodayHomeScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
             title: 'Reflection prompt',
-            subtitle: 'A calm journaling entry point for the verse of the day.',
+            subtitle: 'A calm question to carry into prayer or journaling.',
             icon: Icons.edit_note_rounded,
             child: Text(
               verse.reflectionPrompt,
@@ -102,7 +102,7 @@ class TodayHomeScreen extends StatelessWidget {
           TodayInfoCard(
             title: 'Context preview',
             subtitle:
-                'This helps the user move beyond a single isolated verse while keeping scripture central.',
+                'A little more background can help the verse stay anchored in its wider message.',
             icon: Icons.menu_book_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,7 +125,7 @@ class TodayHomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'A simple rhythm for this verse',
+            title: 'A simple rhythm for today',
             icon: Icons.self_improvement_outlined,
             child: const Column(
               children: <Widget>[
@@ -177,9 +177,9 @@ class TodayVerseDetailScreen extends StatelessWidget {
           TodayVerseHeroCard(verse: verse),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'What this verse is inviting today',
+            title: 'What this verse invites today',
             subtitle:
-                'A short product-level framing that keeps the verse central without replacing it.',
+                'A short reading companion to help the verse land gently.',
             icon: Icons.favorite_border_rounded,
             child: Text(
               verse.encouragementLine,
@@ -204,8 +204,7 @@ class TodayVerseDetailScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
             title: 'Reflection prompt',
-            subtitle:
-                'This can later connect to saved/private reflection flows.',
+            subtitle: 'A quiet question to stay with through the day.',
             icon: Icons.rate_review_outlined,
             child: Text(
               verse.reflectionPrompt,
@@ -229,7 +228,7 @@ class TodayVerseDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Next actions',
+                  'Keep reading',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -321,7 +320,7 @@ class TodayVerseContextScreen extends StatelessWidget {
                       icon: Icons.translate_rounded,
                     ),
                     const TodayBadge(
-                      label: 'Context-first reading',
+                      label: 'Read in context',
                       icon: Icons.search_rounded,
                     ),
                   ],
@@ -333,7 +332,7 @@ class TodayVerseContextScreen extends StatelessWidget {
           TodayInfoCard(
             title: 'Context sections',
             subtitle:
-                'Designed to keep the reading calm, clear, and non-academic for V1.',
+                'These notes help the verse stay connected to the larger passage.',
             icon: Icons.view_agenda_outlined,
             child: Column(
               children: verse.contextSections
@@ -349,8 +348,7 @@ class TodayVerseContextScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
             title: 'Related passages',
-            subtitle:
-                'Helpful companion references that support the theme without replacing the main passage.',
+            subtitle: 'Companion passages that can deepen the same theme.',
             icon: Icons.link_rounded,
             child: Column(
               children: verse.relatedPassages
@@ -368,7 +366,7 @@ class TodayVerseContextScreen extends StatelessWidget {
             title: 'Reading posture',
             icon: Icons.spa_outlined,
             child: Text(
-              'Context does not compete with scripture. It simply helps the user read more faithfully, more calmly, and with less risk of pulling one line away from its surrounding thought.',
+              'Reading in context can slow the heart down and help the verse stay rooted in its fuller message.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
@@ -404,9 +402,9 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           TodayInfoCard(
-            title: 'Support-only explanation',
+            title: 'A gentle explanation',
             subtitle:
-                'This screen should help the user understand the verse more clearly without replacing scripture or deciding truth for them.',
+                'A simple reading companion to help you understand the verse in plain language.',
             icon: Icons.auto_awesome_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,10 +413,6 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: <Widget>[
-                    const TodayBadge(
-                      label: 'LLM support only',
-                      icon: Icons.shield_outlined,
-                    ),
                     TodayBadge(
                       label: verse.reference,
                       icon: Icons.menu_book_outlined,
@@ -431,7 +425,7 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'In plain language, this verse invites the reader to bring anxiety into honest prayer, stay grateful while speaking to God, and trust Him to guard the inner life with peace that goes beyond normal explanation.',
+                  'This verse invites the reader to bring anxiety into honest prayer, stay grateful while speaking to God, and trust Him to guard the inner life with peace that goes beyond ordinary explanation.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
@@ -441,14 +435,14 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
           TodayInfoCard(
             title: 'What the verse is saying',
             subtitle:
-                'A simple breakdown for users who want clarity without a heavy theological wall of text.',
+                'A simple breakdown to make the message easier to hold onto.',
             icon: Icons.lightbulb_outline_rounded,
             child: Column(
               children: const <Widget>[
                 _ExplainPointTile(
                   title: 'Bring the burden to God',
                   body:
-                      'The verse moves the reader away from carrying everything internally and toward active prayer.',
+                      'The verse moves the reader away from carrying everything alone and toward active prayer.',
                 ),
                 SizedBox(height: 12),
                 _ExplainPointTile(
@@ -460,35 +454,35 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                 _ExplainPointTile(
                   title: 'Peace is described as protection',
                   body:
-                      'God’s peace is pictured as guarding the heart and mind, not merely offering a pleasant feeling.',
+                      'God’s peace is pictured as guarding the heart and mind, not simply offering a pleasant feeling.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'What this verse is not saying',
+            title: 'Keep scripture central',
             subtitle:
-                'This helps avoid common misunderstandings while staying gentle and readable.',
-            icon: Icons.rule_outlined,
+                'Explanation is most helpful when it leads the reader back to the verse itself.',
+            icon: Icons.menu_book_rounded,
             child: Column(
               children: const <Widget>[
                 _ExplainPointTile(
-                  title: 'It is not telling people to pretend nothing is wrong',
+                  title: 'Read the verse again slowly',
                   body:
-                      'The verse redirects worry into prayer. It does not deny the reality of pain, stress, or uncertainty.',
+                      'Let the explanation support your reading rather than replace it.',
                 ),
                 SizedBox(height: 12),
                 _ExplainPointTile(
-                  title: 'It is not promising instant life change',
+                  title: 'Notice what stands out',
                   body:
-                      'The emphasis is on God’s guarding peace, not on immediate removal of every hard situation.',
+                      'Pay attention to a word or phrase that feels especially alive today.',
                 ),
                 SizedBox(height: 12),
                 _ExplainPointTile(
-                  title: 'It is not replacing scripture with AI',
+                  title: 'Carry one thought forward',
                   body:
-                      'This explanation is only a support layer. The verse itself remains central and authoritative in the reading experience.',
+                      'Take one simple truth from the verse into prayer, work, and the rest of the day.',
                 ),
               ],
             ),
@@ -497,7 +491,7 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
           TodayInfoCard(
             title: 'Reflection prompts',
             subtitle:
-                'These prompts help the user slow down instead of just consuming explanation.',
+                'Questions to help the explanation turn into prayerful reflection.',
             icon: Icons.rate_review_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,9 +515,9 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'Move between scripture and support',
+            title: 'Keep reading',
             subtitle:
-                'The design should keep the user close to the verse and context, not trapped inside explanation.',
+                'Move easily between explanation, scripture, and context.',
             icon: Icons.swap_horiz_rounded,
             child: Column(
               children: <Widget>[
@@ -576,9 +570,9 @@ class TodaySharePreviewScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           TodayInfoCard(
-            title: 'Share preview',
+            title: 'See how today’s verse can look when shared',
             subtitle:
-                'This screen previews how a verse card could look before real export and native share actions are added.',
+                'A calm layout that keeps scripture central and easy to read.',
             icon: Icons.ios_share_rounded,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,15 +589,11 @@ class TodaySharePreviewScreen extends StatelessWidget {
                       label: verse.category,
                       icon: Icons.local_offer_outlined,
                     ),
-                    const TodayBadge(
-                      label: 'Preview only',
-                      icon: Icons.visibility_outlined,
-                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'The goal is a calm, readable share style that still feels like the app and keeps scripture central.',
+                  'Choose a layout that feels clear, simple, and easy to pass on.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ],
@@ -611,8 +601,8 @@ class TodaySharePreviewScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'Square post preview',
-            subtitle: 'A balanced card shape for feed-style sharing later.',
+            title: 'Square layout',
+            subtitle: 'A balanced card shape for a feed-style post.',
             icon: Icons.crop_square_rounded,
             child: _SharePreviewSurface(
               verse: verse,
@@ -621,8 +611,8 @@ class TodaySharePreviewScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'Story preview',
-            subtitle: 'A taller layout for story-style sharing later.',
+            title: 'Story layout',
+            subtitle: 'A taller layout for a story-style share.',
             icon: Icons.stay_current_portrait_rounded,
             child: _SharePreviewSurface(
               verse: verse,
@@ -631,37 +621,12 @@ class TodaySharePreviewScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           TodayInfoCard(
-            title: 'What real sharing will add later',
-            subtitle: 'This keeps the screen honest during the current phase.',
-            icon: Icons.info_outline_rounded,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ShareBullet(
-                  text:
-                      'Real export and native share actions are still future work.',
-                ),
-                _ShareBullet(
-                  text:
-                      'Theme variations, image backgrounds, and typography presets can be added later.',
-                ),
-                _ShareBullet(
-                  text:
-                      'The current screen exists so the sharing UX can already be designed without backend or platform wiring.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
+            title: 'Keep reading',
+            subtitle:
+                'Sharing works best when it grows out of reading, reflection, and prayer.',
+            icon: Icons.favorite_border_rounded,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  'Related Today routes',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -943,7 +908,7 @@ class _SharePreviewSurface extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Bible App V1',
+                'Bible App',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
@@ -992,7 +957,7 @@ class _SharePreviewSurface extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Daily verse preview',
+                'Daily verse',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
@@ -1000,32 +965,6 @@ class _SharePreviewSurface extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ShareBullet extends StatelessWidget {
-  const _ShareBullet({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Icon(Icons.circle, size: 8, color: AppColors.accent),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
-          ),
-        ],
       ),
     );
   }

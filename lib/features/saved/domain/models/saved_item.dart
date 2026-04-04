@@ -62,34 +62,6 @@ class SavedNote {
   final bool isPinned;
 }
 
-class SavedHistoryEntry {
-  const SavedHistoryEntry({
-    required this.id,
-    required this.title,
-    required this.reference,
-    required this.detail,
-    required this.occurredAtLabel,
-    required this.sourceLabel,
-    required this.kind,
-  });
-
-  final String id;
-  final String title;
-  final String reference;
-  final String detail;
-  final String occurredAtLabel;
-  final String sourceLabel;
-  final SavedHistoryKind kind;
-}
-
-enum SavedHistoryKind {
-  viewedVerse,
-  readChapter,
-  openedPlanDay,
-  savedVerse,
-  wroteNote,
-}
-
 class SavedLibrarySummary {
   const SavedLibrarySummary({
     required this.bookmarkCount,
@@ -100,4 +72,29 @@ class SavedLibrarySummary {
   final int bookmarkCount;
   final int highlightCount;
   final int noteCount;
+}
+
+enum SavedHistoryKind {
+  verseViewed,
+  chapterRead,
+  planOpened,
+  bookmarkSaved,
+  highlightSaved,
+  noteWritten,
+}
+
+class SavedHistoryEntry {
+  const SavedHistoryEntry({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.subtitle,
+    required this.timeLabel,
+  });
+
+  final String id;
+  final SavedHistoryKind kind;
+  final String title;
+  final String subtitle;
+  final String timeLabel;
 }

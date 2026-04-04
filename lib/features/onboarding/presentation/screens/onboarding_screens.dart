@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'Bible App V1',
+                  'Feel',
                   style: Theme.of(context).textTheme.headlineMedium,
                   textAlign: TextAlign.center,
                 ),

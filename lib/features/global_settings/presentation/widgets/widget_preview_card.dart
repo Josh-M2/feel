@@ -150,7 +150,7 @@ class WidgetPreviewCard extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Preview only for this UI-first phase. Real OS widget sync comes later.',
+          'A simple sample of how the daily verse can appear on the widget.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
