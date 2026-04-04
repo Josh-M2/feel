@@ -11,9 +11,7 @@ import '../../features/foundation/presentation/screens/placeholder_screens.dart'
         PlansListScreen,
         SavedBookmarksScreen,
         SettingsHomeScreen,
-        ProfileOverviewScreen,
-        SupportHomeScreen,
-        SupportMaintenanceFundScreen;
+        ProfileOverviewScreen;
 import '../../features/global_profile/presentation/screens/global_profile_screens.dart';
 import '../../features/global_settings/presentation/screens/global_settings_screens.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screens.dart';
@@ -285,20 +283,14 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignIn,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'Sign in',
-          description:
-              'Optional sign-in entry point for future cross-device sync without blocking core Bible usage.',
-        ),
+        builder: (context, state) =>
+            SignInPlaceholderScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignUp,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'Sign up',
-          description:
-              'Optional account creation route for later sync and backup support, never forced in core flows.',
-        ),
+        builder: (context, state) =>
+            SignUpPlaceholderScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -308,11 +300,8 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignOut,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'Sign out',
-          description:
-              'Future sign-out confirmation screen with clear sync and offline behavior messaging.',
-        ),
+        builder: (context, state) =>
+            SignOutPlaceholderScreen(bootstrap: bootstrap),
       ),
 
       GoRoute(
