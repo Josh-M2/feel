@@ -11,7 +11,9 @@ import '../../features/foundation/presentation/screens/placeholder_screens.dart'
         PlansListScreen,
         SavedBookmarksScreen,
         SettingsHomeScreen,
-        ProfileOverviewScreen;
+        ProfileOverviewScreen,
+        SupportHomeScreen,
+        SupportMaintenanceFundScreen;
 import '../../features/global_profile/presentation/screens/global_profile_screens.dart';
 import '../../features/global_settings/presentation/screens/global_settings_screens.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screens.dart';
@@ -350,11 +352,8 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.settingsSupportTransparency,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'Support transparency',
-          description:
-              'The always-visible transparency page will explain maintenance targets, collection status, and why support is open or closed.',
-        ),
+        builder: (context, state) =>
+            SupportTransparencyScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,

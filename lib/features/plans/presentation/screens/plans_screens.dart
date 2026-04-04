@@ -512,7 +512,7 @@ class PlansProgressScreen extends StatelessWidget {
     }).length;
     final int percent = totalDays == 0
         ? 0
-        : (((completedDays / totalDays) * 100).round().clamp(0, 100) as int);
+        : (((completedDays / totalDays) * 100).round().clamp(0, 100));
 
     return TabScreenScaffold(
       title: 'Progress',

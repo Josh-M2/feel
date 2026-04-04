@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../widgets/settings_info_card.dart';
 import '../widgets/settings_nav_tile.dart';
+import '../widgets/support_progress_card.dart';
 import '../widgets/widget_preview_card.dart';
 
 String _widgetStyleLabel(WidgetPreviewStyle style) {
@@ -25,6 +26,53 @@ String _primaryWidgetCategory(AppBootstrapController bootstrap) {
   final List<String> categories = bootstrap.selectedCategories;
   if (categories.isEmpty) return 'Guidance';
   return categories.first;
+}
+
+class _SupportPreviewMetrics {
+  const _SupportPreviewMetrics({
+    required this.statusLabel,
+    required this.caption,
+    required this.currentAmount,
+    required this.targetAmount,
+    required this.supporterCount,
+    required this.maintenanceAvailable,
+    required this.coffeeVisible,
+  });
+
+  final String statusLabel;
+  final String caption;
+  final double currentAmount;
+  final double targetAmount;
+  final int supporterCount;
+  final bool maintenanceAvailable;
+  final bool coffeeVisible;
+}
+
+_SupportPreviewMetrics _supportMetricsForState(SupportState state) {
+  switch (state) {
+    case SupportState.open:
+      return const _SupportPreviewMetrics(
+        statusLabel: 'Maintenance OPEN',
+        caption:
+            'Maintenance support is currently open in this local preview. Coffee stays hidden while the maintenance target is still open.',
+        currentAmount: 1640,
+        targetAmount: 2500,
+        supporterCount: 27,
+        maintenanceAvailable: true,
+        coffeeVisible: false,
+      );
+    case SupportState.closed:
+      return const _SupportPreviewMetrics(
+        statusLabel: 'Maintenance CLOSED',
+        caption:
+            'Maintenance support is closed in this local preview because the monthly target is treated as reached or paused. Coffee becomes the visible optional support path.',
+        currentAmount: 2500,
+        targetAmount: 2500,
+        supporterCount: 41,
+        maintenanceAvailable: false,
+        coffeeVisible: true,
+      );
+  }
 }
 
 class SettingsHomeScreen extends StatelessWidget {
@@ -642,6 +690,414 @@ class WidgetPreferencesScreen extends StatelessWidget {
                       text:
                           'The preview is intentionally aligned to the same daily assignment concept used in the app.',
                     ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SupportHomeScreen extends StatelessWidget {
+  const SupportHomeScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: bootstrap,
+      builder: (context, _) {
+        final _SupportPreviewMetrics metrics = _supportMetricsForState(
+          bootstrap.supportState,
+        );
+
+        return GlobalScreenScaffold(
+          title: 'Support',
+          subtitle: 'Transparent and optional',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Support state',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      metrics.maintenanceAvailable
+                          ? 'Maintenance support is currently open'
+                          : 'Maintenance support is currently closed',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Support is always optional, never tied to feature access, and should remain transparent about why maintenance is open or closed.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SupportProgressCard(
+                statusLabel: metrics.statusLabel,
+                caption: metrics.caption,
+                currentAmount: metrics.currentAmount,
+                targetAmount: metrics.targetAmount,
+                supporterCount: metrics.supporterCount,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Support paths',
+                subtitle:
+                    'The visible path changes based on whether maintenance support is open or closed.',
+                icon: Icons.route_outlined,
+                child: Column(
+                  children: <Widget>[
+                    SettingsNavTile(
+                      title: 'Transparency',
+                      subtitle:
+                          'See the rules that govern support visibility and monthly maintenance closure.',
+                      icon: Icons.visibility_outlined,
+                      onTap: () =>
+                          context.push(AppRoutes.settingsSupportTransparency),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    if (metrics.maintenanceAvailable)
+                      SettingsNavTile(
+                        title: 'Maintenance fund',
+                        subtitle:
+                            'This is the active support path while the monthly maintenance target is open.',
+                        icon: Icons.volunteer_activism_outlined,
+                        trailingLabel: 'OPEN',
+                        onTap: () => context.push(
+                          AppRoutes.settingsSupportMaintenanceFund,
+                        ),
+                      ),
+                    if (!metrics.maintenanceAvailable)
+                      SettingsNavTile(
+                        title: 'Buy Me a Coffee',
+                        subtitle:
+                            'Coffee becomes the visible optional support path when maintenance is closed.',
+                        icon: Icons.coffee_outlined,
+                        trailingLabel: 'VISIBLE',
+                        onTap: () =>
+                            context.push(AppRoutes.settingsSupportCoffee),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Local preview control',
+                subtitle:
+                    'Use this only during the UI-first phase to preview both OPEN and CLOSED support states.',
+                icon: Icons.toggle_on_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      metrics.maintenanceAvailable
+                          ? 'Current preview: Maintenance OPEN, coffee hidden.'
+                          : 'Current preview: Maintenance CLOSED, coffee visible.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: bootstrap.toggleSupportState,
+                        child: Text(
+                          metrics.maintenanceAvailable
+                              ? 'Preview CLOSED state'
+                              : 'Preview OPEN state',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SupportTransparencyScreen extends StatelessWidget {
+  const SupportTransparencyScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: bootstrap,
+      builder: (context, _) {
+        final _SupportPreviewMetrics metrics = _supportMetricsForState(
+          bootstrap.supportState,
+        );
+
+        return GlobalScreenScaffold(
+          title: 'Support transparency',
+          subtitle: 'Always visible and rule-based',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              SettingsInfoCard(
+                title: 'Transparency snapshot',
+                subtitle:
+                    'This page should remain visible whether maintenance is open or closed.',
+                icon: Icons.visibility_outlined,
+                child: SupportProgressCard(
+                  statusLabel: metrics.statusLabel,
+                  caption: metrics.caption,
+                  currentAmount: metrics.currentAmount,
+                  targetAmount: metrics.targetAmount,
+                  supporterCount: metrics.supporterCount,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Locked support rules',
+                subtitle:
+                    'These are the rules that shape how support appears in V1.',
+                icon: Icons.rule_folder_outlined,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _SettingsBullet(
+                      text:
+                          'The app stays free and support never unlocks features.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'When maintenance is OPEN, maintenance support is shown and coffee stays hidden.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'When maintenance is CLOSED, maintenance support is hidden or disabled and coffee becomes visible.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'This transparency page remains visible in both states.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'What maintenance support is for',
+                subtitle:
+                    'Keep the reason for support concrete and bounded instead of vague.',
+                icon: Icons.handshake_outlined,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _SettingsBullet(
+                      text: 'Ongoing app maintenance and routine upkeep.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'Small operational costs required to keep the app healthy.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'A clearly bounded monthly target rather than open-ended pressure.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Preview state control',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Use this only for UI-state preview during development.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: bootstrap.toggleSupportState,
+                            child: const Text('Toggle preview state'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                context.push(AppRoutes.settingsSupportHome),
+                            child: const Text('Back to support'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SupportMaintenanceFundScreen extends StatelessWidget {
+  const SupportMaintenanceFundScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  void _showLaterMessage(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Payment flow comes later. This is a UI-first preview.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: bootstrap,
+      builder: (context, _) {
+        final _SupportPreviewMetrics metrics = _supportMetricsForState(
+          bootstrap.supportState,
+        );
+
+        return GlobalScreenScaffold(
+          title: 'Maintenance fund',
+          subtitle: 'Optional and transparent',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Maintenance fund status',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      metrics.maintenanceAvailable
+                          ? 'Maintenance support is available right now'
+                          : 'Maintenance support is currently closed',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      metrics.maintenanceAvailable
+                          ? 'While the monthly maintenance target is still open, this is the visible optional support path.'
+                          : 'Because the monthly maintenance target is treated as closed in this preview, this route becomes informational rather than active.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SupportProgressCard(
+                statusLabel: metrics.statusLabel,
+                caption: metrics.caption,
+                currentAmount: metrics.currentAmount,
+                targetAmount: metrics.targetAmount,
+                supporterCount: metrics.supporterCount,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'What support covers',
+                subtitle:
+                    'Keep the purpose practical, bounded, and easy to understand.',
+                icon: Icons.build_circle_outlined,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _SettingsBullet(
+                      text:
+                          'Maintenance work required to keep the app stable and healthy.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'Routine upkeep and operational needs behind the free app experience.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'A monthly target with clear closure rules rather than endless collection.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: metrics.maintenanceAvailable
+                    ? 'Maintenance support action'
+                    : 'Maintenance support unavailable',
+                subtitle: metrics.maintenanceAvailable
+                    ? 'The real payment flow can plug into this surface later.'
+                    : 'When closed, the maintenance path should be hidden or disabled and coffee becomes the visible optional path.',
+                icon: Icons.payments_outlined,
+                child: Column(
+                  children: <Widget>[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: metrics.maintenanceAvailable
+                            ? () => _showLaterMessage(context)
+                            : null,
+                        child: Text(
+                          metrics.maintenanceAvailable
+                              ? 'Support maintenance fund'
+                              : 'Maintenance fund closed',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            context.push(AppRoutes.settingsSupportTransparency),
+                        child: const Text('View transparency rules'),
+                      ),
+                    ),
+                    if (!metrics.maintenanceAvailable) ...<Widget>[
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.settingsSupportCoffee),
+                          child: const Text('Open Buy Me a Coffee'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
