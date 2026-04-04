@@ -11,7 +11,10 @@ import '../../features/foundation/presentation/screens/placeholder_screens.dart'
         PlansListScreen,
         SavedBookmarksScreen,
         SettingsHomeScreen,
-        ProfileOverviewScreen;
+        ProfileOverviewScreen,
+        SupportCoffeeScreen,
+        SupportMaintenanceFundScreen,
+        SupportHomeScreen;
 import '../../features/global_profile/presentation/screens/global_profile_screens.dart';
 import '../../features/global_settings/presentation/screens/global_settings_screens.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screens.dart';
@@ -283,14 +286,12 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignIn,
-        builder: (context, state) =>
-            SignInPlaceholderScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignInScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignUp,
-        builder: (context, state) =>
-            SignUpPlaceholderScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignUpScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -300,8 +301,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignOut,
-        builder: (context, state) =>
-            SignOutPlaceholderScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignOutScreen(bootstrap: bootstrap),
       ),
 
       GoRoute(
@@ -352,20 +352,12 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.settingsPrivacy,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'Privacy',
-          description:
-              'Privacy summary, guest-first behavior, and future sync/data handling details will live here.',
-        ),
+        builder: (context, state) => PrivacyScreen(bootstrap: bootstrap),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.settingsAbout,
-        builder: (context, state) => const PlaceholderGlobalRouteScreen(
-          title: 'About',
-          description:
-              'Mission, app version, scripture-source notes, and support philosophy will live here.',
-        ),
+        builder: (context, state) => AboutScreen(bootstrap: bootstrap),
       ),
     ],
   );

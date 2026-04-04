@@ -20,23 +20,19 @@ class SupportProgressCard extends StatelessWidget {
   final double targetAmount;
   final int supporterCount;
 
-  double get progress {
+  double get _progress {
     if (targetAmount <= 0) return 0;
-    final double raw = currentAmount / targetAmount;
-    return raw.clamp(0, 1);
+    final double value = currentAmount / targetAmount;
+    return value.clamp(0, 1);
   }
 
-  String _formatCurrency(double value) {
-    return '\$${value.toStringAsFixed(0)}';
+  double get _remaining {
+    final double remaining = targetAmount - currentAmount;
+    return remaining <= 0 ? 0 : remaining;
   }
 
   @override
   Widget build(BuildContext context) {
-    final double remaining = (targetAmount - currentAmount).clamp(
-      0,
-      targetAmount,
-    );
-
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surfaceSoft,
@@ -57,23 +53,12 @@ class SupportProgressCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              _formatCurrency(currentAmount),
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontSize: 30,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'raised out of ${_formatCurrency(targetAmount)} monthly target',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(caption, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.lg),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadii.pill),
               child: LinearProgressIndicator(
-                value: progress,
+                value: _progress,
                 minHeight: 10,
                 backgroundColor: AppColors.surfaceMuted,
                 valueColor: const AlwaysStoppedAnimation<Color>(
@@ -81,26 +66,25 @@ class SupportProgressCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
+            const SizedBox(height: AppSpacing.lg),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: <Widget>[
-                Expanded(
-                  child: _MetricTile(
-                    label: 'Remaining',
-                    value: _formatCurrency(remaining),
-                  ),
+                _AmountPill(
+                  label: 'Raised',
+                  value: '\$${currentAmount.toStringAsFixed(0)}',
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _MetricTile(
-                    label: 'Progress',
-                    value: '${(progress * 100).round()}%',
-                  ),
+                _AmountPill(
+                  label: 'Target',
+                  value: '\$${targetAmount.toStringAsFixed(0)}',
+                ),
+                _AmountPill(
+                  label: 'Remaining',
+                  value: '\$${_remaining.toStringAsFixed(0)}',
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(caption, style: Theme.of(context).textTheme.bodyLarge),
           ],
         ),
       ),
@@ -135,8 +119,8 @@ class _MiniPill extends StatelessWidget {
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.label, required this.value});
+class _AmountPill extends StatelessWidget {
+  const _AmountPill({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -145,14 +129,14 @@ class _MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadii.lg),
         border: Border.all(color: AppColors.border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
               value,
@@ -161,8 +145,13 @@ class _MetricTile extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
           ],
         ),
       ),
