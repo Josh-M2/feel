@@ -1,5 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/constants/app_constants.dart';
+import '../../../today/domain/models/bible_source_passage.dart';
+import '../../../today/domain/repositories/bible_source_adapter.dart';
+import '../../../today/data/source/configurable_bible_source_adapter.dart';
+
 import '../../domain/models/read_book.dart';
 import '../../domain/models/read_continue_point.dart';
 import '../../domain/models/read_reference_search_result.dart';
@@ -14,11 +19,14 @@ class SupabasePublicReadRepository implements ReadRepository {
   SupabasePublicReadRepository({
     SupabaseClient? client,
     ReadProgressLocalStore? localStore,
+    BibleSourceAdapter? bibleSourceAdapter,
   }) : _client = _resolveClient(client),
-       _localStore = localStore ?? SharedPrefsReadProgressLocalStore();
+       _localStore = localStore ?? SharedPrefsReadProgressLocalStore(),
+       _bibleSourceAdapter = bibleSourceAdapter ?? ConfigurableBibleSourceAdapter();
 
   final SupabaseClient? _client;
   final ReadProgressLocalStore _localStore;
+  final BibleSourceAdapter _bibleSourceAdapter;
   static const MockReadRepository _fallback = MockReadRepository();
   static const int _localQueueLimit = 5;
 
@@ -84,8 +92,8 @@ class SupabasePublicReadRepository implements ReadRepository {
   }
 
   @override
-  Future<ReadBook> getContinueReadingBook() async {
-    final List<ReadContinuePoint> queue = await getContinueReadingQueue();
+  Future<ReadBook> getContinueReadingBook({String? versionCode}) async {
+    final List<ReadContinuePoint> queue = await getContinueReadingQueue(versionCode: versionCode);
     if (queue.isEmpty) {
       return _fallback.getContinueReadingBook();
     }
@@ -98,9 +106,14 @@ class SupabasePublicReadRepository implements ReadRepository {
   }
 
   @override
-  Future<ReadChapter> getChapter({required String bookId, int? chapterNumber}) async {
+  Future<ReadChapter> getChapter({required String bookId, int? chapterNumber, String? versionCode}) async {
+    final String effectiveVersionCode = _sanitizeVersionCode(versionCode);
     if (!_isConfigured) {
-      return _fallback.getChapter(bookId: bookId, chapterNumber: chapterNumber);
+      return const MockReadRepositoryAdapter().getChapter(
+        bookId: bookId,
+        chapterNumber: chapterNumber,
+        versionCode: effectiveVersionCode,
+      );
     }
 
     final ReadBook book = await getBookById(bookId);
@@ -114,7 +127,11 @@ class SupabasePublicReadRepository implements ReadRepository {
         .maybeSingle();
 
     if (chapterRow == null) {
-      return _fallback.getChapter(bookId: bookId, chapterNumber: chapterNumber);
+      return const MockReadRepositoryAdapter().getChapter(
+        bookId: bookId,
+        chapterNumber: chapterNumber,
+        versionCode: effectiveVersionCode,
+      );
     }
 
     final List<dynamic> sectionRows = await _client!
@@ -124,19 +141,56 @@ class SupabasePublicReadRepository implements ReadRepository {
         .eq('chapter_number', targetChapter)
         .order('sort_order');
 
-    final List<dynamic> verseRows = await _client!
-        .from('content_bible_verses')
-        .select('verse_number, verse_text')
-        .eq('book_id', book.id)
-        .eq('version_id', 'kjv')
-        .eq('chapter_number', targetChapter)
-        .order('verse_number');
+    final List<dynamic> requestedVerseRows = await _loadVerseRows(
+      bookId: book.id,
+      chapterNumber: targetChapter,
+      versionCode: effectiveVersionCode,
+    );
+
+    String appliedTranslationCode = effectiveVersionCode;
+    String appliedTranslationLabel = _translationLabelFor(effectiveVersionCode);
+    bool isFallbackTranslation = false;
+    List<dynamic> verseRows = requestedVerseRows;
+
+    if (verseRows.isEmpty && effectiveVersionCode != 'kjv') {
+      final BibleSourcePassage? livePassage = await _bibleSourceAdapter.fetchPassageByReference(
+        reference: '${book.name} $targetChapter',
+        translationCode: effectiveVersionCode,
+      );
+      if (livePassage != null && livePassage.verses.isNotEmpty) {
+        verseRows = livePassage.verses
+            .map(
+              (BibleSourcePassageVerse verse) => <String, dynamic>{
+                'verse_number': verse.number,
+                'verse_text': verse.text,
+              },
+            )
+            .toList(growable: false);
+        appliedTranslationLabel = livePassage.translationLabel;
+      }
+    }
+
+    if (verseRows.isEmpty) {
+      verseRows = await _loadVerseRows(
+        bookId: book.id,
+        chapterNumber: targetChapter,
+        versionCode: 'kjv',
+      );
+      appliedTranslationCode = 'kjv';
+      appliedTranslationLabel = effectiveVersionCode == 'kjv'
+          ? _translationLabelFor('kjv')
+          : '${_translationLabelFor(effectiveVersionCode)} requested • KJV fallback';
+      isFallbackTranslation = effectiveVersionCode != 'kjv';
+    }
 
     return _mapChapterRow(
       bookName: book.name,
       chapterRow: Map<String, dynamic>.from(chapterRow as Map),
       sectionRows: sectionRows,
       verseRows: verseRows,
+      translationCode: appliedTranslationCode,
+      translationLabel: appliedTranslationLabel,
+      isTranslationFallback: isFallbackTranslation,
     );
   }
 
@@ -144,11 +198,13 @@ class SupabasePublicReadRepository implements ReadRepository {
   Future<ReadChapter?> getPreviousChapter({
     required String bookId,
     required int chapterNumber,
+    String? versionCode,
   }) async {
     if (!_isConfigured) {
-      return _fallback.getPreviousMockChapter(
+      return const MockReadRepositoryAdapter().getPreviousChapter(
         bookId: bookId,
         chapterNumber: chapterNumber,
+        versionCode: versionCode,
       );
     }
 
@@ -164,18 +220,20 @@ class SupabasePublicReadRepository implements ReadRepository {
     if (row == null) return null;
 
     final int previousNumber = (row['chapter_number'] as num).toInt();
-    return getChapter(bookId: bookId, chapterNumber: previousNumber);
+    return getChapter(bookId: bookId, chapterNumber: previousNumber, versionCode: versionCode);
   }
 
   @override
   Future<ReadChapter?> getNextChapter({
     required String bookId,
     required int chapterNumber,
+    String? versionCode,
   }) async {
     if (!_isConfigured) {
-      return _fallback.getNextMockChapter(
+      return const MockReadRepositoryAdapter().getNextChapter(
         bookId: bookId,
         chapterNumber: chapterNumber,
+        versionCode: versionCode,
       );
     }
 
@@ -191,13 +249,13 @@ class SupabasePublicReadRepository implements ReadRepository {
     if (row == null) return null;
 
     final int nextNumber = (row['chapter_number'] as num).toInt();
-    return getChapter(bookId: bookId, chapterNumber: nextNumber);
+    return getChapter(bookId: bookId, chapterNumber: nextNumber, versionCode: versionCode);
   }
 
   @override
-  Future<List<ReadReferenceSearchResult>> searchReferences(String query) async {
+  Future<List<ReadReferenceSearchResult>> searchReferences(String query, {String? versionCode}) async {
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().searchReferences(query);
+      return const MockReadRepositoryAdapter().searchReferences(query, versionCode: versionCode);
     }
 
     final String normalized = query.trim().toLowerCase();
@@ -275,14 +333,14 @@ class SupabasePublicReadRepository implements ReadRepository {
     }
 
     if (results.isEmpty) {
-      return const MockReadRepositoryAdapter().searchReferences(query);
+      return const MockReadRepositoryAdapter().searchReferences(query, versionCode: versionCode);
     }
 
     return results;
   }
 
   @override
-  Future<List<ReadContinuePoint>> getContinueReadingQueue() async {
+  Future<List<ReadContinuePoint>> getContinueReadingQueue({String? versionCode}) async {
     final String? userId = _authenticatedUserId;
     if (userId != null) {
       final List<ReadContinuePoint> remoteQueue = await _loadRemoteQueue(userId);
@@ -320,7 +378,7 @@ class SupabasePublicReadRepository implements ReadRepository {
       }
     }
 
-    return const MockReadRepositoryAdapter().getContinueReadingQueue();
+    return const MockReadRepositoryAdapter().getContinueReadingQueue(versionCode: versionCode);
   }
 
   @override
@@ -330,6 +388,8 @@ class SupabasePublicReadRepository implements ReadRepository {
     String? bookName,
     String? chapterTitle,
     String? focusLine,
+    String? versionCode,
+    String? versionLabel,
   }) async {
     String resolvedBookName = bookName ?? '';
     String resolvedChapterTitle = chapterTitle ?? '';
@@ -343,6 +403,7 @@ class SupabasePublicReadRepository implements ReadRepository {
         final ReadChapter chapter = await getChapter(
           bookId: bookId,
           chapterNumber: chapterNumber,
+          versionCode: versionCode,
         );
         resolvedBookName = resolvedBookName.isEmpty ? book.name : resolvedBookName;
         resolvedChapterTitle = resolvedChapterTitle.isEmpty
@@ -366,6 +427,8 @@ class SupabasePublicReadRepository implements ReadRepository {
       chapterTitle: resolvedChapterTitle,
       focusLine: resolvedFocusLine,
       openedAtIso: DateTime.now().toUtc().toIso8601String(),
+      versionCode: _sanitizeVersionCode(versionCode),
+      versionLabel: versionLabel ?? _translationLabelFor(_sanitizeVersionCode(versionCode)),
     );
 
     await _saveLocalEntry(entry);
@@ -386,6 +449,8 @@ class SupabasePublicReadRepository implements ReadRepository {
               'book_name': resolvedBookName,
               'chapter_title': resolvedChapterTitle,
               'focus_line': resolvedFocusLine,
+              'version_code': entry.versionCode,
+              'version_label': entry.versionLabel,
               'last_opened_at': DateTime.now().toUtc().toIso8601String(),
             },
             onConflict: 'user_id,book_id,chapter_number',
@@ -400,7 +465,7 @@ class SupabasePublicReadRepository implements ReadRepository {
       final List<dynamic> rows = await _client!
           .from('user_read_progress')
           .select(
-            'book_id, chapter_number, book_name, chapter_title, focus_line, last_opened_at',
+            'book_id, chapter_number, book_name, chapter_title, focus_line, version_code, version_label, last_opened_at',
           )
           .eq('user_id', userId)
           .order('last_opened_at', ascending: false)
@@ -417,6 +482,8 @@ class SupabasePublicReadRepository implements ReadRepository {
               row['chapter_title']?.toString() ?? 'Chapter $chapterNumber',
           label: entry.key == 0 ? 'Most recent' : 'Recent reading',
           focusLine: row['focus_line']?.toString() ?? '',
+          versionCode: row['version_code']?.toString() ?? 'kjv',
+          versionLabel: row['version_label']?.toString() ?? 'KJV',
         );
       }).toList(growable: false);
     } catch (_) {
@@ -448,6 +515,8 @@ class SupabasePublicReadRepository implements ReadRepository {
           chapterTitle: item.chapterTitle,
           label: entry.key == 0 ? 'Most recent' : 'Recent reading',
           focusLine: item.focusLine,
+          versionCode: item.versionCode,
+          versionLabel: item.versionLabel,
         );
       },
     ).toList(growable: false);
@@ -524,11 +593,36 @@ class SupabasePublicReadRepository implements ReadRepository {
     );
   }
 
+  Future<List<dynamic>> _loadVerseRows({
+    required String bookId,
+    required int chapterNumber,
+    required String versionCode,
+  }) async {
+    return _client!
+        .from('content_bible_verses')
+        .select('verse_number, verse_text')
+        .eq('book_id', bookId)
+        .eq('version_id', versionCode)
+        .eq('chapter_number', chapterNumber)
+        .order('verse_number');
+  }
+
+  String _sanitizeVersionCode(String? value) {
+    return AppConstants.sanitizeTranslationCode(value);
+  }
+
+  String _translationLabelFor(String versionCode) {
+    return AppConstants.translationOptionFor(versionCode).label;
+  }
+
   ReadChapter _mapChapterRow({
     required String bookName,
     required Map<String, dynamic> chapterRow,
     required List<dynamic> sectionRows,
     required List<dynamic> verseRows,
+    String translationCode = 'kjv',
+    String translationLabel = 'KJV',
+    bool isTranslationFallback = false,
   }) {
     final int chapterNumber = (chapterRow['chapter_number'] as num?)?.toInt() ?? 1;
     final List<Map<String, dynamic>> normalizedVerses = verseRows
@@ -582,6 +676,9 @@ class SupabasePublicReadRepository implements ReadRepository {
       introduction: chapterRow['introduction']?.toString() ?? '',
       focusLine: chapterRow['focus_line']?.toString() ?? '',
       blocks: blocks,
+      translationCode: translationCode,
+      translationLabel: translationLabel,
+      isTranslationFallback: isTranslationFallback,
     );
   }
 }

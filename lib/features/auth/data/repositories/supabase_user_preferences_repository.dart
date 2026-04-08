@@ -19,7 +19,7 @@ class SupabaseUserPreferencesRepository implements UserPreferencesRepository {
         !
         .from('user_preferences')
         .select(
-          'user_id, onboarding_completed, notifications_enabled, notification_time_local, widget_preview_style, widget_show_reference, widget_show_category, widget_show_date',
+          'user_id, onboarding_completed, notifications_enabled, notification_time_local, preferred_translation_code, widget_preview_style, widget_show_reference, widget_show_category, widget_show_date',
         )
         .eq('user_id', userId)
         .maybeSingle();

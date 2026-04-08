@@ -57,6 +57,9 @@ class AppBootstrapController extends ChangeNotifier {
   TimeOfDay get dailyNotificationTime => _preferences.dailyNotificationTime;
   List<String> get selectedCategories => _preferences.selectedCategories;
   List<String> get availableCategories => AppConstants.v1Categories;
+  String get preferredTranslationCode => _preferences.preferredTranslationCode;
+  String get preferredTranslationLabel =>
+      AppConstants.translationOptionFor(_preferences.preferredTranslationCode).label;
   SupportState get supportState => _preferences.supportState;
   WidgetPreviewStyle get widgetPreviewStyle => _preferences.widgetPreviewStyle;
   bool get widgetShowReference => _preferences.widgetShowReference;
@@ -67,9 +70,10 @@ class AppBootstrapController extends ChangeNotifier {
     final int hour = _preferences.dailyNotificationTime.hourOfPeriod == 0
         ? 12
         : _preferences.dailyNotificationTime.hourOfPeriod;
-    final String minute = _preferences.dailyNotificationTime.minute
-        .toString()
-        .padLeft(2, '0');
+    final String minute = _preferences.dailyNotificationTime.minute.toString().padLeft(
+      2,
+      '0',
+    );
     final String period =
         _preferences.dailyNotificationTime.period == DayPeriod.am ? 'AM' : 'PM';
     return '$hour:$minute $period';
@@ -85,11 +89,11 @@ class AppBootstrapController extends ChangeNotifier {
       _session = await _sessionRepository.getCurrentSession();
       await _loadActiveProfileAndPreferences();
       await _sessionSubscription?.cancel();
-      _sessionSubscription = _sessionRepository.watchSessionChanges().listen((
-        AppSessionSnapshot snapshot,
-      ) {
-        unawaited(_handleSessionSnapshot(snapshot));
-      });
+      _sessionSubscription = _sessionRepository.watchSessionChanges().listen(
+        (AppSessionSnapshot snapshot) {
+          unawaited(_handleSessionSnapshot(snapshot));
+        },
+      );
     } catch (error) {
       _initializationError =
           'Backend foundation bootstrap failed: ${error.toString()}';
@@ -127,8 +131,8 @@ class AppBootstrapController extends ChangeNotifier {
     if (_session.isAuthenticated && _session.userId != null) {
       final String userId = _session.userId!;
       _profile = await _profileRepository.getProfile(userId);
-      final AppPreferenceSnapshot? remoteSnapshot = await _preferencesRepository
-          .getSnapshot(userId);
+      final AppPreferenceSnapshot? remoteSnapshot =
+          await _preferencesRepository.getSnapshot(userId);
       if (remoteSnapshot != null) {
         _preferences = remoteSnapshot.copyWith(
           supportState: _preferences.supportState,
@@ -153,9 +157,7 @@ class AppBootstrapController extends ChangeNotifier {
   }
 
   void toggleCategory(String category) {
-    final List<String> next = List<String>.from(
-      _preferences.selectedCategories,
-    );
+    final List<String> next = List<String>.from(_preferences.selectedCategories);
     if (next.contains(category)) {
       if (next.length == 1) return;
       next.remove(category);
@@ -176,6 +178,14 @@ class AppBootstrapController extends ChangeNotifier {
 
   void setNotificationsEnabled(bool value) {
     _preferences = _preferences.copyWith(notificationsEnabled: value);
+    notifyListeners();
+    unawaited(_persistPreferences());
+  }
+
+  void setPreferredTranslationCode(String value) {
+    _preferences = _preferences.copyWith(
+      preferredTranslationCode: AppConstants.sanitizeTranslationCode(value),
+    );
     notifyListeners();
     unawaited(_persistPreferences());
   }
@@ -233,8 +243,7 @@ class AppBootstrapController extends ChangeNotifier {
     required String password,
   }) async {
     return _runAuthAction(
-      () =>
-          _sessionRepository.signInWithEmail(email: email, password: password),
+      () => _sessionRepository.signInWithEmail(email: email, password: password),
     );
   }
 
@@ -253,9 +262,7 @@ class AppBootstrapController extends ChangeNotifier {
   }
 
   Future<AuthActionResult> sendPasswordResetEmail(String email) async {
-    return _runAuthAction(
-      () => _sessionRepository.sendPasswordResetEmail(email),
-    );
+    return _runAuthAction(() => _sessionRepository.sendPasswordResetEmail(email));
   }
 
   Future<AuthActionResult> updatePassword(String password) async {

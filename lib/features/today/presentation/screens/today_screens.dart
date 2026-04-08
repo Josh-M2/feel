@@ -1,653 +1,969 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/bootstrap/app_bootstrap_controller.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
-import '../../data/mock/mock_today_repository.dart';
+import '../../../saved/data/local/local_first_saved_library_repository.dart';
+import '../../../saved/domain/models/saved_library_local_snapshot.dart';
+import '../../../saved/domain/repositories/saved_library_repository.dart';
+import '../../data/public/supabase_today_repository.dart';
 import '../../domain/models/today_verse.dart';
+import '../../domain/repositories/today_repository.dart';
 import '../widgets/today_badge.dart';
 import '../widgets/today_info_card.dart';
 import '../widgets/today_verse_hero_card.dart';
 
-class TodayHomeScreen extends StatelessWidget {
-  const TodayHomeScreen({super.key});
+final TodayRepository _todayRepository = SupabaseTodayRepository();
+final SavedLibraryRepository _savedRepository =
+    LocalFirstSavedLibraryRepository();
 
-  static const MockTodayRepository _repository = MockTodayRepository();
+class TodayHomeScreen extends StatelessWidget {
+  const TodayHomeScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
-    final TodayVerse verse = _repository.getTodayVerse();
-
     return TabScreenScaffold(
       title: 'Today',
       subtitle: 'Daily verse, reflection, and encouragement',
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          TodayVerseHeroCard(
-            verse: verse,
-            compact: true,
-            onTap: () => context.push(AppRoutes.todayVerseDetail),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'A gentle focus for today',
-            subtitle:
-                'A simple way to begin the day with scripture, reflection, and prayer.',
-            icon: Icons.light_mode_outlined,
-            child: Text(
-              verse.encouragementLine,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Open today’s verse',
-            icon: Icons.auto_awesome_outlined,
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseDetail),
-                    child: const Text('Open verse detail'),
-                  ),
+      body: _TodayVerseLoader(
+        bootstrap: bootstrap,
+        markAsOpened: true,
+        builder: (BuildContext context, TodayVerse verse) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayVerseHeroCard(
+                verse: verse,
+                compact: true,
+                onTap: () => context.push(AppRoutes.todayVerseDetail),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'A gentle focus for today',
+                subtitle:
+                    'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
+                icon: Icons.light_mode_outlined,
+                child: Text(
+                  verse.encouragementLine,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseContext),
-                    child: const Text('Read verse context'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Open today’s verse',
+                icon: Icons.auto_awesome_outlined,
+                child: Column(
                   children: <Widget>[
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.todayVerseAiExplain),
-                        child: const Text('AI explain'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                        child: const Text('Open verse detail'),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.todaySharePreview),
-                        child: const Text('Share preview'),
+                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        child: const Text('Read verse context'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
+                            child: const Text('AI explain'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.todaySharePreview),
+                            child: const Text('Share preview'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Reflection prompt',
+                subtitle: 'A calm question to carry into prayer or journaling.',
+                icon: Icons.edit_note_rounded,
+                child: Text(
+                  verse.reflectionPrompt,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Context preview',
+                subtitle:
+                    'Your daily assignment keeps the verse anchored in its wider message instead of treating it like an isolated quote.',
+                icon: Icons.menu_book_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      verse.contextSummary,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                        label: const Text('Read context'),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Reflection prompt',
-            subtitle: 'A calm question to carry into prayer or journaling.',
-            icon: Icons.edit_note_rounded,
-            child: Text(
-              verse.reflectionPrompt,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Context preview',
-            subtitle:
-                'A little more background can help the verse stay anchored in its wider message.',
-            icon: Icons.menu_book_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  verse.contextSummary,
-                  style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'A simple rhythm for today',
+                icon: Icons.self_improvement_outlined,
+                child: const Column(
+                  children: <Widget>[
+                    _TodayStepRow(
+                      index: '1',
+                      title: 'Read slowly',
+                      description:
+                          'Sit with the verse before rushing into explanation.',
+                    ),
+                    SizedBox(height: 12),
+                    _TodayStepRow(
+                      index: '2',
+                      title: 'Pray honestly',
+                      description:
+                          'Bring the real burden of the day to God in plain words.',
+                    ),
+                    SizedBox(height: 12),
+                    _TodayStepRow(
+                      index: '3',
+                      title: 'Carry one thought',
+                      description:
+                          'Take one line from the verse into the rest of the day.',
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(AppRoutes.todayVerseContext),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Read context'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'A simple rhythm for today',
-            icon: Icons.self_improvement_outlined,
-            child: const Column(
-              children: <Widget>[
-                _TodayStepRow(
-                  index: '1',
-                  title: 'Read slowly',
-                  description:
-                      'Sit with the verse before rushing into explanation.',
-                ),
-                SizedBox(height: 12),
-                _TodayStepRow(
-                  index: '2',
-                  title: 'Pray honestly',
-                  description:
-                      'Bring the real burden of the day to God in plain words.',
-                ),
-                SizedBox(height: 12),
-                _TodayStepRow(
-                  index: '3',
-                  title: 'Carry one thought',
-                  description:
-                      'Take one line from the verse into the rest of the day.',
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class TodayVerseDetailScreen extends StatelessWidget {
-  const TodayVerseDetailScreen({super.key});
+  const TodayVerseDetailScreen({super.key, required this.bootstrap});
 
-  static const MockTodayRepository _repository = MockTodayRepository();
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
-    final TodayVerse verse = _repository.getTodayVerse();
-
     return TabScreenScaffold(
       title: 'Verse detail',
       subtitle: 'Today',
       showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          TodayVerseHeroCard(verse: verse),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'What this verse invites today',
-            subtitle:
-                'A short reading companion to help the verse land gently.',
-            icon: Icons.favorite_border_rounded,
-            child: Text(
-              verse.encouragementLine,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Key insights',
-            icon: Icons.check_circle_outline_rounded,
-            child: Column(
-              children: verse.keyInsights
-                  .map(
-                    (String item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _InsightRow(text: item),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Reflection prompt',
-            subtitle: 'A quiet question to stay with through the day.',
-            icon: Icons.rate_review_outlined,
-            child: Text(
-              verse.reflectionPrompt,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Prayer',
-            icon: Icons.volunteer_activism_outlined,
-            child: Text(
-              verse.prayer,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Keep reading',
-                  style: Theme.of(context).textTheme.titleMedium,
+      body: _TodayVerseLoader(
+        bootstrap: bootstrap,
+        markAsOpened: true,
+        builder: (BuildContext context, TodayVerse verse) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayVerseHeroCard(verse: verse),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'What this verse invites today',
+                subtitle:
+                    'A short reading companion to help the verse land gently.',
+                icon: Icons.favorite_border_rounded,
+                child: Text(
+                  verse.encouragementLine,
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseContext),
-                    child: const Text('Read verse context'),
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Key insights',
+                icon: Icons.check_circle_outline_rounded,
+                child: Column(
+                  children: verse.keyInsights
+                      .map(
+                        (String item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _InsightRow(text: item),
+                        ),
+                      )
+                      .toList(),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Reflection prompt',
+                subtitle: 'A quiet question to stay with through the day.',
+                icon: Icons.rate_review_outlined,
+                child: Text(
+                  verse.reflectionPrompt,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Prayer',
+                icon: Icons.volunteer_activism_outlined,
+                child: Text(
+                  verse.prayer,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Save from today',
+                subtitle:
+                    'Save the verse now or add a private reflection that shows up in Saved.',
+                icon: Icons.bookmark_add_outlined,
+                child: Column(
                   children: <Widget>[
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.todaySharePreview),
-                        child: const Text('Share preview'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _saveTodayBookmark(context, verse),
+                        icon: const Icon(Icons.bookmark_add_outlined),
+                        label: const Text('Save verse'),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.todayVerseAiExplain),
-                        child: const Text('AI explain'),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showTodayReflectionComposer(context, verse),
+                        icon: const Icon(Icons.edit_note_outlined),
+                        label: const Text('Add reflection'),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    TodayBadge(
-                      label: verse.category,
-                      icon: Icons.local_offer_outlined,
+                    Text(
+                      'Keep reading',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    TodayBadge(
-                      label: verse.translationLabel,
-                      icon: Icons.translate_rounded,
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        child: const Text('Read verse context'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.todaySharePreview),
+                            child: const Text('Share preview'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
+                            child: const Text('AI explain'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        TodayBadge(
+                          label: verse.category,
+                          icon: Icons.local_offer_outlined,
+                        ),
+                        TodayBadge(
+                          label: verse.translationLabel,
+                          icon: Icons.translate_rounded,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class TodayVerseContextScreen extends StatelessWidget {
-  const TodayVerseContextScreen({super.key});
+  const TodayVerseContextScreen({super.key, required this.bootstrap});
 
-  static const MockTodayRepository _repository = MockTodayRepository();
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
-    final TodayVerse verse = _repository.getTodayVerse();
-
     return TabScreenScaffold(
       title: 'Verse context',
       subtitle: 'Today',
       showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          TodayInfoCard(
-            title: verse.reference,
-            subtitle: verse.category,
-            icon: Icons.menu_book_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  verse.contextSummary,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+      body: _TodayVerseLoader(
+        bootstrap: bootstrap,
+        markAsOpened: true,
+        builder: (BuildContext context, TodayVerse verse) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayInfoCard(
+                title: verse.reference,
+                subtitle: verse.category,
+                icon: Icons.menu_book_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    TodayBadge(
-                      label: verse.translationLabel,
-                      icon: Icons.translate_rounded,
+                    Text(
+                      verse.contextSummary,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    const TodayBadge(
-                      label: 'Read in context',
-                      icon: Icons.search_rounded,
+                    const SizedBox(height: AppSpacing.lg),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        TodayBadge(
+                          label: verse.translationLabel,
+                          icon: Icons.translate_rounded,
+                        ),
+                        const TodayBadge(
+                          label: 'Read in context',
+                          icon: Icons.search_rounded,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Context sections',
-            subtitle:
-                'These notes help the verse stay connected to the larger passage.',
-            icon: Icons.view_agenda_outlined,
-            child: Column(
-              children: verse.contextSections
-                  .map(
-                    (VerseContextSection section) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ContextSectionTile(section: section),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Related passages',
-            subtitle: 'Companion passages that can deepen the same theme.',
-            icon: Icons.link_rounded,
-            child: Column(
-              children: verse.relatedPassages
-                  .map(
-                    (RelatedPassagePreview passage) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _RelatedPassageTile(passage: passage),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Reading posture',
-            icon: Icons.spa_outlined,
-            child: Text(
-              'Reading in context can slow the heart down and help the verse stay rooted in its fuller message.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => context.push(AppRoutes.todayVerseDetail),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Back to verse detail'),
-            ),
-          ),
-        ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Context sections',
+                subtitle:
+                    'These notes help the verse stay connected to the larger passage.',
+                icon: Icons.view_agenda_outlined,
+                child: Column(
+                  children: verse.contextSections
+                      .map(
+                        (VerseContextSection section) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ContextSectionTile(section: section),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Related passages',
+                subtitle: 'Companion passages that can deepen the same theme.',
+                icon: Icons.link_rounded,
+                child: Column(
+                  children: verse.relatedPassages
+                      .map(
+                        (RelatedPassagePreview passage) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _RelatedPassageTile(passage: passage),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Reading posture',
+                icon: Icons.spa_outlined,
+                child: Text(
+                  'Reading in context can slow the heart down and help the verse stay rooted in its fuller message.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Back to verse detail'),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class TodayVerseAiExplainScreen extends StatelessWidget {
-  const TodayVerseAiExplainScreen({super.key});
+  const TodayVerseAiExplainScreen({super.key, required this.bootstrap});
 
-  static const MockTodayRepository _repository = MockTodayRepository();
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
-    final TodayVerse verse = _repository.getTodayVerse();
-
     return TabScreenScaffold(
       title: 'AI explain',
       subtitle: 'Today',
       showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          TodayInfoCard(
-            title: 'A gentle explanation',
-            subtitle:
-                'A simple reading companion to help you understand the verse in plain language.',
-            icon: Icons.auto_awesome_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+      body: _TodayVerseLoader(
+        bootstrap: bootstrap,
+        markAsOpened: true,
+        builder: (BuildContext context, TodayVerse verse) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayInfoCard(
+                title: 'A gentle explanation',
+                subtitle:
+                    'LLM stays in a support role here. It helps explain the assigned verse, but it does not choose scripture for you.',
+                icon: Icons.auto_awesome_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    TodayBadge(
-                      label: verse.reference,
-                      icon: Icons.menu_book_outlined,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        TodayBadge(
+                          label: verse.reference,
+                          icon: Icons.menu_book_outlined,
+                        ),
+                        TodayBadge(
+                          label: verse.category,
+                          icon: Icons.local_offer_outlined,
+                        ),
+                      ],
                     ),
-                    TodayBadge(
-                      label: verse.category,
-                      icon: Icons.local_offer_outlined,
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      verse.encouragementLine,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'This verse invites the reader to bring anxiety into honest prayer, stay grateful while speaking to God, and trust Him to guard the inner life with peace that goes beyond ordinary explanation.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'What the verse is saying',
+                subtitle:
+                    'A simple breakdown to make the message easier to hold onto.',
+                icon: Icons.lightbulb_outline_rounded,
+                child: Column(
+                  children: verse.keyInsights.isEmpty
+                      ? const <Widget>[
+                          _ExplainPointTile(
+                            title: 'Read the central movement',
+                            body:
+                                'Look for what the verse reveals about God, the heart, and the faithful response it invites.',
+                          ),
+                        ]
+                      : verse.keyInsights
+                          .asMap()
+                          .entries
+                          .map(
+                            (MapEntry<int, String> entry) => Padding(
+                              padding: EdgeInsets.only(
+                                bottom: entry.key == verse.keyInsights.length - 1
+                                    ? 0
+                                    : 12,
+                              ),
+                              child: _ExplainPointTile(
+                                title: 'Key insight ${entry.key + 1}',
+                                body: entry.value,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'What the verse is saying',
-            subtitle:
-                'A simple breakdown to make the message easier to hold onto.',
-            icon: Icons.lightbulb_outline_rounded,
-            child: Column(
-              children: const <Widget>[
-                _ExplainPointTile(
-                  title: 'Bring the burden to God',
-                  body:
-                      'The verse moves the reader away from carrying everything alone and toward active prayer.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Keep scripture central',
+                subtitle:
+                    'Explanation is most helpful when it leads the reader back to the verse itself.',
+                icon: Icons.menu_book_rounded,
+                child: Column(
+                  children: const <Widget>[
+                    _ExplainPointTile(
+                      title: 'Read the verse again slowly',
+                      body:
+                          'Let explanation support your reading rather than replace it.',
+                    ),
+                    SizedBox(height: 12),
+                    _ExplainPointTile(
+                      title: 'Notice what stands out',
+                      body:
+                          'Pay attention to a word or phrase that feels especially alive today.',
+                    ),
+                    SizedBox(height: 12),
+                    _ExplainPointTile(
+                      title: 'Carry one thought forward',
+                      body:
+                          'Take one simple truth from the verse into prayer, work, and the rest of the day.',
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12),
-                _ExplainPointTile(
-                  title: 'Thanksgiving matters',
-                  body:
-                      'Gratitude changes the posture of the heart even before the situation changes.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Reflection prompts',
+                subtitle:
+                    'Questions to help the explanation turn into prayerful reflection.',
+                icon: Icons.rate_review_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _ReflectionPromptCard(prompt: verse.reflectionPrompt),
+                    const SizedBox(height: 12),
+                    _ReflectionPromptCard(
+                      prompt:
+                          'What does this verse show you about God’s character or care today?',
+                    ),
+                    const SizedBox(height: 12),
+                    _ReflectionPromptCard(
+                      prompt:
+                          'What faithful response does this verse seem to invite from you today?',
+                    ),
+                  ],
                 ),
-                SizedBox(height: 12),
-                _ExplainPointTile(
-                  title: 'Peace is described as protection',
-                  body:
-                      'God’s peace is pictured as guarding the heart and mind, not simply offering a pleasant feeling.',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Keep reading',
+                subtitle: 'Move easily between explanation, scripture, and context.',
+                icon: Icons.swap_horiz_rounded,
+                child: Column(
+                  children: <Widget>[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                        child: const Text('Back to verse detail'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        child: const Text('Read verse context'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push(AppRoutes.todaySharePreview),
+                        child: const Text('Open share preview'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Keep scripture central',
-            subtitle:
-                'Explanation is most helpful when it leads the reader back to the verse itself.',
-            icon: Icons.menu_book_rounded,
-            child: Column(
-              children: const <Widget>[
-                _ExplainPointTile(
-                  title: 'Read the verse again slowly',
-                  body:
-                      'Let the explanation support your reading rather than replace it.',
-                ),
-                SizedBox(height: 12),
-                _ExplainPointTile(
-                  title: 'Notice what stands out',
-                  body:
-                      'Pay attention to a word or phrase that feels especially alive today.',
-                ),
-                SizedBox(height: 12),
-                _ExplainPointTile(
-                  title: 'Carry one thought forward',
-                  body:
-                      'Take one simple truth from the verse into prayer, work, and the rest of the day.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Reflection prompts',
-            subtitle:
-                'Questions to help the explanation turn into prayerful reflection.',
-            icon: Icons.rate_review_outlined,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ReflectionPromptCard(
-                  prompt:
-                      'What specific burden would it look like to name honestly before God today?',
-                ),
-                const SizedBox(height: 12),
-                _ReflectionPromptCard(
-                  prompt:
-                      'What might gratitude sound like in prayer even before the situation changes?',
-                ),
-                const SizedBox(height: 12),
-                _ReflectionPromptCard(
-                  prompt:
-                      'Where do you most need God to guard your heart and mind right now?',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Keep reading',
-            subtitle:
-                'Move easily between explanation, scripture, and context.',
-            icon: Icons.swap_horiz_rounded,
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseDetail),
-                    child: const Text('Back to verse detail'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseContext),
-                    child: const Text('Read verse context'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.todaySharePreview),
-                    child: const Text('Open share preview'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
 class TodaySharePreviewScreen extends StatelessWidget {
-  const TodaySharePreviewScreen({super.key});
+  const TodaySharePreviewScreen({super.key, required this.bootstrap});
 
-  static const MockTodayRepository _repository = MockTodayRepository();
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
-    final TodayVerse verse = _repository.getTodayVerse();
-
     return TabScreenScaffold(
       title: 'Share preview',
       subtitle: 'Today',
       showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          TodayInfoCard(
-            title: 'See how today’s verse can look when shared',
-            subtitle:
-                'A calm layout that keeps scripture central and easy to read.',
-            icon: Icons.ios_share_rounded,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+      body: _TodayVerseLoader(
+        bootstrap: bootstrap,
+        markAsOpened: true,
+        builder: (BuildContext context, TodayVerse verse) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayInfoCard(
+                title: 'See how today’s verse can look when shared',
+                subtitle:
+                    'A calm layout that keeps scripture central and easy to read.',
+                icon: Icons.ios_share_rounded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    TodayBadge(
-                      label: verse.reference,
-                      icon: Icons.menu_book_outlined,
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        TodayBadge(
+                          label: verse.reference,
+                          icon: Icons.menu_book_outlined,
+                        ),
+                        TodayBadge(
+                          label: verse.category,
+                          icon: Icons.local_offer_outlined,
+                        ),
+                      ],
                     ),
-                    TodayBadge(
-                      label: verse.category,
-                      icon: Icons.local_offer_outlined,
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'The preview reflects the same assigned verse your app and future widget use for this day window.',
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Choose a layout that feels clear, simple, and easy to pass on.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Square layout',
+                subtitle: 'A balanced card shape for a feed-style post.',
+                icon: Icons.crop_square_rounded,
+                child: _SharePreviewSurface(
+                  verse: verse,
+                  variant: _ShareVariant.square,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Square layout',
-            subtitle: 'A balanced card shape for a feed-style post.',
-            icon: Icons.crop_square_rounded,
-            child: _SharePreviewSurface(
-              verse: verse,
-              variant: _ShareVariant.square,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Story layout',
-            subtitle: 'A taller layout for a story-style share.',
-            icon: Icons.stay_current_portrait_rounded,
-            child: _SharePreviewSurface(
-              verse: verse,
-              variant: _ShareVariant.story,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TodayInfoCard(
-            title: 'Keep reading',
-            subtitle:
-                'Sharing works best when it grows out of reading, reflection, and prayer.',
-            icon: Icons.favorite_border_rounded,
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.todayVerseDetail),
-                    child: const Text('Back to verse detail'),
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Story layout',
+                subtitle: 'A taller layout for a story-style share.',
+                icon: Icons.stay_current_portrait_rounded,
+                child: _SharePreviewSurface(
+                  verse: verse,
+                  variant: _ShareVariant.story,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.todayVerseAiExplain),
-                    child: const Text('Open AI explain'),
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TodayInfoCard(
+                title: 'Keep reading',
+                subtitle:
+                    'Sharing works best when it grows out of reading, reflection, and prayer.',
+                icon: Icons.favorite_border_rounded,
+                child: Column(
+                  children: <Widget>[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                        child: const Text('Back to verse detail'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
+                        child: const Text('Open AI explain'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+Future<void> _saveTodayBookmark(BuildContext context, TodayVerse verse) async {
+  await _savedRepository.saveBookmark(
+    anchor: _buildTodayAnchor(verse),
+    categoryLabel: verse.category,
+  );
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Verse saved to Saved.')),
+    );
+  }
+}
+
+Future<void> _showTodayReflectionComposer(
+  BuildContext context,
+  TodayVerse verse,
+) async {
+  final TextEditingController titleController = TextEditingController(
+    text: '${verse.reference} reflection',
+  );
+  final TextEditingController bodyController = TextEditingController();
+
+  final bool? submitted = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Add reflection'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  hintText: 'Today reflection',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: bodyController,
+                minLines: 4,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Reflection',
+                  hintText: 'Write a private reflection connected to today\'s verse.',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Save reflection'),
           ),
         ],
-      ),
+      );
+    },
+  );
+
+  if (submitted != true) {
+    titleController.dispose();
+    bodyController.dispose();
+    return;
+  }
+
+  final String title = titleController.text.trim();
+  final String body = bodyController.text.trim();
+  titleController.dispose();
+  bodyController.dispose();
+
+  if (body.isEmpty) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Write a reflection before saving.')),
+      );
+    }
+    return;
+  }
+
+  final SavedReferenceAnchor anchor = _buildTodayAnchor(verse);
+  await _savedRepository.saveBookmark(
+    anchor: anchor,
+    categoryLabel: verse.category,
+    reflection: body,
+  );
+  await _savedRepository.saveNote(
+    anchor: anchor,
+    title: title.isEmpty ? '${verse.reference} reflection' : title,
+    body: body,
+  );
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Reflection saved to Saved.')),
+    );
+  }
+}
+
+SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
+  final _ParsedReference parsed = _parseTodayReference(verse.reference);
+  return SavedReferenceAnchor(
+    versionCode: verse.translationLabel.toLowerCase().contains('web') ? 'web' : 'kjv',
+    bookId: parsed.bookId,
+    bookName: parsed.bookName,
+    chapterStart: parsed.chapterStart,
+    verseStart: parsed.verseStart,
+    chapterEnd: parsed.chapterEnd,
+    verseEnd: parsed.verseEnd,
+    referenceLabel: verse.reference,
+    verseTextSnapshot: verse.verseText,
+  );
+}
+
+_ParsedReference _parseTodayReference(String reference) {
+  final RegExp sameChapterExp = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:[–-](\d+))?$');
+  final Match? sameChapterMatch = sameChapterExp.firstMatch(reference.trim());
+  if (sameChapterMatch != null) {
+    final String bookName = sameChapterMatch.group(1)!.trim();
+    final int chapter = int.tryParse(sameChapterMatch.group(2)!) ?? 1;
+    final int verseStart = int.tryParse(sameChapterMatch.group(3)!) ?? 1;
+    final int verseEnd = int.tryParse(sameChapterMatch.group(4) ?? '') ?? verseStart;
+    return _ParsedReference(
+      bookName: bookName,
+      bookId: _bookIdFromName(bookName),
+      chapterStart: chapter,
+      verseStart: verseStart,
+      chapterEnd: chapter,
+      verseEnd: verseEnd,
+    );
+  }
+
+  final RegExp chapterOnlyExp = RegExp(r'^(.+?)\s+(\d+)$');
+  final Match? chapterOnlyMatch = chapterOnlyExp.firstMatch(reference.trim());
+  if (chapterOnlyMatch != null) {
+    final String bookName = chapterOnlyMatch.group(1)!.trim();
+    final int chapter = int.tryParse(chapterOnlyMatch.group(2)!) ?? 1;
+    return _ParsedReference(
+      bookName: bookName,
+      bookId: _bookIdFromName(bookName),
+      chapterStart: chapter,
+      verseStart: 1,
+      chapterEnd: chapter,
+      verseEnd: 1,
+    );
+  }
+
+  return _ParsedReference(
+    bookName: reference,
+    bookId: _bookIdFromName(reference),
+    chapterStart: 1,
+    verseStart: 1,
+    chapterEnd: 1,
+    verseEnd: 1,
+  );
+}
+
+String _bookIdFromName(String bookName) {
+  return bookName
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+}
+
+class _ParsedReference {
+  const _ParsedReference({
+    required this.bookName,
+    required this.bookId,
+    required this.chapterStart,
+    required this.verseStart,
+    required this.chapterEnd,
+    required this.verseEnd,
+  });
+
+  final String bookName;
+  final String bookId;
+  final int chapterStart;
+  final int verseStart;
+  final int chapterEnd;
+  final int verseEnd;
+}
+
+class _TodayVerseLoader extends StatelessWidget {
+  const _TodayVerseLoader({
+    required this.bootstrap,
+    required this.builder,
+    this.markAsOpened = false,
+  });
+
+  final AppBootstrapController bootstrap;
+  final Widget Function(BuildContext context, TodayVerse verse) builder;
+  final bool markAsOpened;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<TodayVerse>(
+      future: () async {
+        if (markAsOpened) {
+          await _todayRepository.markTodayOpened(
+            selectedCategories: bootstrap.selectedCategories,
+            dailyRefreshTime: bootstrap.dailyNotificationTime,
+            preferredTranslationCode: bootstrap.preferredTranslationCode,
+          );
+        }
+        return _todayRepository.getTodayVerse(
+          selectedCategories: bootstrap.selectedCategories,
+          dailyRefreshTime: bootstrap.dailyNotificationTime,
+          preferredTranslationCode: bootstrap.preferredTranslationCode,
+        );
+      }(),
+      builder: (BuildContext context, AsyncSnapshot<TodayVerse> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: const <Widget>[
+              TodayInfoCard(
+                title: 'Loading today’s verse',
+                subtitle:
+                    'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
+                icon: Icons.hourglass_top_rounded,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              TodayInfoCard(
+                title: 'Unable to load today’s verse',
+                subtitle:
+                    'The assignment pipeline can fall back to local content, but this screen still needs a valid verse payload to continue.',
+                icon: Icons.error_outline_rounded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      snapshot.error?.toString() ?? 'No verse available right now.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return builder(context, snapshot.data!);
+      },
     );
   }
 }

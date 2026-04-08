@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/bootstrap/app_bootstrap_controller.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/preferences/app_preference_snapshot.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -12,7 +13,18 @@ import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../widgets/settings_info_card.dart';
 import '../widgets/settings_nav_tile.dart';
 import '../widgets/support_progress_card.dart';
+import '../../../today/data/local/local_today_widget_data_bridge.dart';
+import '../../../today/domain/models/widget_daily_verse_payload.dart';
+import '../../../today/domain/repositories/widget_data_bridge.dart';
 import '../widgets/widget_preview_card.dart';
+import '../../data/platform/method_channel_widget_plugin_bridge.dart';
+import '../../domain/models/widget_shell_status.dart';
+import '../../domain/models/widget_shell_sync_result.dart';
+import '../../domain/repositories/widget_plugin_bridge.dart';
+
+
+final WidgetDataBridge _widgetDataBridge = LocalTodayWidgetDataBridge();
+final WidgetPluginBridge _widgetPluginBridge = MethodChannelWidgetPluginBridge();
 
 String _widgetStyleLabel(WidgetPreviewStyle style) {
   switch (style) {
@@ -27,6 +39,51 @@ String _primaryWidgetCategory(AppBootstrapController bootstrap) {
   final List<String> categories = bootstrap.selectedCategories;
   if (categories.isEmpty) return 'Guidance';
   return categories.first;
+}
+
+
+class _TodayAlignedWidgetPreview extends StatelessWidget {
+  const _TodayAlignedWidgetPreview({required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<WidgetDailyVersePayload>(
+      future: _widgetDataBridge.getPayload(
+        preferences: AppPreferenceSnapshot.defaults().copyWith(
+          selectedCategories: bootstrap.selectedCategories,
+          dailyNotificationTime: bootstrap.dailyNotificationTime,
+          preferredTranslationCode: bootstrap.preferredTranslationCode,
+          widgetPreviewStyle: bootstrap.widgetPreviewStyle,
+          widgetShowReference: bootstrap.widgetShowReference,
+          widgetShowCategory: bootstrap.widgetShowCategory,
+          widgetShowDate: bootstrap.widgetShowDate,
+          notificationsEnabled: bootstrap.notificationsEnabled,
+        ),
+      ),
+      builder: (BuildContext context, AsyncSnapshot<WidgetDailyVersePayload> snapshot) {
+        final WidgetDailyVersePayload? payload = snapshot.data;
+        final String categoryLabel = payload?.categoryLabel ?? _primaryWidgetCategory(bootstrap);
+        final WidgetPreviewSample sample = payload != null
+            ? WidgetPreviewSample(
+                verseText: payload.verseText,
+                reference: payload.reference,
+              )
+            : buildWidgetPreviewSample(categoryLabel);
+
+        return WidgetPreviewCard(
+          sample: sample,
+          categoryLabel: categoryLabel,
+          updateTimeLabel: payload?.updateTimeLabel ?? bootstrap.dailyNotificationLabel,
+          style: bootstrap.widgetPreviewStyle,
+          showReference: bootstrap.widgetShowReference,
+          showCategory: bootstrap.widgetShowCategory,
+          showDate: bootstrap.widgetShowDate,
+        );
+      },
+    );
+  }
 }
 
 class _SupportPreviewMetrics {
@@ -81,10 +138,6 @@ class SettingsHomeScreen extends StatelessWidget {
       builder: (context, _) {
         final int categoryCount = bootstrap.selectedCategories.length;
         final bool notificationsEnabled = bootstrap.notificationsEnabled;
-        final String widgetCategory = _primaryWidgetCategory(bootstrap);
-        final WidgetPreviewSample widgetSample = buildWidgetPreviewSample(
-          widgetCategory,
-        );
 
         return GlobalScreenScaffold(
           title: 'Settings',
@@ -191,15 +244,7 @@ class SettingsHomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    WidgetPreviewCard(
-                      sample: widgetSample,
-                      categoryLabel: widgetCategory,
-                      updateTimeLabel: bootstrap.dailyNotificationLabel,
-                      style: bootstrap.widgetPreviewStyle,
-                      showReference: bootstrap.widgetShowReference,
-                      showCategory: bootstrap.widgetShowCategory,
-                      showDate: bootstrap.widgetShowDate,
-                    ),
+                    _TodayAlignedWidgetPreview(bootstrap: bootstrap),
                     const SizedBox(height: AppSpacing.lg),
                     SizedBox(
                       width: double.infinity,
@@ -326,29 +371,42 @@ class ContentPreferencesScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                    Chip(
+                      label: Text(
+                        'Today prefers ${bootstrap.preferredTranslationLabel}',
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Reading source',
+                title: 'Translation preference',
                 subtitle:
-                    'A simple note about the reading source used throughout the app.',
+                    'Choose the public-domain translation the daily verse pipeline should prefer.',
                 icon: Icons.translate_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: const <Widget>[
-                        Chip(label: Text('Public-domain Bible source')),
-                        Chip(label: Text('KJV reading style')),
-                      ],
+                    Column(
+                      children: AppConstants.supportedTranslations.map((option) {
+                        final bool selectedTranslation =
+                            bootstrap.preferredTranslationCode == option.code;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _TranslationOptionTile(
+                            option: option,
+                            selected: selectedTranslation,
+                            onTap: () =>
+                                bootstrap.setPreferredTranslationCode(option.code),
+                          ),
+                        );
+                      }).toList(growable: false),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
-                      'This helps keep daily reading and chapter reading consistent.',
+                      'Today, the widget preview, and the Read tab will prefer this translation when it is available. The reading surface can still fall back to the seeded KJV scaffold for chapters that are not yet resolved in the requested translation.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -358,6 +416,70 @@ class ContentPreferencesScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+
+class _TranslationOptionTile extends StatelessWidget {
+  const _TranslationOptionTile({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final BibleTranslationOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadii.xl),
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surfaceMuted : AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(AppRadii.xl),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: selected ? AppColors.primary : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      option.label,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      option.description,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -512,10 +634,6 @@ class WidgetPreferencesScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: bootstrap,
       builder: (context, _) {
-        final String widgetCategory = _primaryWidgetCategory(bootstrap);
-        final WidgetPreviewSample widgetSample = buildWidgetPreviewSample(
-          widgetCategory,
-        );
 
         return GlobalScreenScaffold(
           title: 'Widget preferences',
@@ -528,15 +646,15 @@ class WidgetPreferencesScreen extends StatelessWidget {
                 subtitle:
                     'See how the daily verse can look with your current widget settings.',
                 icon: Icons.widgets_outlined,
-                child: WidgetPreviewCard(
-                  sample: widgetSample,
-                  categoryLabel: widgetCategory,
-                  updateTimeLabel: bootstrap.dailyNotificationLabel,
-                  style: bootstrap.widgetPreviewStyle,
-                  showReference: bootstrap.widgetShowReference,
-                  showCategory: bootstrap.widgetShowCategory,
-                  showDate: bootstrap.widgetShowDate,
-                ),
+                child: _TodayAlignedWidgetPreview(bootstrap: bootstrap),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Widget integration shell',
+                subtitle:
+                    'Prepare the native widget bridge and push the latest daily assignment payload into it.',
+                icon: Icons.developer_mode_rounded,
+                child: _WidgetIntegrationShellCard(bootstrap: bootstrap),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
@@ -657,6 +775,130 @@ class WidgetPreferencesScreen extends StatelessWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+
+class _WidgetIntegrationShellCard extends StatefulWidget {
+  const _WidgetIntegrationShellCard({required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  @override
+  State<_WidgetIntegrationShellCard> createState() =>
+      _WidgetIntegrationShellCardState();
+}
+
+class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard> {
+  late Future<WidgetShellStatus> _statusFuture;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusFuture = _widgetPluginBridge.getStatus();
+  }
+
+  Future<void> _refreshStatus() async {
+    setState(() {
+      _statusFuture = _widgetPluginBridge.getStatus();
+    });
+  }
+
+  Future<void> _syncShell({required bool requestPin}) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final WidgetDailyVersePayload payload = await _widgetDataBridge.getPayload(
+        preferences: AppPreferenceSnapshot.defaults().copyWith(
+          selectedCategories: widget.bootstrap.selectedCategories,
+          dailyNotificationTime: widget.bootstrap.dailyNotificationTime,
+          preferredTranslationCode: widget.bootstrap.preferredTranslationCode,
+          widgetPreviewStyle: widget.bootstrap.widgetPreviewStyle,
+          widgetShowReference: widget.bootstrap.widgetShowReference,
+          widgetShowCategory: widget.bootstrap.widgetShowCategory,
+          widgetShowDate: widget.bootstrap.widgetShowDate,
+          notificationsEnabled: widget.bootstrap.notificationsEnabled,
+        ),
+      );
+      final WidgetShellSyncResult result = await _widgetPluginBridge.syncDailyVersePayload(
+        payload: payload,
+        requestPin: requestPin,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(result.message)));
+      await _refreshStatus();
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<WidgetShellStatus>(
+      future: _statusFuture,
+      builder: (BuildContext context, AsyncSnapshot<WidgetShellStatus> snapshot) {
+        final WidgetShellStatus status = snapshot.data ?? const WidgetShellStatus(
+          isSupported: false,
+          isConfigured: false,
+          canRequestPin: false,
+          statusLabel: 'Checking',
+          message: 'Checking widget bridge availability on this device.',
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                Chip(label: Text(status.statusLabel)),
+                Chip(label: Text(widget.bootstrap.preferredTranslationLabel)),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              status.message,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _busy ? null : () => _syncShell(requestPin: false),
+                icon: const Icon(Icons.sync_rounded),
+                label: const Text('Sync current daily verse to widget shell'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _busy || !status.canRequestPin
+                    ? null
+                    : () => _syncShell(requestPin: true),
+                icon: const Icon(Icons.add_to_home_screen_rounded),
+                label: const Text('Attempt pin widget request'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _refreshStatus,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Refresh shell status'),
+              ),
+            ),
+          ],
         );
       },
     );

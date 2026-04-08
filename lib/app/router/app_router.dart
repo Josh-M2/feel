@@ -110,23 +110,23 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.todayHome,
-                builder: (context, state) => const TodayHomeScreen(),
+                builder: (context, state) => TodayHomeScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.todayVerseDetail,
-                builder: (context, state) => const TodayVerseDetailScreen(),
+                builder: (context, state) => TodayVerseDetailScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.todayVerseContext,
-                builder: (context, state) => const TodayVerseContextScreen(),
+                builder: (context, state) => TodayVerseContextScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.todayVerseAiExplain,
-                builder: (context, state) => const TodayVerseAiExplainScreen(),
+                builder: (context, state) => TodayVerseAiExplainScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.todaySharePreview,
-                builder: (context, state) => const TodaySharePreviewScreen(),
+                builder: (context, state) => TodaySharePreviewScreen(bootstrap: bootstrap),
               ),
             ],
           ),
@@ -135,7 +135,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.readBooks,
-                builder: (context, state) => const ReadBooksScreen(),
+                builder: (context, state) => ReadBooksScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.readBookDetail,
@@ -145,7 +145,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
                       ? state.extra as ReadBookRouteArgs
                       : null;
 
-                  return ReadBookDetailScreen(bookId: args?.bookId);
+                  return ReadBookDetailScreen(bootstrap: bootstrap, bookId: args?.bookId);
                 },
               ),
               GoRoute(
@@ -157,6 +157,7 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
                       : null;
 
                   return ChapterReadScreen(
+                    bootstrap: bootstrap,
                     bookId: args?.bookId,
                     chapterNumber: args?.chapterNumber,
                   );
@@ -164,11 +165,11 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
               ),
               GoRoute(
                 path: AppRoutes.readReferenceSearch,
-                builder: (context, state) => const ReadReferenceSearchScreen(),
+                builder: (context, state) => ReadReferenceSearchScreen(bootstrap: bootstrap),
               ),
               GoRoute(
                 path: AppRoutes.readContinueReading,
-                builder: (context, state) => const ReadContinueReadingScreen(),
+                builder: (context, state) => ReadContinueReadingScreen(bootstrap: bootstrap),
               ),
             ],
           ),

@@ -17,26 +17,74 @@ class MockReadRepositoryAdapter implements ReadRepository {
   Future<ReadBook> getBookById(String? bookId) async => _source.getBookById(bookId);
 
   @override
-  Future<ReadBook> getContinueReadingBook() async => _source.getContinueReadingBook();
+  Future<ReadBook> getContinueReadingBook({String? versionCode}) async =>
+      _source.getContinueReadingBook();
 
   @override
-  Future<ReadChapter> getChapter({required String bookId, int? chapterNumber}) async =>
-      _source.getChapter(bookId: bookId, chapterNumber: chapterNumber);
+  Future<ReadChapter> getChapter({
+    required String bookId,
+    int? chapterNumber,
+    String? versionCode,
+  }) async {
+    final ReadChapter chapter = _source.getChapter(
+      bookId: bookId,
+      chapterNumber: chapterNumber,
+    );
+    final String normalizedVersion = (versionCode ?? 'kjv').trim().toLowerCase();
+    final String label = normalizedVersion == 'web' ? 'WEB fallback scaffold' : 'KJV';
+    return ReadChapter(
+      number: chapter.number,
+      title: chapter.title,
+      introduction: chapter.introduction,
+      focusLine: chapter.focusLine,
+      blocks: chapter.blocks,
+      translationCode: normalizedVersion,
+      translationLabel: label,
+      isTranslationFallback: normalizedVersion != 'kjv',
+    );
+  }
 
   @override
   Future<ReadChapter?> getPreviousChapter({
     required String bookId,
     required int chapterNumber,
-  }) async => _source.getPreviousMockChapter(bookId: bookId, chapterNumber: chapterNumber);
+    String? versionCode,
+  }) async {
+    final ReadChapter? chapter = _source.getPreviousMockChapter(
+      bookId: bookId,
+      chapterNumber: chapterNumber,
+    );
+    if (chapter == null) return null;
+    return getChapter(
+      bookId: bookId,
+      chapterNumber: chapter.number,
+      versionCode: versionCode,
+    );
+  }
 
   @override
   Future<ReadChapter?> getNextChapter({
     required String bookId,
     required int chapterNumber,
-  }) async => _source.getNextMockChapter(bookId: bookId, chapterNumber: chapterNumber);
+    String? versionCode,
+  }) async {
+    final ReadChapter? chapter = _source.getNextMockChapter(
+      bookId: bookId,
+      chapterNumber: chapterNumber,
+    );
+    if (chapter == null) return null;
+    return getChapter(
+      bookId: bookId,
+      chapterNumber: chapter.number,
+      versionCode: versionCode,
+    );
+  }
 
   @override
-  Future<List<ReadReferenceSearchResult>> searchReferences(String query) async {
+  Future<List<ReadReferenceSearchResult>> searchReferences(
+    String query, {
+    String? versionCode,
+  }) async {
     final String normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return const <ReadReferenceSearchResult>[];
 
@@ -105,11 +153,14 @@ class MockReadRepositoryAdapter implements ReadRepository {
   }
 
   @override
-  Future<List<ReadContinuePoint>> getContinueReadingQueue() async {
+  Future<List<ReadContinuePoint>> getContinueReadingQueue({String? versionCode}) async {
     final ReadBook continueBook = _source.getContinueReadingBook();
-    final ReadChapter continueChapter = _source.getChapter(
+    final String versionLabel =
+        (versionCode ?? 'kjv').trim().toLowerCase() == 'web' ? 'WEB' : 'KJV';
+    final ReadChapter continueChapter = await getChapter(
       bookId: continueBook.id,
       chapterNumber: continueBook.continueChapterNumber,
+      versionCode: versionCode,
     );
 
     return <ReadContinuePoint>[
@@ -120,8 +171,13 @@ class MockReadRepositoryAdapter implements ReadRepository {
         chapterTitle: continueChapter.title,
         label: 'Most recent',
         focusLine: continueChapter.focusLine,
+        versionCode: continueChapter.translationCode,
+        versionLabel: continueChapter.translationLabel,
       ),
-      for (final ReadBook book in _source.getBooks().where((ReadBook item) => item.id != continueBook.id).take(3))
+      for (final ReadBook book in _source
+          .getBooks()
+          .where((ReadBook item) => item.id != continueBook.id)
+          .take(3))
         ReadContinuePoint(
           bookId: book.id,
           bookName: book.name,
@@ -135,6 +191,8 @@ class MockReadRepositoryAdapter implements ReadRepository {
             bookId: book.id,
             chapterNumber: book.continueChapterNumber,
           ).focusLine,
+          versionCode: (versionCode ?? 'kjv').trim().toLowerCase(),
+          versionLabel: versionLabel,
         ),
     ];
   }
@@ -146,5 +204,7 @@ class MockReadRepositoryAdapter implements ReadRepository {
     String? bookName,
     String? chapterTitle,
     String? focusLine,
+    String? versionCode,
+    String? versionLabel,
   }) async {}
 }

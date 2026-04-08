@@ -6,6 +6,8 @@ class ReadProgressLocalRecord {
     required this.chapterTitle,
     required this.focusLine,
     required this.openedAtIso,
+    this.versionCode = 'kjv',
+    this.versionLabel = 'KJV',
   });
 
   final String bookId;
@@ -14,6 +16,8 @@ class ReadProgressLocalRecord {
   final String chapterTitle;
   final String focusLine;
   final String openedAtIso;
+  final String versionCode;
+  final String versionLabel;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -23,6 +27,8 @@ class ReadProgressLocalRecord {
       'chapterTitle': chapterTitle,
       'focusLine': focusLine,
       'openedAtIso': openedAtIso,
+      'versionCode': versionCode,
+      'versionLabel': versionLabel,
     };
   }
 
@@ -34,6 +40,8 @@ class ReadProgressLocalRecord {
       chapterTitle: json['chapterTitle']?.toString() ?? '',
       focusLine: json['focusLine']?.toString() ?? '',
       openedAtIso: json['openedAtIso']?.toString() ?? '',
+      versionCode: json['versionCode']?.toString() ?? 'kjv',
+      versionLabel: json['versionLabel']?.toString() ?? 'KJV',
     );
   }
 }

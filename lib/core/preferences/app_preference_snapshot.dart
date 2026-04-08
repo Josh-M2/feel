@@ -12,6 +12,7 @@ class AppPreferenceSnapshot {
     required this.notificationsEnabled,
     required this.dailyNotificationTime,
     required this.selectedCategories,
+    required this.preferredTranslationCode,
     required this.supportState,
     required this.widgetPreviewStyle,
     required this.widgetShowReference,
@@ -23,6 +24,7 @@ class AppPreferenceSnapshot {
   final bool notificationsEnabled;
   final TimeOfDay dailyNotificationTime;
   final List<String> selectedCategories;
+  final String preferredTranslationCode;
   final SupportState supportState;
   final WidgetPreviewStyle widgetPreviewStyle;
   final bool widgetShowReference;
@@ -35,6 +37,7 @@ class AppPreferenceSnapshot {
       notificationsEnabled: false,
       dailyNotificationTime: TimeOfDay(hour: 7, minute: 0),
       selectedCategories: <String>['Guidance', 'Hope', 'Strength'],
+      preferredTranslationCode: AppConstants.defaultTranslationCode,
       supportState: SupportState.open,
       widgetPreviewStyle: WidgetPreviewStyle.cozy,
       widgetShowReference: true,
@@ -48,6 +51,7 @@ class AppPreferenceSnapshot {
     bool? notificationsEnabled,
     TimeOfDay? dailyNotificationTime,
     List<String>? selectedCategories,
+    String? preferredTranslationCode,
     SupportState? supportState,
     WidgetPreviewStyle? widgetPreviewStyle,
     bool? widgetShowReference,
@@ -60,6 +64,9 @@ class AppPreferenceSnapshot {
       dailyNotificationTime: dailyNotificationTime ?? this.dailyNotificationTime,
       selectedCategories: List<String>.unmodifiable(
         selectedCategories ?? this.selectedCategories,
+      ),
+      preferredTranslationCode: AppConstants.sanitizeTranslationCode(
+        preferredTranslationCode ?? this.preferredTranslationCode,
       ),
       supportState: supportState ?? this.supportState,
       widgetPreviewStyle: widgetPreviewStyle ?? this.widgetPreviewStyle,
@@ -76,6 +83,7 @@ class AppPreferenceSnapshot {
       'dailyNotificationHour': dailyNotificationTime.hour,
       'dailyNotificationMinute': dailyNotificationTime.minute,
       'selectedCategories': selectedCategories,
+      'preferredTranslationCode': preferredTranslationCode,
       'supportState': supportState.name,
       'widgetPreviewStyle': widgetPreviewStyle.name,
       'widgetShowReference': widgetShowReference,
@@ -99,6 +107,9 @@ class AppPreferenceSnapshot {
         minute: (json['dailyNotificationMinute'] as int?) ?? 0,
       ),
       selectedCategories: selected,
+      preferredTranslationCode: AppConstants.sanitizeTranslationCode(
+        json['preferredTranslationCode']?.toString(),
+      ),
       supportState: _supportStateFromName(json['supportState']?.toString()),
       widgetPreviewStyle: _widgetPreviewStyleFromName(
         json['widgetPreviewStyle']?.toString(),
@@ -116,6 +127,7 @@ class AppPreferenceSnapshot {
       'notifications_enabled': notificationsEnabled,
       'notification_time_local':
           '${dailyNotificationTime.hour.toString().padLeft(2, '0')}:${dailyNotificationTime.minute.toString().padLeft(2, '0')}:00',
+      'preferred_translation_code': preferredTranslationCode,
       'widget_preview_style': widgetPreviewStyle.name,
       'widget_show_reference': widgetShowReference,
       'widget_show_category': widgetShowCategory,
@@ -135,6 +147,9 @@ class AppPreferenceSnapshot {
         row['notification_time_local']?.toString(),
       ),
       selectedCategories: _sanitizeCategories(categories),
+      preferredTranslationCode: AppConstants.sanitizeTranslationCode(
+        row['preferred_translation_code']?.toString(),
+      ),
       supportState: supportState,
       widgetPreviewStyle: _widgetPreviewStyleFromName(
         row['widget_preview_style']?.toString(),

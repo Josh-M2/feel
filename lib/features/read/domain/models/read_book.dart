@@ -31,6 +31,9 @@ class ReadChapter {
     required this.introduction,
     required this.focusLine,
     required this.blocks,
+    this.translationCode = 'kjv',
+    this.translationLabel = 'KJV',
+    this.isTranslationFallback = false,
   });
 
   final int number;
@@ -38,6 +41,9 @@ class ReadChapter {
   final String introduction;
   final String focusLine;
   final List<ReadPassageBlock> blocks;
+  final String translationCode;
+  final String translationLabel;
+  final bool isTranslationFallback;
 }
 
 class ReadPassageBlock {

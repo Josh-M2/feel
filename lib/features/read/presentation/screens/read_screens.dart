@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/bootstrap/app_bootstrap_controller.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
@@ -24,7 +25,9 @@ final SavedLibraryRepository _savedRepository =
     LocalFirstSavedLibraryRepository();
 
 class ReadBooksScreen extends StatelessWidget {
-  const ReadBooksScreen({super.key});
+  const ReadBooksScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +53,8 @@ class ReadBooksScreen extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Chip(label: Text(bootstrap.preferredTranslationLabel)),
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       '${data.continueBook.name} ${data.continueChapter.number}',
@@ -134,7 +139,9 @@ class ReadBooksScreen extends StatelessWidget {
 
   Future<_ReadBooksScreenData> _loadReadBooksScreenData() async {
     final List<ReadBook> books = await _repository.getBooks();
-    final List<ReadContinuePoint> queue = await _repository.getContinueReadingQueue();
+    final List<ReadContinuePoint> queue = await _repository.getContinueReadingQueue(
+      versionCode: bootstrap.preferredTranslationCode,
+    );
 
     late final ReadBook continueBook;
     late final ReadChapter continueChapter;
@@ -145,12 +152,16 @@ class ReadBooksScreen extends StatelessWidget {
       continueChapter = await _repository.getChapter(
         bookId: continuePoint.bookId,
         chapterNumber: continuePoint.chapterNumber,
+        versionCode: bootstrap.preferredTranslationCode,
       );
     } else {
-      continueBook = await _repository.getContinueReadingBook();
+      continueBook = await _repository.getContinueReadingBook(
+        versionCode: bootstrap.preferredTranslationCode,
+      );
       continueChapter = await _repository.getChapter(
         bookId: continueBook.id,
         chapterNumber: continueBook.continueChapterNumber,
+        versionCode: bootstrap.preferredTranslationCode,
       );
     }
 
@@ -163,8 +174,9 @@ class ReadBooksScreen extends StatelessWidget {
 }
 
 class ReadBookDetailScreen extends StatelessWidget {
-  const ReadBookDetailScreen({super.key, this.bookId});
+  const ReadBookDetailScreen({super.key, required this.bootstrap, this.bookId});
 
+  final AppBootstrapController bootstrap;
   final String? bookId;
 
   @override
@@ -192,6 +204,7 @@ class ReadBookDetailScreen extends StatelessWidget {
                         Chip(label: Text(book.testament)),
                         Chip(label: Text('${book.chapterCount} chapters')),
                         const Chip(label: Text('Reading')),
+                        Chip(label: Text(bootstrap.preferredTranslationLabel)),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -343,8 +356,9 @@ class ReadBookDetailScreen extends StatelessWidget {
 }
 
 class ChapterReadScreen extends StatefulWidget {
-  const ChapterReadScreen({super.key, this.bookId, this.chapterNumber});
+  const ChapterReadScreen({super.key, required this.bootstrap, this.bookId, this.chapterNumber});
 
+  final AppBootstrapController bootstrap;
   final String? bookId;
   final int? chapterNumber;
 
@@ -391,7 +405,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                       children: <Widget>[
                         Chip(label: Text(data.book.name)),
                         Chip(label: Text('Chapter ${data.chapter.number}')),
-                        const Chip(label: Text('KJV')),
+                        Chip(label: Text(data.chapter.translationLabel)),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -414,6 +428,15 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                       data.chapter.introduction,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
+                    if (data.chapter.isTranslationFallback) ...<Widget>[
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'The requested translation was not available for this chapter yet, so the reading surface fell back to the seeded KJV scaffold.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -580,14 +603,17 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
     final ReadChapter chapter = await _repository.getChapter(
       bookId: book.id,
       chapterNumber: widget.chapterNumber,
+      versionCode: widget.bootstrap.preferredTranslationCode,
     );
     final ReadChapter? previousChapter = await _repository.getPreviousChapter(
       bookId: book.id,
       chapterNumber: chapter.number,
+      versionCode: widget.bootstrap.preferredTranslationCode,
     );
     final ReadChapter? nextChapter = await _repository.getNextChapter(
       bookId: book.id,
       chapterNumber: chapter.number,
+      versionCode: widget.bootstrap.preferredTranslationCode,
     );
 
     return _ChapterReadScreenData(
@@ -609,6 +635,8 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
         bookName: data.book.name,
         chapterTitle: data.chapter.title,
         focusLine: data.chapter.focusLine,
+        versionCode: data.chapter.translationCode,
+        versionLabel: data.chapter.translationLabel,
       );
     });
   }
@@ -737,7 +765,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
         .trim();
 
     return SavedReferenceAnchor(
-      versionCode: 'kjv',
+      versionCode: data.chapter.translationCode,
       bookId: data.book.id,
       bookName: data.book.name,
       chapterStart: data.chapter.number,
@@ -772,7 +800,9 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
 }
 
 class ReadReferenceSearchScreen extends StatefulWidget {
-  const ReadReferenceSearchScreen({super.key});
+  const ReadReferenceSearchScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
 
   @override
   State<ReadReferenceSearchScreen> createState() =>
@@ -801,7 +831,10 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
       _query = value;
       _searchFuture = value.trim().isEmpty
           ? null
-          : _repository.searchReferences(value);
+          : _repository.searchReferences(
+              value,
+              versionCode: widget.bootstrap.preferredTranslationCode,
+            );
     });
   }
 
@@ -838,6 +871,11 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
                     hintText: 'Try: John 3, Psalm 23, Philippians 4',
                     prefixIcon: Icon(Icons.search_rounded),
                   ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Chip(label: Text(widget.bootstrap.preferredTranslationLabel)),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Wrap(
@@ -976,12 +1014,16 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
 }
 
 class ReadContinueReadingScreen extends StatelessWidget {
-  const ReadContinueReadingScreen({super.key});
+  const ReadContinueReadingScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<ReadContinuePoint>>(
-      future: _repository.getContinueReadingQueue(),
+      future: _repository.getContinueReadingQueue(
+        versionCode: bootstrap.preferredTranslationCode,
+      ),
       builder: (context, snapshot) {
         return _buildReadScaffold(
           context: context,
@@ -1006,6 +1048,8 @@ class ReadContinueReadingScreen extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Chip(label: Text(bootstrap.preferredTranslationLabel)),
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         '${continuePoint.bookName} ${continuePoint.chapterNumber}',
