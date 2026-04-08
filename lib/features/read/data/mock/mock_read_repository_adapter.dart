@@ -138,4 +138,13 @@ class MockReadRepositoryAdapter implements ReadRepository {
         ),
     ];
   }
+
+  @override
+  Future<void> recordChapterOpened({
+    required String bookId,
+    required int chapterNumber,
+    String? bookName,
+    String? chapterTitle,
+    String? focusLine,
+  }) async {}
 }

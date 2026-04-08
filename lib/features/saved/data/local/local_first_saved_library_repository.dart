@@ -55,6 +55,154 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     );
   }
 
+
+  @override
+  Future<SavedBookmark> saveBookmark({
+    required SavedReferenceAnchor anchor,
+    String categoryLabel = 'Reading',
+    String? reflection,
+  }) async {
+    final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final DateTime now = DateTime.now().toUtc();
+    final int existingIndex = snapshot.bookmarks.indexWhere(
+      (SavedBookmarkLocalRecord item) =>
+          item.anchor.referenceLabel == anchor.referenceLabel,
+    );
+
+    late final SavedBookmarkLocalRecord record;
+    final List<SavedBookmarkLocalRecord> nextBookmarks = List<SavedBookmarkLocalRecord>.from(
+      snapshot.bookmarks,
+    );
+
+    if (existingIndex >= 0) {
+      final SavedBookmarkLocalRecord existing = nextBookmarks.removeAt(existingIndex);
+      record = SavedBookmarkLocalRecord(
+        id: existing.id,
+        anchor: anchor,
+        categoryLabel: categoryLabel,
+        savedAtIso: existing.savedAtIso,
+        reflection: (reflection ?? '').trim().isEmpty ? existing.reflection : reflection,
+        highlightCount: existing.highlightCount,
+      );
+    } else {
+      record = SavedBookmarkLocalRecord(
+        id: _nextId('bookmark'),
+        anchor: anchor,
+        categoryLabel: categoryLabel,
+        savedAtIso: now.toIso8601String(),
+        reflection: reflection,
+        highlightCount: 0,
+      );
+    }
+
+    nextBookmarks.insert(0, record);
+    await _localStore.save(
+      snapshot.copyWith(
+        bookmarks: nextBookmarks,
+        history: _prependHistory(
+          snapshot.history,
+          SavedHistoryLocalRecord(
+            id: _nextId('history'),
+            kind: 'bookmark_saved',
+            title: 'Bookmark saved',
+            subtitle: anchor.referenceLabel,
+            occurredAtIso: now.toIso8601String(),
+          ),
+        ),
+      ),
+    );
+
+    return _mapBookmark(record);
+  }
+
+  @override
+  Future<SavedHighlight> saveHighlight({
+    required SavedReferenceAnchor anchor,
+    required String highlightedText,
+    String colorKey = 'warm_amber',
+    String? notePreview,
+  }) async {
+    final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final DateTime now = DateTime.now().toUtc();
+    final List<SavedHighlightLocalRecord> nextHighlights = List<SavedHighlightLocalRecord>.from(
+      snapshot.highlights,
+    )..removeWhere(
+        (SavedHighlightLocalRecord item) =>
+            item.anchor.referenceLabel == anchor.referenceLabel &&
+            item.selectedText == highlightedText,
+      );
+
+    final SavedHighlightLocalRecord record = SavedHighlightLocalRecord(
+      id: _nextId('highlight'),
+      anchor: anchor,
+      selectedText: highlightedText,
+      colorKey: colorKey,
+      savedAtIso: now.toIso8601String(),
+      notePreview: notePreview,
+    );
+
+    nextHighlights.insert(0, record);
+    await _localStore.save(
+      snapshot.copyWith(
+        highlights: nextHighlights,
+        history: _prependHistory(
+          snapshot.history,
+          SavedHistoryLocalRecord(
+            id: _nextId('history'),
+            kind: 'highlight_saved',
+            title: 'Highlight saved',
+            subtitle: anchor.referenceLabel,
+            occurredAtIso: now.toIso8601String(),
+          ),
+        ),
+      ),
+    );
+
+    return _mapHighlight(record);
+  }
+
+  @override
+  Future<SavedNote> saveNote({
+    required SavedReferenceAnchor anchor,
+    required String title,
+    required String body,
+    bool isPinned = false,
+  }) async {
+    final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final DateTime now = DateTime.now().toUtc();
+    final SavedNoteLocalRecord record = SavedNoteLocalRecord(
+      id: _nextId('note'),
+      anchor: anchor,
+      title: title,
+      body: body,
+      createdAtIso: now.toIso8601String(),
+      updatedAtIso: now.toIso8601String(),
+      isPinned: isPinned,
+    );
+
+    final List<SavedNoteLocalRecord> nextNotes = <SavedNoteLocalRecord>[
+      record,
+      ...snapshot.notes,
+    ];
+    await _localStore.save(
+      snapshot.copyWith(
+        notes: nextNotes,
+        history: _prependHistory(
+          snapshot.history,
+          SavedHistoryLocalRecord(
+            id: _nextId('history'),
+            kind: 'note_written',
+            title: 'Note added',
+            subtitle: anchor.referenceLabel,
+            occurredAtIso: now.toIso8601String(),
+          ),
+        ),
+      ),
+    );
+
+    return _mapNote(record);
+  }
+
   Future<SavedLibraryLocalSnapshot> _loadSnapshot() async {
     final SavedLibraryLocalSnapshot snapshot = await _localStore.load();
     if (_hasContent(snapshot)) {
@@ -344,6 +492,20 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
   String _capitalize(String value) {
     if (value.isEmpty) return value;
     return value[0].toUpperCase() + value.substring(1);
+  }
+
+  List<SavedHistoryLocalRecord> _prependHistory(
+    List<SavedHistoryLocalRecord> current,
+    SavedHistoryLocalRecord entry,
+  ) {
+    return <SavedHistoryLocalRecord>[
+      entry,
+      ...current,
+    ].take(40).toList(growable: false);
+  }
+
+  String _nextId(String prefix) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
   }
 
   int _bookmarkOffset(int index) => const <int>[0, 1, 3, 7][index % 4];

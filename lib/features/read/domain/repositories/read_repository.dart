@@ -17,4 +17,11 @@ abstract class ReadRepository {
   });
   Future<List<ReadReferenceSearchResult>> searchReferences(String query);
   Future<List<ReadContinuePoint>> getContinueReadingQueue();
+  Future<void> recordChapterOpened({
+    required String bookId,
+    required int chapterNumber,
+    String? bookName,
+    String? chapterTitle,
+    String? focusLine,
+  });
 }

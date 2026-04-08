@@ -238,6 +238,21 @@ class SavedLibraryLocalSnapshot {
     );
   }
 
+
+  SavedLibraryLocalSnapshot copyWith({
+    List<SavedBookmarkLocalRecord>? bookmarks,
+    List<SavedHighlightLocalRecord>? highlights,
+    List<SavedNoteLocalRecord>? notes,
+    List<SavedHistoryLocalRecord>? history,
+  }) {
+    return SavedLibraryLocalSnapshot(
+      bookmarks: bookmarks ?? this.bookmarks,
+      highlights: highlights ?? this.highlights,
+      notes: notes ?? this.notes,
+      history: history ?? this.history,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'bookmarks': bookmarks.map((SavedBookmarkLocalRecord item) => item.toJson()).toList(growable: false),

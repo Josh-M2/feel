@@ -7,6 +7,9 @@ import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
+import '../../../saved/data/local/local_first_saved_library_repository.dart';
+import '../../../saved/domain/models/saved_library_local_snapshot.dart';
+import '../../../saved/domain/repositories/saved_library_repository.dart';
 import '../../data/public/supabase_public_read_repository.dart';
 import '../../domain/models/read_book.dart';
 import '../../domain/models/read_continue_point.dart';
@@ -17,6 +20,8 @@ import '../widgets/read_info_card.dart';
 import '../widgets/read_passage_block_card.dart';
 
 final ReadRepository _repository = SupabasePublicReadRepository();
+final SavedLibraryRepository _savedRepository =
+    LocalFirstSavedLibraryRepository();
 
 class ReadBooksScreen extends StatelessWidget {
   const ReadBooksScreen({super.key});
@@ -129,11 +134,25 @@ class ReadBooksScreen extends StatelessWidget {
 
   Future<_ReadBooksScreenData> _loadReadBooksScreenData() async {
     final List<ReadBook> books = await _repository.getBooks();
-    final ReadBook continueBook = await _repository.getContinueReadingBook();
-    final ReadChapter continueChapter = await _repository.getChapter(
-      bookId: continueBook.id,
-      chapterNumber: continueBook.continueChapterNumber,
-    );
+    final List<ReadContinuePoint> queue = await _repository.getContinueReadingQueue();
+
+    late final ReadBook continueBook;
+    late final ReadChapter continueChapter;
+
+    if (queue.isNotEmpty) {
+      final ReadContinuePoint continuePoint = queue.first;
+      continueBook = await _repository.getBookById(continuePoint.bookId);
+      continueChapter = await _repository.getChapter(
+        bookId: continuePoint.bookId,
+        chapterNumber: continuePoint.chapterNumber,
+      );
+    } else {
+      continueBook = await _repository.getContinueReadingBook();
+      continueChapter = await _repository.getChapter(
+        bookId: continueBook.id,
+        chapterNumber: continueBook.continueChapterNumber,
+      );
+    }
 
     return _ReadBooksScreenData(
       books: books,
@@ -323,17 +342,36 @@ class ReadBookDetailScreen extends StatelessWidget {
   }
 }
 
-class ChapterReadScreen extends StatelessWidget {
+class ChapterReadScreen extends StatefulWidget {
   const ChapterReadScreen({super.key, this.bookId, this.chapterNumber});
 
   final String? bookId;
   final int? chapterNumber;
 
   @override
+  State<ChapterReadScreen> createState() => _ChapterReadScreenState();
+}
+
+class _ChapterReadScreenState extends State<ChapterReadScreen> {
+  late final Future<_ChapterReadScreenData> _screenDataFuture;
+  bool _recordedOpen = false;
+  bool _saveBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _screenDataFuture = _loadChapterReadScreenData();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<_ChapterReadScreenData>(
-      future: _loadChapterReadScreenData(),
+      future: _screenDataFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          _recordChapterOpened(snapshot.data!);
+        }
+
         return _buildReadScaffold(
           context: context,
           title: 'Chapter read',
@@ -394,6 +432,49 @@ class ChapterReadScreen extends StatelessWidget {
                 (ReadPassageBlock block) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: ReadPassageBlockCard(block: block),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Save from this chapter',
+                subtitle:
+                    'Bookmark it, save a key highlight, or add a private note.',
+                icon: Icons.bookmark_outline_rounded,
+                child: Column(
+                  children: <Widget>[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _saveBusy
+                            ? null
+                            : () => _saveBookmark(data),
+                        icon: const Icon(Icons.bookmark_add_outlined),
+                        label: const Text('Save bookmark'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _saveBusy
+                            ? null
+                            : () => _saveHighlight(data),
+                        icon: const Icon(Icons.highlight_alt_outlined),
+                        label: const Text('Save highlight'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _saveBusy
+                            ? null
+                            : () => _showNoteComposer(data),
+                        icon: const Icon(Icons.edit_note_outlined),
+                        label: const Text('Add note'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -494,11 +575,11 @@ class ChapterReadScreen extends StatelessWidget {
   }
 
   Future<_ChapterReadScreenData> _loadChapterReadScreenData() async {
-    final String resolvedBookId = bookId ?? 'john';
+    final String resolvedBookId = widget.bookId ?? 'john';
     final ReadBook book = await _repository.getBookById(resolvedBookId);
     final ReadChapter chapter = await _repository.getChapter(
       bookId: book.id,
-      chapterNumber: chapterNumber,
+      chapterNumber: widget.chapterNumber,
     );
     final ReadChapter? previousChapter = await _repository.getPreviousChapter(
       bookId: book.id,
@@ -515,6 +596,178 @@ class ChapterReadScreen extends StatelessWidget {
       previousChapter: previousChapter,
       nextChapter: nextChapter,
     );
+  }
+
+  void _recordChapterOpened(_ChapterReadScreenData data) {
+    if (_recordedOpen) return;
+    _recordedOpen = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _repository.recordChapterOpened(
+        bookId: data.book.id,
+        chapterNumber: data.chapter.number,
+        bookName: data.book.name,
+        chapterTitle: data.chapter.title,
+        focusLine: data.chapter.focusLine,
+      );
+    });
+  }
+
+  Future<void> _saveBookmark(_ChapterReadScreenData data) async {
+    await _runSaveAction(() async {
+      await _savedRepository.saveBookmark(
+        anchor: _buildChapterAnchor(data),
+        categoryLabel: 'Reading',
+      );
+      _showSnackBar('Bookmark saved to Saved.');
+    });
+  }
+
+  Future<void> _saveHighlight(_ChapterReadScreenData data) async {
+    await _runSaveAction(() async {
+      final String highlightedText = _highlightTextForChapter(data);
+      await _savedRepository.saveHighlight(
+        anchor: _buildChapterAnchor(data),
+        highlightedText: highlightedText,
+        notePreview: data.chapter.focusLine,
+      );
+      _showSnackBar('Highlight saved to Saved.');
+    });
+  }
+
+  Future<void> _showNoteComposer(_ChapterReadScreenData data) async {
+    final TextEditingController titleController = TextEditingController(
+      text: '${data.book.name} ${data.chapter.number}',
+    );
+    final TextEditingController bodyController = TextEditingController();
+
+    final bool? submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Add note'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    hintText: 'Chapter note title',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextField(
+                  controller: bodyController,
+                  minLines: 4,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Note',
+                    hintText: 'Write a private reflection for this chapter.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Save note'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (submitted != true) {
+      titleController.dispose();
+      bodyController.dispose();
+      return;
+    }
+
+    final String title = titleController.text.trim();
+    final String body = bodyController.text.trim();
+    titleController.dispose();
+    bodyController.dispose();
+
+    if (body.isEmpty) {
+      _showSnackBar('Write a note before saving.');
+      return;
+    }
+
+    await _runSaveAction(() async {
+      await _savedRepository.saveNote(
+        anchor: _buildChapterAnchor(data),
+        title: title.isEmpty ? '${data.book.name} ${data.chapter.number}' : title,
+        body: body,
+      );
+      _showSnackBar('Note saved to Saved.');
+    });
+  }
+
+  Future<void> _runSaveAction(Future<void> Function() action) async {
+    if (_saveBusy) return;
+    setState(() => _saveBusy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) {
+        setState(() => _saveBusy = false);
+      }
+    }
+  }
+
+  SavedReferenceAnchor _buildChapterAnchor(_ChapterReadScreenData data) {
+    final List<ReadVerseLine> verses = data.chapter.blocks
+        .expand((ReadPassageBlock block) => block.verses)
+        .toList(growable: false);
+    final int verseStart = verses.isEmpty ? 1 : verses.first.number;
+    final int verseEnd = verses.isEmpty ? verseStart : verses.last.number;
+    final String referenceLabel =
+        '${data.book.name} ${data.chapter.number}:$verseStart${verseEnd == verseStart ? '' : '–$verseEnd'}';
+    final String verseTextSnapshot = verses
+        .take(2)
+        .map((ReadVerseLine verse) => '${verse.number}. ${verse.text}')
+        .join(' ')
+        .trim();
+
+    return SavedReferenceAnchor(
+      versionCode: 'kjv',
+      bookId: data.book.id,
+      bookName: data.book.name,
+      chapterStart: data.chapter.number,
+      verseStart: verseStart,
+      chapterEnd: data.chapter.number,
+      verseEnd: verseEnd,
+      referenceLabel: referenceLabel,
+      verseTextSnapshot: verseTextSnapshot.isEmpty
+          ? data.chapter.focusLine
+          : verseTextSnapshot,
+    );
+  }
+
+  String _highlightTextForChapter(_ChapterReadScreenData data) {
+    final List<ReadVerseLine> verses = data.chapter.blocks
+        .expand((ReadPassageBlock block) => block.verses)
+        .toList(growable: false);
+    if (verses.isEmpty) {
+      return data.chapter.focusLine;
+    }
+
+    final ReadVerseLine verse = verses.first;
+    return '${verse.number}. ${verse.text}';
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
