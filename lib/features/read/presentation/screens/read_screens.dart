@@ -7,120 +7,138 @@ import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
-import '../../data/mock/mock_read_repository.dart';
+import '../../data/public/supabase_public_read_repository.dart';
 import '../../domain/models/read_book.dart';
+import '../../domain/models/read_continue_point.dart';
+import '../../domain/models/read_reference_search_result.dart';
+import '../../domain/repositories/read_repository.dart';
 import '../widgets/read_book_list_card.dart';
 import '../widgets/read_info_card.dart';
 import '../widgets/read_passage_block_card.dart';
 
+final ReadRepository _repository = SupabasePublicReadRepository();
+
 class ReadBooksScreen extends StatelessWidget {
   const ReadBooksScreen({super.key});
 
-  static const MockReadRepository _repository = MockReadRepository();
-
   @override
   Widget build(BuildContext context) {
-    final List<ReadBook> books = _repository.getBooks();
-    final ReadBook continueBook = _repository.getContinueReadingBook();
-    final ReadChapter continueChapter = _repository.getChapter(
+    return FutureBuilder<_ReadBooksScreenData>(
+      future: _loadReadBooksScreenData(),
+      builder: (context, snapshot) {
+        return _buildReadScaffold(
+          context: context,
+          title: 'Read',
+          subtitle: 'Books, chapters, references, and resume reading',
+          snapshot: snapshot,
+          dataBuilder: (context, data) => ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Continue reading',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      '${data.continueBook.name} ${data.continueChapter.number}',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      data.continueChapter.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      data.continueChapter.focusLine,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          context.push(
+                            AppRoutes.readChapterRead,
+                            extra: ChapterReadRouteArgs(
+                              bookId: data.continueBook.id,
+                              chapterNumber: data.continueChapter.number,
+                            ),
+                          );
+                        },
+                        child: const Text('Resume chapter'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'How to use Read',
+                subtitle:
+                    'Browse books, jump to a chapter, or return to where you left off.',
+                icon: Icons.menu_book_outlined,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _ReadBullet(
+                      text: 'Browse books in a calm, library-style flow.',
+                    ),
+                    _ReadBullet(
+                      text: 'Open a book before moving into chapter reading.',
+                    ),
+                    _ReadBullet(
+                      text:
+                          'Use reference search when you already know where you want to go.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Books', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.md),
+              ...data.books.map(
+                (ReadBook book) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: ReadBookListCard(
+                    book: book,
+                    onTap: () {
+                      context.push(
+                        AppRoutes.readBookDetail,
+                        extra: ReadBookRouteArgs(bookId: book.id),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<_ReadBooksScreenData> _loadReadBooksScreenData() async {
+    final List<ReadBook> books = await _repository.getBooks();
+    final ReadBook continueBook = await _repository.getContinueReadingBook();
+    final ReadChapter continueChapter = await _repository.getChapter(
       bookId: continueBook.id,
       chapterNumber: continueBook.continueChapterNumber,
     );
 
-    return TabScreenScaffold(
-      title: 'Read',
-      subtitle: 'Books, chapters, references, and resume reading',
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Continue reading',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  '${continueBook.name} ${continueChapter.number}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontSize: 30),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  continueChapter.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  continueChapter.focusLine,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      context.push(
-                        AppRoutes.readChapterRead,
-                        extra: ChapterReadRouteArgs(
-                          bookId: continueBook.id,
-                          chapterNumber: continueChapter.number,
-                        ),
-                      );
-                    },
-                    child: const Text('Resume chapter'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'How to use Read',
-            subtitle:
-                'Browse books, jump to a chapter, or return to where you left off.',
-            icon: Icons.menu_book_outlined,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ReadBullet(
-                  text: 'Browse books in a calm, library-style flow.',
-                ),
-                _ReadBullet(
-                  text: 'Open a book before moving into chapter reading.',
-                ),
-                _ReadBullet(
-                  text:
-                      'Use reference search when you already know where you want to go.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Books', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: AppSpacing.md),
-          ...books.map(
-            (ReadBook book) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: ReadBookListCard(
-                book: book,
-                onTap: () {
-                  context.push(
-                    AppRoutes.readBookDetail,
-                    extra: ReadBookRouteArgs(bookId: book.id),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+    return _ReadBooksScreenData(
+      books: books,
+      continueBook: continueBook,
+      continueChapter: continueChapter,
     );
   }
 }
@@ -128,176 +146,179 @@ class ReadBooksScreen extends StatelessWidget {
 class ReadBookDetailScreen extends StatelessWidget {
   const ReadBookDetailScreen({super.key, this.bookId});
 
-  static const MockReadRepository _repository = MockReadRepository();
-
   final String? bookId;
 
   @override
   Widget build(BuildContext context) {
-    final ReadBook book = _repository.getBookById(bookId);
-
-    return TabScreenScaffold(
-      title: 'Book detail',
-      subtitle: 'Read',
-      showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+    return FutureBuilder<ReadBook>(
+      future: _repository.getBookById(bookId),
+      builder: (context, snapshot) {
+        return _buildReadScaffold(
+          context: context,
+          title: 'Book detail',
+          subtitle: 'Read',
+          showBackButton: true,
+          snapshot: snapshot,
+          dataBuilder: (context, book) => ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Chip(label: Text(book.testament)),
-                    Chip(label: Text('${book.chapterCount} chapters')),
-                    const Chip(label: Text('Reading')),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        Chip(label: Text(book.testament)),
+                        Chip(label: Text('${book.chapterCount} chapters')),
+                        const Chip(label: Text('Reading')),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      book.name,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 32),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      book.shortDescription,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              context.push(
+                                AppRoutes.readChapterRead,
+                                extra: ChapterReadRouteArgs(
+                                  bookId: book.id,
+                                  chapterNumber: book.mockChapters.first.number,
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Read chapter ${book.mockChapters.first.number}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              context.push(
+                                AppRoutes.readChapterRead,
+                                extra: ChapterReadRouteArgs(
+                                  bookId: book.id,
+                                  chapterNumber: book.continueChapterNumber,
+                                ),
+                              );
+                            },
+                            child: const Text('Continue'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  book.name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontSize: 32),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  book.shortDescription,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Overview',
+                subtitle:
+                    'A short introduction to the book before you begin reading.',
+                icon: Icons.description_outlined,
+                child: Text(
+                  book.overview,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          context.push(
-                            AppRoutes.readChapterRead,
-                            extra: ChapterReadRouteArgs(
-                              bookId: book.id,
-                              chapterNumber: book.mockChapters.first.number,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Read chapter ${book.mockChapters.first.number}',
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Why read this book',
+                icon: Icons.lightbulb_outline_rounded,
+                child: Text(
+                  book.whyRead,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Key themes',
+                icon: Icons.local_offer_outlined,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: book.keyThemes
+                      .map((String theme) => Chip(label: Text(theme)))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Chapters in this reading set',
+                subtitle: 'Choose a chapter to begin or return to.',
+                icon: Icons.view_list_outlined,
+                child: Column(
+                  children: book.mockChapters
+                      .map(
+                        (ReadChapter chapter) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ChapterTile(
+                            chapter: chapter,
+                            onTap: () {
+                              context.push(
+                                AppRoutes.readChapterRead,
+                                extra: ChapterReadRouteArgs(
+                                  bookId: book.id,
+                                  chapterNumber: chapter.number,
+                                ),
+                              );
+                            },
+                          ),
                         ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'More ways to continue',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            context.push(AppRoutes.readReferenceSearch),
+                        child: const Text('Search by reference'),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () {
-                          context.push(
-                            AppRoutes.readChapterRead,
-                            extra: ChapterReadRouteArgs(
-                              bookId: book.id,
-                              chapterNumber: book.continueChapterNumber,
-                            ),
-                          );
-                        },
-                        child: const Text('Continue'),
+                        onPressed: () =>
+                            context.push(AppRoutes.readContinueReading),
+                        child: const Text('Continue reading'),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Overview',
-            subtitle:
-                'A short introduction to the book before you begin reading.',
-            icon: Icons.description_outlined,
-            child: Text(
-              book.overview,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Why read this book',
-            icon: Icons.lightbulb_outline_rounded,
-            child: Text(
-              book.whyRead,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Key themes',
-            icon: Icons.local_offer_outlined,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: book.keyThemes
-                  .map((String theme) => Chip(label: Text(theme)))
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Chapters in this reading set',
-            subtitle: 'Choose a chapter to begin or return to.',
-            icon: Icons.view_list_outlined,
-            child: Column(
-              children: book.mockChapters
-                  .map(
-                    (ReadChapter chapter) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ChapterTile(
-                        chapter: chapter,
-                        onTap: () {
-                          context.push(
-                            AppRoutes.readChapterRead,
-                            extra: ChapterReadRouteArgs(
-                              bookId: book.id,
-                              chapterNumber: chapter.number,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'More ways to continue',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.readReferenceSearch),
-                    child: const Text('Search by reference'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.readContinueReading),
-                    child: const Text('Continue reading'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -305,178 +326,194 @@ class ReadBookDetailScreen extends StatelessWidget {
 class ChapterReadScreen extends StatelessWidget {
   const ChapterReadScreen({super.key, this.bookId, this.chapterNumber});
 
-  static const MockReadRepository _repository = MockReadRepository();
-
   final String? bookId;
   final int? chapterNumber;
 
   @override
   Widget build(BuildContext context) {
-    final ReadBook book = _repository.getBookById(bookId);
-    final ReadChapter chapter = _repository.getChapter(
+    return FutureBuilder<_ChapterReadScreenData>(
+      future: _loadChapterReadScreenData(),
+      builder: (context, snapshot) {
+        return _buildReadScaffold(
+          context: context,
+          title: 'Chapter read',
+          subtitle: 'Read',
+          showBackButton: true,
+          snapshot: snapshot,
+          dataBuilder: (context, data) => ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        Chip(label: Text(data.book.name)),
+                        Chip(label: Text('Chapter ${data.chapter.number}')),
+                        const Chip(label: Text('KJV')),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      '${data.book.name} ${data.chapter.number}',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontSize: 32),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      data.chapter.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      data.chapter.introduction,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Reading focus',
+                subtitle: 'A single thought to carry through the chapter.',
+                icon: Icons.center_focus_strong_outlined,
+                child: Text(
+                  data.chapter.focusLine,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ...data.chapter.blocks.map(
+                (ReadPassageBlock block) => Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: ReadPassageBlockCard(block: block),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ReadInfoCard(
+                title: 'Keep reading',
+                icon: Icons.auto_awesome_outlined,
+                child: Column(
+                  children: <Widget>[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          context.push(
+                            AppRoutes.readBookDetail,
+                            extra: ReadBookRouteArgs(bookId: data.book.id),
+                          );
+                        },
+                        child: const Text('Back to book detail'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: data.previousChapter == null
+                                ? null
+                                : () {
+                                    context.push(
+                                      AppRoutes.readChapterRead,
+                                      extra: ChapterReadRouteArgs(
+                                        bookId: data.book.id,
+                                        chapterNumber:
+                                            data.previousChapter!.number,
+                                      ),
+                                    );
+                                  },
+                            child: const Text('Previous'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: data.nextChapter == null
+                                ? null
+                                : () {
+                                    context.push(
+                                      AppRoutes.readChapterRead,
+                                      extra: ChapterReadRouteArgs(
+                                        bookId: data.book.id,
+                                        chapterNumber: data.nextChapter!.number,
+                                      ),
+                                    );
+                                  },
+                            child: const Text('Next'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'More ways to move through scripture',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            context.push(AppRoutes.readReferenceSearch),
+                        child: const Text('Search by reference'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            context.push(AppRoutes.readContinueReading),
+                        child: const Text('Continue reading'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<_ChapterReadScreenData> _loadChapterReadScreenData() async {
+    final String resolvedBookId = bookId ?? 'john';
+    final ReadBook book = await _repository.getBookById(resolvedBookId);
+    final ReadChapter chapter = await _repository.getChapter(
       bookId: book.id,
       chapterNumber: chapterNumber,
     );
-    final ReadChapter? previousChapter = _repository.getPreviousMockChapter(
+    final ReadChapter? previousChapter = await _repository.getPreviousChapter(
       bookId: book.id,
       chapterNumber: chapter.number,
     );
-    final ReadChapter? nextChapter = _repository.getNextMockChapter(
+    final ReadChapter? nextChapter = await _repository.getNextChapter(
       bookId: book.id,
       chapterNumber: chapter.number,
     );
 
-    return TabScreenScaffold(
-      title: 'Chapter read',
-      subtitle: 'Read',
-      showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    Chip(label: Text(book.name)),
-                    Chip(label: Text('Chapter ${chapter.number}')),
-                    const Chip(label: Text('KJV')),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  '${book.name} ${chapter.number}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontSize: 32),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  chapter.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  chapter.introduction,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Reading focus',
-            subtitle: 'A single thought to carry through the chapter.',
-            icon: Icons.center_focus_strong_outlined,
-            child: Text(
-              chapter.focusLine,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ...chapter.blocks.map(
-            (ReadPassageBlock block) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: ReadPassageBlockCard(block: block),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Keep reading',
-            icon: Icons.auto_awesome_outlined,
-            child: Column(
-              children: <Widget>[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      context.push(
-                        AppRoutes.readBookDetail,
-                        extra: ReadBookRouteArgs(bookId: book.id),
-                      );
-                    },
-                    child: const Text('Back to book detail'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: previousChapter == null
-                            ? null
-                            : () {
-                                context.push(
-                                  AppRoutes.readChapterRead,
-                                  extra: ChapterReadRouteArgs(
-                                    bookId: book.id,
-                                    chapterNumber: previousChapter.number,
-                                  ),
-                                );
-                              },
-                        child: const Text('Previous'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: nextChapter == null
-                            ? null
-                            : () {
-                                context.push(
-                                  AppRoutes.readChapterRead,
-                                  extra: ChapterReadRouteArgs(
-                                    bookId: book.id,
-                                    chapterNumber: nextChapter.number,
-                                  ),
-                                );
-                              },
-                        child: const Text('Next'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'More ways to move through scripture',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.readReferenceSearch),
-                    child: const Text('Search by reference'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.readContinueReading),
-                    child: const Text('Continue reading'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return _ChapterReadScreenData(
+      book: book,
+      chapter: chapter,
+      previousChapter: previousChapter,
+      nextChapter: nextChapter,
     );
   }
 }
@@ -490,10 +527,9 @@ class ReadReferenceSearchScreen extends StatefulWidget {
 }
 
 class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
-  static const MockReadRepository _repository = MockReadRepository();
-
   late final TextEditingController _controller;
   String _query = '';
+  Future<List<ReadReferenceSearchResult>>? _searchFuture;
 
   @override
   void initState() {
@@ -507,90 +543,25 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
     super.dispose();
   }
 
-  List<_ReferenceMatch> _buildMatches(String rawQuery) {
-    final String query = rawQuery.trim().toLowerCase();
-    if (query.isEmpty) return const <_ReferenceMatch>[];
-
-    final List<ReadBook> books = _repository.getBooks();
-    final RegExp digitExp = RegExp(r'(\d+)');
-    final Match? digitMatch = digitExp.firstMatch(query);
-    final int? requestedChapter = digitMatch != null
-        ? int.tryParse(digitMatch.group(1)!)
-        : null;
-
-    final List<_ReferenceMatch> results = <_ReferenceMatch>[];
-    final Set<String> seen = <String>{};
-
-    bool matchesBook(ReadBook book) {
-      final String name = book.name.toLowerCase();
-      if (query.contains(name)) return true;
-
-      final List<String> words = name.split(' ');
-      for (final String word in words) {
-        if (word.isNotEmpty && query.contains(word)) return true;
-      }
-
-      if (name.startsWith(query)) return true;
-      return false;
-    }
-
-    for (final ReadBook book in books) {
-      final bool bookMatched = matchesBook(book);
-      final Iterable<ReadChapter> chapters = requestedChapter != null
-          ? book.mockChapters.where(
-              (chapter) => chapter.number == requestedChapter,
-            )
-          : book.mockChapters;
-
-      for (final ReadChapter chapter in chapters) {
-        final bool chapterMatchedByNumber =
-            requestedChapter != null && chapter.number == requestedChapter;
-        final bool chapterMatchedByText =
-            chapter.title.toLowerCase().contains(query) ||
-            chapter.introduction.toLowerCase().contains(query) ||
-            chapter.focusLine.toLowerCase().contains(query) ||
-            chapter.blocks.any(
-              (block) =>
-                  block.rangeLabel.toLowerCase().contains(query) ||
-                  block.heading.toLowerCase().contains(query) ||
-                  block.verses.any(
-                    (verse) => verse.text.toLowerCase().contains(query),
-                  ),
-            );
-
-        if (bookMatched || chapterMatchedByNumber || chapterMatchedByText) {
-          final String key = '${book.id}-${chapter.number}';
-          if (seen.contains(key)) continue;
-          seen.add(key);
-
-          results.add(
-            _ReferenceMatch(
-              book: book,
-              chapter: chapter,
-              subtitle: chapter.focusLine,
-            ),
-          );
-        }
-      }
-    }
-
-    return results;
+  void _onQueryChanged(String value) {
+    setState(() {
+      _query = value;
+      _searchFuture = value.trim().isEmpty
+          ? null
+          : _repository.searchReferences(value);
+    });
   }
 
   void _applySuggestion(String value) {
-    setState(() {
-      _query = value;
-      _controller.text = value;
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
-    });
+    _controller.text = value;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: _controller.text.length),
+    );
+    _onQueryChanged(value);
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<_ReferenceMatch> matches = _buildMatches(_query);
-
     return TabScreenScaffold(
       title: 'Reference search',
       subtitle: 'Read',
@@ -608,7 +579,7 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
               children: <Widget>[
                 TextField(
                   controller: _controller,
-                  onChanged: (value) => setState(() => _query = value),
+                  onChanged: _onQueryChanged,
                   textInputAction: TextInputAction.search,
                   decoration: const InputDecoration(
                     hintText: 'Try: John 3, Psalm 23, Philippians 4',
@@ -693,33 +664,57 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
                 ],
               ),
             )
-          else if (matches.isEmpty)
-            ReadInfoCard(
-              title: 'No matching result',
-              subtitle:
-                  'Try another reference or choose one of the suggestions above.',
-              icon: Icons.search_off_rounded,
-              child: Text(
-                'A short list of chapter suggestions is a good place to start if you are not sure where to go next.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            )
           else
-            ReadInfoCard(
-              title: 'Search results',
-              subtitle:
-                  '${matches.length} matching chapter${matches.length == 1 ? '' : 's'}.',
-              icon: Icons.menu_book_outlined,
-              child: Column(
-                children: matches
-                    .map(
-                      (_ReferenceMatch match) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _SearchResultTile(match: match),
-                      ),
-                    )
-                    .toList(),
-              ),
+            FutureBuilder<List<ReadReferenceSearchResult>>(
+              future: _searchFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const _InlineLoadingCard(
+                    title: 'Searching references',
+                    subtitle: 'Looking for matching chapters in your library.',
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return _InlineStateCard(
+                    title: 'Search unavailable',
+                    subtitle:
+                        'The reference search could not load right now. Try again in a moment.',
+                    icon: Icons.search_off_rounded,
+                  );
+                }
+
+                final List<ReadReferenceSearchResult> matches =
+                    snapshot.data ?? const <ReadReferenceSearchResult>[];
+
+                if (matches.isEmpty) {
+                  return _InlineStateCard(
+                    title: 'No matching result',
+                    subtitle:
+                        'Try another reference or choose one of the suggestions above.',
+                    icon: Icons.search_off_rounded,
+                    body:
+                        'A short list of chapter suggestions is a good place to start if you are not sure where to go next.',
+                  );
+                }
+
+                return ReadInfoCard(
+                  title: 'Search results',
+                  subtitle:
+                      '${matches.length} matching chapter${matches.length == 1 ? '' : 's'}.',
+                  icon: Icons.menu_book_outlined,
+                  child: Column(
+                    children: matches
+                        .map(
+                          (ReadReferenceSearchResult match) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SearchResultTile(match: match),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -730,171 +725,328 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
 class ReadContinueReadingScreen extends StatelessWidget {
   const ReadContinueReadingScreen({super.key});
 
-  static const MockReadRepository _repository = MockReadRepository();
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ReadContinuePoint>>(
+      future: _repository.getContinueReadingQueue(),
+      builder: (context, snapshot) {
+        return _buildReadScaffold(
+          context: context,
+          title: 'Continue reading',
+          subtitle: 'Read',
+          showBackButton: true,
+          snapshot: snapshot,
+          dataBuilder: (context, queue) {
+            final ReadContinuePoint continuePoint = queue.first;
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: <Widget>[
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Return to where you left off',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        '${continuePoint.bookName} ${continuePoint.chapterNumber}',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.copyWith(fontSize: 30),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        continuePoint.chapterTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        continuePoint.focusLine,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () {
+                            context.push(
+                              AppRoutes.readChapterRead,
+                              extra: ChapterReadRouteArgs(
+                                bookId: continuePoint.bookId,
+                                chapterNumber: continuePoint.chapterNumber,
+                              ),
+                            );
+                          },
+                          child: const Text('Resume reading'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Pick up again',
+                  subtitle: 'A simple way to return to recent reading points.',
+                  icon: Icons.history_edu_outlined,
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _ReadBullet(
+                        text:
+                            'Return to the last chapter that was most recently opened.',
+                      ),
+                      _ReadBullet(
+                        text:
+                            'Keep the choices few so the screen stays calm and easy to use.',
+                      ),
+                      _ReadBullet(
+                        text:
+                            'Move back into reading without needing to search again.',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Recent reading points',
+                  subtitle: 'A short list of meaningful places to return to.',
+                  icon: Icons.schedule_rounded,
+                  child: Column(
+                    children: queue
+                        .map(
+                          (ReadContinuePoint item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ContinueReadingTile(item: item),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'More ways to continue',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.readReferenceSearch),
+                          child: const Text('Search by reference'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () => context.push(
+                            AppRoutes.readBookDetail,
+                            extra: ReadBookRouteArgs(bookId: continuePoint.bookId),
+                          ),
+                          child: Text('Open ${continuePoint.bookName} details'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+Widget _buildReadScaffold<T>({
+  required BuildContext context,
+  required String title,
+  required String subtitle,
+  required AsyncSnapshot<T> snapshot,
+  required Widget Function(BuildContext context, T data) dataBuilder,
+  bool showBackButton = false,
+}) {
+  return TabScreenScaffold(
+    title: title,
+    subtitle: subtitle,
+    showBackButton: showBackButton,
+    body: Builder(
+      builder: (context) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _ReadLoadingBody();
+        }
+
+        if (snapshot.hasError) {
+          return _ReadFailureBody(error: snapshot.error);
+        }
+
+        final T? data = snapshot.data;
+        if (data == null) {
+          return const _ReadFailureBody();
+        }
+
+        if (data is List && data.isEmpty) {
+          return const _ReadEmptyBody();
+        }
+
+        return dataBuilder(context, data);
+      },
+    ),
+  );
+}
+
+class _ReadLoadingBody extends StatelessWidget {
+  const _ReadLoadingBody();
 
   @override
   Widget build(BuildContext context) {
-    final ReadBook continueBook = _repository.getContinueReadingBook();
-    final ReadChapter continueChapter = _repository.getChapter(
-      bookId: continueBook.id,
-      chapterNumber: continueBook.continueChapterNumber,
-    );
-
-    final List<_ContinueItem> recentItems = <_ContinueItem>[
-      _ContinueItem(
-        book: continueBook,
-        chapter: continueChapter,
-        label: 'Most recent',
-      ),
-      _ContinueItem(
-        book: _repository.getBookById('philippians'),
-        chapter: _repository.getChapter(
-          bookId: 'philippians',
-          chapterNumber: 4,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: const <Widget>[
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(height: AppSpacing.lg),
+              Text('Loading reading content...'),
+            ],
+          ),
         ),
-        label: 'Prayer and peace',
-      ),
-      _ContinueItem(
-        book: _repository.getBookById('psalms'),
-        chapter: _repository.getChapter(bookId: 'psalms', chapterNumber: 23),
-        label: 'Comfort reading',
-      ),
-      _ContinueItem(
-        book: _repository.getBookById('john'),
-        chapter: _repository.getChapter(bookId: 'john', chapterNumber: 1),
-        label: 'Earlier reading',
-      ),
-    ];
+      ],
+    );
+  }
+}
 
-    return TabScreenScaffold(
-      title: 'Continue reading',
-      subtitle: 'Read',
-      showBackButton: true,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+class _ReadFailureBody extends StatelessWidget {
+  const _ReadFailureBody({this.error});
+
+  final Object? error;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: <Widget>[
+        ReadInfoCard(
+          title: 'Read is unavailable right now',
+          subtitle:
+              'The repository could not return reading data for this screen.',
+          icon: Icons.error_outline_rounded,
+          child: Text(
+            error?.toString() ??
+                'Try again after checking your seed data or Supabase connection.',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReadEmptyBody extends StatelessWidget {
+  const _ReadEmptyBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: const <Widget>[
+        _InlineStateCard(
+          title: 'No reading content yet',
+          subtitle: 'Seed the public scripture tables to populate this screen.',
+          icon: Icons.menu_book_outlined,
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineLoadingCard extends StatelessWidget {
+  const _InlineLoadingCard({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Return to where you left off',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  '${continueBook.name} ${continueChapter.number}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineMedium?.copyWith(fontSize: 30),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  continueChapter.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  continueChapter.focusLine,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      context.push(
-                        AppRoutes.readChapterRead,
-                        extra: ChapterReadRouteArgs(
-                          bookId: continueBook.id,
-                          chapterNumber: continueChapter.number,
-                        ),
-                      );
-                    },
-                    child: const Text('Resume reading'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const CircularProgressIndicator(),
           const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Pick up again',
-            subtitle: 'A simple way to return to recent reading points.',
-            icon: Icons.history_edu_outlined,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ReadBullet(
-                  text:
-                      'Return to the last chapter that was most recently opened.',
-                ),
-                _ReadBullet(
-                  text:
-                      'Keep the choices few so the screen stays calm and easy to use.',
-                ),
-                _ReadBullet(
-                  text:
-                      'Move back into reading without needing to search again.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ReadInfoCard(
-            title: 'Recent reading points',
-            subtitle: 'A short list of meaningful places to return to.',
-            icon: Icons.schedule_rounded,
-            child: Column(
-              children: recentItems
-                  .map(
-                    (_ContinueItem item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ContinueReadingTile(item: item),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'More ways to continue',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.readReferenceSearch),
-                    child: const Text('Search by reference'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(
-                      AppRoutes.readBookDetail,
-                      extra: ReadBookRouteArgs(bookId: continueBook.id),
-                    ),
-                    child: Text('Open ${continueBook.name} details'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
     );
   }
+}
+
+class _InlineStateCard extends StatelessWidget {
+  const _InlineStateCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.body,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String? body;
+
+  @override
+  Widget build(BuildContext context) {
+    return ReadInfoCard(
+      title: title,
+      subtitle: subtitle,
+      icon: icon,
+      child: Text(
+        body ?? subtitle,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+    );
+  }
+}
+
+class _ReadBooksScreenData {
+  const _ReadBooksScreenData({
+    required this.books,
+    required this.continueBook,
+    required this.continueChapter,
+  });
+
+  final List<ReadBook> books;
+  final ReadBook continueBook;
+  final ReadChapter continueChapter;
+}
+
+class _ChapterReadScreenData {
+  const _ChapterReadScreenData({
+    required this.book,
+    required this.chapter,
+    required this.previousChapter,
+    required this.nextChapter,
+  });
+
+  final ReadBook book;
+  final ReadChapter chapter;
+  final ReadChapter? previousChapter;
+  final ReadChapter? nextChapter;
 }
 
 class _ReadBullet extends StatelessWidget {
@@ -954,22 +1106,10 @@ class _ChapterTile extends StatelessWidget {
   }
 }
 
-class _ReferenceMatch {
-  const _ReferenceMatch({
-    required this.book,
-    required this.chapter,
-    required this.subtitle,
-  });
-
-  final ReadBook book;
-  final ReadChapter chapter;
-  final String subtitle;
-}
-
 class _SearchResultTile extends StatelessWidget {
   const _SearchResultTile({required this.match});
 
-  final _ReferenceMatch match;
+  final ReadReferenceSearchResult match;
 
   @override
   Widget build(BuildContext context) {
@@ -985,13 +1125,13 @@ class _SearchResultTile extends StatelessWidget {
           context.push(
             AppRoutes.readChapterRead,
             extra: ChapterReadRouteArgs(
-              bookId: match.book.id,
-              chapterNumber: match.chapter.number,
+              bookId: match.bookId,
+              chapterNumber: match.chapterNumber,
             ),
           );
         },
         title: Text(
-          '${match.book.name} ${match.chapter.number}',
+          '${match.bookName} ${match.chapterNumber}',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         subtitle: Padding(
@@ -1053,22 +1193,10 @@ class _SuggestionChip extends StatelessWidget {
   }
 }
 
-class _ContinueItem {
-  const _ContinueItem({
-    required this.book,
-    required this.chapter,
-    required this.label,
-  });
-
-  final ReadBook book;
-  final ReadChapter chapter;
-  final String label;
-}
-
 class _ContinueReadingTile extends StatelessWidget {
   const _ContinueReadingTile({required this.item});
 
-  final _ContinueItem item;
+  final ReadContinuePoint item;
 
   @override
   Widget build(BuildContext context) {
@@ -1084,8 +1212,8 @@ class _ContinueReadingTile extends StatelessWidget {
           context.push(
             AppRoutes.readChapterRead,
             extra: ChapterReadRouteArgs(
-              bookId: item.book.id,
-              chapterNumber: item.chapter.number,
+              bookId: item.bookId,
+              chapterNumber: item.chapterNumber,
             ),
           );
         },
@@ -1101,12 +1229,12 @@ class _ContinueReadingTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          '${item.book.name} ${item.chapter.number}',
+          '${item.bookName} ${item.chapterNumber}',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text('${item.label} · ${item.chapter.title}'),
+          child: Text('${item.label} · ${item.chapterTitle}'),
         ),
         trailing: const Icon(Icons.arrow_forward_rounded),
       ),

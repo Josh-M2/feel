@@ -108,29 +108,31 @@ class ProfileOverviewScreen extends StatelessWidget {
                       onTap: () => context.push(AppRoutes.profileDataSync),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    ProfileNavTile(
-                      title: 'Sign in',
-                      subtitle:
-                          'Use Supabase email and password auth when you want account continuity.',
-                      icon: Icons.login_rounded,
-                      onTap: () => context.push(AppRoutes.profileSignIn),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ProfileNavTile(
-                      title: 'Sign up',
-                      subtitle:
-                          'Create an account and prepare this device for cross-device continuity later on.',
-                      icon: Icons.person_add_alt_1_rounded,
-                      onTap: () => context.push(AppRoutes.profileSignUp),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ProfileNavTile(
-                      title: 'Sign out',
-                      subtitle:
-                          'End the current account session and stay usable in guest mode.',
-                      icon: Icons.logout_rounded,
-                      onTap: () => context.push(AppRoutes.profileSignOut),
-                    ),
+                    if (bootstrap.isGuestMode) ...<Widget>[
+                      ProfileNavTile(
+                        title: 'Sign in',
+                        subtitle:
+                            'Use Supabase email and password auth when you want account continuity.',
+                        icon: Icons.login_rounded,
+                        onTap: () => context.push(AppRoutes.profileSignIn),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      ProfileNavTile(
+                        title: 'Sign up',
+                        subtitle:
+                            'Create an account and prepare this device for cross-device continuity later on.',
+                        icon: Icons.person_add_alt_1_rounded,
+                        onTap: () => context.push(AppRoutes.profileSignUp),
+                      ),
+                    ] else ...<Widget>[
+                      ProfileNavTile(
+                        title: 'Sign out',
+                        subtitle:
+                            'End the current account session and stay usable in guest mode.',
+                        icon: Icons.logout_rounded,
+                        onTap: () => context.push(AppRoutes.profileSignOut),
+                      ),
+                    ],
                   ],
                 ),
               ),
