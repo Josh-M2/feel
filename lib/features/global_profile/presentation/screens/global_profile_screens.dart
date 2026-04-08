@@ -51,7 +51,9 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Core reading stays available without requiring a sign-in.',
+                      bootstrap.isGuestMode
+                          ? 'This device keeps your starter preferences locally until you choose account sync.'
+                          : 'Your account session can now keep your phase 1 preferences in Supabase.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -74,6 +76,10 @@ class ProfileOverviewScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (bootstrap.authFeedbackMessage != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.lg),
+                      _NoticeBanner(message: bootstrap.authFeedbackMessage!),
+                    ],
                   ],
                 ),
               ),
@@ -97,7 +103,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Data sync',
                       subtitle:
-                          'Understand what stays on this device and what account features can add later.',
+                          'Review the local guest store boundary and the account-backed phase 1 sync layer.',
                       icon: Icons.sync_outlined,
                       onTap: () => context.push(AppRoutes.profileDataSync),
                     ),
@@ -105,7 +111,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign in',
                       subtitle:
-                          'Learn about optional sign-in for backup and continuity.',
+                          'Use Supabase email and password auth when you want account continuity.',
                       icon: Icons.login_rounded,
                       onTap: () => context.push(AppRoutes.profileSignIn),
                     ),
@@ -113,7 +119,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign up',
                       subtitle:
-                          'See how an account can help if you want sync later on.',
+                          'Create an account and prepare this device for cross-device continuity later on.',
                       icon: Icons.person_add_alt_1_rounded,
                       onTap: () => context.push(AppRoutes.profileSignUp),
                     ),
@@ -121,33 +127,9 @@ class ProfileOverviewScreen extends StatelessWidget {
                     ProfileNavTile(
                       title: 'Sign out',
                       subtitle:
-                          'Review how the app handles account and guest use on this device.',
+                          'End the current account session and stay usable in guest mode.',
                       icon: Icons.logout_rounded,
                       onTap: () => context.push(AppRoutes.profileSignOut),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ProfileInfoCard(
-                title: 'Why guest-first matters',
-                subtitle:
-                    'The app is designed to stay simple and welcoming from the first open.',
-                icon: Icons.favorite_border_rounded,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _ProfileBullet(
-                      text:
-                          'You can read, reflect, and explore plans without being blocked by login prompts.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'Optional account features can be added later without changing the core reading flow.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'The experience stays calm and usable whether you sign in or not.',
                     ),
                   ],
                 ),
@@ -170,8 +152,6 @@ class AuthStatusScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: bootstrap,
       builder: (context, _) {
-        final bool isGuest = bootstrap.isGuestMode;
-
         return GlobalScreenScaffold(
           title: 'Auth status',
           subtitle: 'Current access mode',
@@ -179,134 +159,58 @@ class AuthStatusScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               ProfileInfoCard(
-                title: 'Current status',
+                title: bootstrap.isGuestMode
+                    ? 'Guest mode active'
+                    : 'Account mode active',
                 subtitle:
-                    'A simple view of how this device is being used right now.',
-                icon: Icons.verified_user_outlined,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(AppRadii.xl),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: <Widget>[
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceMuted,
-                            borderRadius: BorderRadius.circular(AppRadii.lg),
-                          ),
-                          child: SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: Icon(
-                              isGuest
-                                  ? Icons.person_outline_rounded
-                                  : Icons.verified_rounded,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                isGuest
-                                    ? 'Guest mode active'
-                                    : 'Account mode active',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                isGuest
-                                    ? 'You can keep using the app normally without signing in.'
-                                    : 'Account features can help with continuity across devices.',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ProfileInfoCard(
-                title: 'Guest mode includes',
-                subtitle:
-                    'A clear summary of what is already available without an account.',
-                icon: Icons.check_circle_outline_rounded,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _ProfileBullet(
-                      text:
-                          'Browse daily verses, reading plans, saved items, and settings without interruption.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'Use category preferences and reminder time on this device.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'Keep the experience simple while you decide whether sync matters to you.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ProfileInfoCard(
-                title: 'Optional account features',
-                subtitle:
-                    'An account is there for continuity, not as a gate to reading.',
-                icon: Icons.cloud_outlined,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _ProfileBullet(
-                      text:
-                          'Sync bookmarks, highlights, notes, and preferences across devices.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'Keep your reading life easier to restore when you change devices.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'Add continuity without taking away the guest-first experience.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCard(
+                    'A simple status view for the phase 1 auth foundation.',
+                icon: bootstrap.isGuestMode
+                    ? Icons.person_outline_rounded
+                    : Icons.verified_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      'Related profile pages',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    _StatusRow(
+                      label: 'Backend config',
+                      value: bootstrap.cloudSyncAvailable
+                          ? 'Supabase ready'
+                          : 'Guest only until configured',
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.profileSignIn),
-                        child: const Text('Open sign in'),
-                      ),
+                    _StatusRow(
+                      label: 'Mode',
+                      value: bootstrap.isGuestMode ? 'Guest' : 'Account',
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.profileSignUp),
-                        child: const Text('Open sign up'),
-                      ),
+                    _StatusRow(
+                      label: 'Email',
+                      value: bootstrap.accountEmail ?? 'Not signed in',
+                    ),
+                    _StatusRow(
+                      label: 'Display name',
+                      value: bootstrap.isGuestMode
+                          ? 'Guest user'
+                          : (bootstrap.accountDisplayName ?? 'Account user'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ProfileInfoCard(
+                title: 'Phase 1 boundary',
+                icon: Icons.layers_outlined,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _ProfileBullet(
+                      text:
+                          'Guest mode saves onboarding, reminder, category, and widget preferences locally on this device.',
+                    ),
+                    _ProfileBullet(
+                      text:
+                          'Account mode stores user_profiles, user_preferences, and category preferences in Supabase.',
+                    ),
+                    _ProfileBullet(
+                      text:
+                          'Guest-to-account content merge for bookmarks, notes, highlights, and progress is intentionally deferred to a later phase.',
                     ),
                   ],
                 ),
@@ -329,8 +233,6 @@ class DataSyncScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: bootstrap,
       builder: (context, _) {
-        final bool isGuest = bootstrap.isGuestMode;
-
         return GlobalScreenScaffold(
           title: 'Data sync',
           subtitle: 'This device and future account sync',
@@ -350,114 +252,75 @@ class DataSyncScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      isGuest
-                          ? 'Your reading setup is currently tied to this device'
-                          : 'Your account can support continuity across devices',
+                      bootstrap.isGuestMode
+                          ? 'Your phase 1 preferences are currently tied to this device'
+                          : 'Your phase 1 preferences now have an account-backed home',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Bookmarks, notes, and preferences are easiest to keep together when the app can follow you from one device to another.',
+                      'This build intentionally syncs only onboarding, reminder, widget, and category preference data. Saved reading content will be merged in a later phase.',
                       style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: <Widget>[
-                        _SummaryPill(
-                          label: 'Mode',
-                          value: isGuest ? 'On this device' : 'Account-ready',
-                        ),
-                        _SummaryPill(
-                          label: 'Prefs',
-                          value:
-                              '${bootstrap.selectedCategories.length} categories',
-                        ),
-                        _SummaryPill(
-                          label: 'Reminder',
-                          value: bootstrap.dailyNotificationLabel,
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What stays close at hand',
-                subtitle:
-                    'A simple picture of the things that matter most in day-to-day use.',
+                title: 'What is local right now',
                 icon: Icons.phone_android_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Category choices and reminder timing on this device.',
+                          'Onboarding completion, reminder toggle, reminder time, widget preferences, and selected categories stay in the guest local store.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Saved verses, highlights, and notes you return to most.',
-                    ),
-                    _ProfileBullet(
-                      text:
-                          'A reading flow that stays available even without signing in.',
+                          'Guest mode remains fully readable even when Supabase is not configured yet.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What account features can add',
-                subtitle:
-                    'A simple picture of the continuity an account can support.',
-                icon: Icons.sync_rounded,
+                title: 'What is cloud-backed in phase 1',
+                icon: Icons.cloud_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Carry bookmarks, notes, and progress across devices.',
+                          'user_profiles keeps the account display name and timezone shell.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Make it easier to return to your reading life after changing phones.',
+                          'user_preferences keeps onboarding, notification, and widget display settings.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Keep the guest-first flow available while adding backup and continuity later.',
+                          'user_category_preferences keeps the selected Today categories in order.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
+              ProfileInfoCard(
+                title: 'What comes next',
+                icon: Icons.schedule_outlined,
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      'Related profile pages',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    _ProfileBullet(
+                      text:
+                          'Explicit guest-to-account import for bookmarks, highlights, notes, and progress.',
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.profileAuthStatus),
-                        child: const Text('Open auth status'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.profileSignIn),
-                        child: const Text('Open sign in'),
-                      ),
+                    _ProfileBullet(
+                      text:
+                          'Repository-backed saved content and reading continuity modules.',
                     ),
                   ],
                 ),
@@ -470,152 +333,416 @@ class DataSyncScreen extends StatelessWidget {
   }
 }
 
-class SignInScreen extends StatelessWidget {
+class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key, required this.bootstrap});
 
   final AppBootstrapController bootstrap;
 
   @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final result = await widget.bootstrap.signInWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
+
+    if (result.success) {
+      context.go(AppRoutes.profileAuthStatus);
+    }
+  }
+
+  Future<void> _sendRecovery() async {
+    final String email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter your email first.')),
+      );
+      return;
+    }
+
+    final result = await widget.bootstrap.sendPasswordResetEmail(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GlobalScreenScaffold(
-      title: 'Sign in',
-      subtitle: 'Optional account access',
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: <Widget>[
-          ProfileInfoCard(
-            title: 'Sign in is optional',
-            subtitle:
-                'You can keep using the app without interruption even if you never sign in.',
-            icon: Icons.login_rounded,
-            child: Text(
-              'Sign in is mainly for people who want continuity, backup, and easier movement between devices.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ProfileInfoCard(
-            title: 'Why people sign in',
-            icon: Icons.cloud_outlined,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ProfileBullet(
-                  text:
-                      'Keep bookmarks, highlights, notes, and preferences together.',
+    return AnimatedBuilder(
+      animation: widget.bootstrap,
+      builder: (context, _) {
+        return GlobalScreenScaffold(
+          title: 'Sign in',
+          subtitle: 'Optional account access',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              ProfileInfoCard(
+                title: 'Sign in is optional',
+                subtitle:
+                    'Use account mode when you want your phase 1 preferences available beyond this device.',
+                icon: Icons.login_rounded,
+                child: Text(
+                  widget.bootstrap.cloudSyncAvailable
+                      ? 'Supabase email and password auth is wired. You can keep using guest mode, or sign in when you want account-backed continuity.'
+                      : 'Supabase is not configured yet, so this build will stay in guest mode until you add your project URL and anon key.',
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                _ProfileBullet(
-                  text:
-                      'Make it easier to return to your reading life on another device.',
-                ),
-                _ProfileBullet(
-                  text:
-                      'Add continuity without replacing the guest-first experience.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Related profile pages',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileSignUp),
-                    child: const Text('Open sign up'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Email sign in',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'you@example.com',
+                        ),
+                        validator: (value) {
+                          final String text = (value ?? '').trim();
+                          if (text.isEmpty) return 'Enter your email.';
+                          if (!text.contains('@')) return 'Enter a valid email.';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                        ),
+                        validator: (value) {
+                          if ((value ?? '').isEmpty) {
+                            return 'Enter your password.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: widget.bootstrap.authBusy ? null : _submit,
+                          child: Text(
+                            widget.bootstrap.authBusy ? 'Working...' : 'Sign in',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed:
+                              widget.bootstrap.authBusy ? null : _sendRecovery,
+                          child: const Text('Send password recovery email'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileDataSync),
-                    child: const Text('Open data sync'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, required this.bootstrap});
 
   final AppBootstrapController bootstrap;
 
   @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _displayNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _displayNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final result = await widget.bootstrap.signUpWithEmail(
+      displayName: _displayNameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
+
+    if (result.success) {
+      context.go(
+        result.needsEmailConfirmation
+            ? AppRoutes.profileAuthStatus
+            : AppRoutes.profileOverview,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.bootstrap,
+      builder: (context, _) {
+        return GlobalScreenScaffold(
+          title: 'Sign up',
+          subtitle: 'Create an optional account',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              ProfileInfoCard(
+                title: 'An account is not required',
+                subtitle:
+                    'Reading stays open and available whether you create an account or not.',
+                icon: Icons.person_add_alt_1_rounded,
+                child: const Text(
+                  'This phase 1 build only syncs onboarding, categories, notifications, and widget preferences. Saved reading content import comes next.',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppCard(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'Create account',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _displayNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Display name',
+                        ),
+                        validator: (value) {
+                          if ((value ?? '').trim().isEmpty) {
+                            return 'Enter a display name.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'you@example.com',
+                        ),
+                        validator: (value) {
+                          final String text = (value ?? '').trim();
+                          if (text.isEmpty) return 'Enter your email.';
+                          if (!text.contains('@')) return 'Enter a valid email.';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                        ),
+                        validator: (value) {
+                          if ((value ?? '').length < 8) {
+                            return 'Use at least 8 characters.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm password',
+                        ),
+                        validator: (value) {
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: widget.bootstrap.authBusy ? null : _submit,
+                          child: Text(
+                            widget.bootstrap.authBusy ? 'Working...' : 'Create account',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class SignOutScreen extends StatelessWidget {
+  const SignOutScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  Future<void> _submit(BuildContext context) async {
+    final result = await bootstrap.signOut();
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
+
+    context.go(AppRoutes.profileOverview);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: bootstrap,
+      builder: (context, _) {
+        return GlobalScreenScaffold(
+          title: 'Sign out',
+          subtitle: 'Account and guest use on this device',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              ProfileInfoCard(
+                title: bootstrap.isGuestMode
+                    ? 'You are already in guest mode'
+                    : 'Signed-in access',
+                subtitle:
+                    'A simple explanation of how the app handles account and guest use.',
+                icon: Icons.logout_rounded,
+                child: Text(
+                  bootstrap.isGuestMode
+                      ? 'There is no account session to end right now, so you can simply keep reading in guest mode.'
+                      : 'Signing out clears the current Supabase session while leaving this device usable in guest mode.',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: bootstrap.authBusy ? null : () => _submit(context),
+                  child: Text(
+                    bootstrap.authBusy ? 'Working...' : 'Sign out now',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class AuthCallbackScreen extends StatefulWidget {
+  const AuthCallbackScreen({super.key, required this.bootstrap});
+
+  final AppBootstrapController bootstrap;
+
+  @override
+  State<AuthCallbackScreen> createState() => _AuthCallbackScreenState();
+}
+
+class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.bootstrap.clearPendingAuthRedirect();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GlobalScreenScaffold(
-      title: 'Sign up',
-      subtitle: 'Create an optional account',
+      title: 'Account ready',
+      subtitle: 'Auth callback completed',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           ProfileInfoCard(
-            title: 'An account is not required',
+            title: 'Session updated',
             subtitle:
-                'Reading stays open and available whether you create an account or not.',
-            icon: Icons.person_add_alt_1_rounded,
-            child: Text(
-              'An account is simply there for people who want their saved reading life to travel more easily with them.',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ProfileInfoCard(
-            title: 'What an account can help with',
-            icon: Icons.info_outline_rounded,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ProfileBullet(
-                  text:
-                      'Keep bookmarks, highlights, notes, and progress connected across devices.',
-                ),
-                _ProfileBullet(
-                  text:
-                      'Make it easier to come back to your saved reflections later on.',
-                ),
-                _ProfileBullet(
-                  text:
-                      'Support continuity while keeping the app welcoming to guest users.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
+                'The deep link returned to the app and the auth session was exchanged successfully.',
+            icon: Icons.mark_email_read_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Related profile pages',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  widget.bootstrap.authFeedbackMessage ??
+                      'Your account session is now active.',
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileSignIn),
-                    child: const Text('Open sign in'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileAuthStatus),
+                  child: FilledButton(
+                    onPressed: () => context.go(AppRoutes.profileAuthStatus),
                     child: const Text('Open auth status'),
                   ),
                 ),
@@ -628,84 +755,170 @@ class SignUpScreen extends StatelessWidget {
   }
 }
 
-class SignOutScreen extends StatelessWidget {
-  const SignOutScreen({super.key, required this.bootstrap});
+class ResetPasswordScreen extends StatefulWidget {
+  const ResetPasswordScreen({super.key, required this.bootstrap});
 
   final AppBootstrapController bootstrap;
 
   @override
-  Widget build(BuildContext context) {
-    final bool isGuest = bootstrap.isGuestMode;
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+}
 
-    return GlobalScreenScaffold(
-      title: 'Sign out',
-      subtitle: 'Account and guest use on this device',
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.bootstrap.clearPendingAuthRedirect();
+    });
+  }
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final result = await widget.bootstrap.updatePassword(
+      _passwordController.text,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(result.message)));
+
+    if (result.success) {
+      context.go(AppRoutes.profileAuthStatus);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: widget.bootstrap,
+      builder: (context, _) {
+        return GlobalScreenScaffold(
+          title: 'Reset password',
+          subtitle: 'Recovery deep link flow',
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              ProfileInfoCard(
+                title: 'Choose a new password',
+                subtitle:
+                    'This screen is opened by the password recovery deep link event.',
+                icon: Icons.lock_reset_rounded,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: <Widget>[
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'New password',
+                        ),
+                        validator: (value) {
+                          if ((value ?? '').length < 8) {
+                            return 'Use at least 8 characters.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm new password',
+                        ),
+                        validator: (value) {
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed:
+                              widget.bootstrap.authBusy ? null : _submit,
+                          child: Text(
+                            widget.bootstrap.authBusy
+                                ? 'Working...'
+                                : 'Update password',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NoticeBanner extends StatelessWidget {
+  const _NoticeBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Text(message),
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ProfileInfoCard(
-            title: isGuest
-                ? 'You are already in guest mode'
-                : 'Signed-in access',
-            subtitle:
-                'A simple explanation of how the app handles account and guest use.',
-            icon: Icons.logout_rounded,
+          SizedBox(
+            width: 110,
             child: Text(
-              isGuest
-                  ? 'There is no account session to end right now, so you can simply keep reading in guest mode.'
-                  : 'Signing out should always leave the app calm, clear, and easy to keep using.',
-              style: Theme.of(context).textTheme.bodyLarge,
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          ProfileInfoCard(
-            title: 'What matters most here',
-            icon: Icons.shield_outlined,
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _ProfileBullet(
-                  text:
-                      'The app should remain easy to use even after leaving account mode.',
-                ),
-                _ProfileBullet(
-                  text: 'Guest-first reading should stay available and clear.',
-                ),
-                _ProfileBullet(
-                  text:
-                      'Saved content and continuity should be explained simply and honestly.',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Related profile pages',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileOverview),
-                    child: const Text('Back to profile overview'),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push(AppRoutes.profileDataSync),
-                    child: const Text('Open data sync'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: Text(value)),
         ],
       ),
     );
@@ -743,7 +956,7 @@ class _SummaryPill extends StatelessWidget {
               label,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -760,18 +973,20 @@ class _ProfileBullet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Padding(
-            padding: EdgeInsets.only(top: 6),
-            child: Icon(Icons.circle, size: 8, color: AppColors.accent),
+            padding: EdgeInsets.only(top: 5),
+            child: Icon(
+              Icons.circle,
+              size: 8,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
-          ),
+          Expanded(child: Text(text)),
         ],
       ),
     );

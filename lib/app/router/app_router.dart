@@ -41,9 +41,15 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
           path == AppRoutes.splash || path.startsWith('/onboarding/');
       final bool isAppRoute =
           path.startsWith('/tab_') || path.startsWith('/global_');
+      final bool isAuthUtilityRoute = path.startsWith('/auth/');
+
+      final String? pendingAuthRedirect = bootstrap.pendingAuthRedirect;
+      if (pendingAuthRedirect != null && path != pendingAuthRedirect) {
+        return pendingAuthRedirect;
+      }
 
       if (!bootstrap.onboardingCompleted) {
-        if (isOnboardingRoute) return null;
+        if (isOnboardingRoute || isAuthUtilityRoute) return null;
         if (isAppRoute) return AppRoutes.onboardingWelcome;
       }
 
@@ -81,6 +87,17 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         path: AppRoutes.onboardingFinish,
         builder: (context, state) => FinishScreen(bootstrap: bootstrap),
+      ),
+
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: AppRoutes.authCallback,
+        builder: (context, state) => AuthCallbackScreen(bootstrap: bootstrap),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: AppRoutes.authResetPassword,
+        builder: (context, state) => ResetPasswordScreen(bootstrap: bootstrap),
       ),
 
       StatefulShellRoute.indexedStack(

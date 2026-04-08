@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/bootstrap/app_bootstrap_controller.dart';
+import '../../../../core/preferences/app_preference_snapshot.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';

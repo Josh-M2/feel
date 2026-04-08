@@ -12,6 +12,10 @@ class AppRoutes {
       '/onboarding/notification-permission';
   static const String onboardingFinish = '/onboarding/finish';
 
+  // Auth utility routes
+  static const String authCallback = '/auth/callback';
+  static const String authResetPassword = '/auth/reset_password';
+
   // Today
   static const String todayHome = '/tab_today/home';
   static const String todayVerseDetail = '/tab_today/verse_detail';
