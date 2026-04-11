@@ -16,7 +16,6 @@ class LocalTodayWidgetDataBridge implements WidgetDataBridge {
   Future<WidgetDailyVersePayload> getPayload({
     required AppPreferenceSnapshot preferences,
   }) async {
-    final now = DateTime.now();
     await _todayRepository.syncTodayAssignment(
       selectedCategories: preferences.selectedCategories,
       dailyRefreshTime: preferences.dailyNotificationTime,
@@ -34,12 +33,37 @@ class LocalTodayWidgetDataBridge implements WidgetDataBridge {
       categoryLabel: verse.category,
       translationLabel: verse.translationLabel,
       effectiveDateKey:
-          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
-      updateTimeLabel: _timeLabel(preferences.dailyNotificationTime),
+          verse.assignmentDateKey.isNotEmpty
+              ? verse.assignmentDateKey
+              : _effectiveDateKey(preferences.dailyNotificationTime),
+      updateTimeLabel:
+          verse.assignmentTimeLabel.isNotEmpty
+              ? verse.assignmentTimeLabel
+              : _timeLabel(preferences.dailyNotificationTime),
+      refreshHour: preferences.dailyNotificationTime.hour,
+      refreshMinute: preferences.dailyNotificationTime.minute,
+      previewStyle: preferences.widgetPreviewStyle.name,
       showReference: preferences.widgetShowReference,
       showCategory: preferences.widgetShowCategory,
       showDate: preferences.widgetShowDate,
     );
+  }
+
+  String _effectiveDateKey(TimeOfDay refreshTime) {
+    final DateTime now = DateTime.now();
+    final DateTime refreshMoment = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      refreshTime.hour,
+      refreshTime.minute,
+    );
+    final DateTime effectiveDate = now.isBefore(refreshMoment)
+        ? now.subtract(const Duration(days: 1))
+        : now;
+    final String month = effectiveDate.month.toString().padLeft(2, '0');
+    final String day = effectiveDate.day.toString().padLeft(2, '0');
+    return '${effectiveDate.year}-$month-$day';
   }
 
   String _timeLabel(TimeOfDay time) {

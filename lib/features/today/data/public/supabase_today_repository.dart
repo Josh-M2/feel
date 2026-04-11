@@ -424,7 +424,10 @@ class SupabaseTodayRepository implements TodayRepository {
             record: translatedRemoteRecord,
           );
         }
-        return translatedRemoteRecord.toTodayVerse();
+        return _mapTodayVerse(
+          record: translatedRemoteRecord,
+          dailyRefreshTime: dailyRefreshTime,
+        );
       }
     }
 
@@ -446,7 +449,10 @@ class SupabaseTodayRepository implements TodayRepository {
           record: translatedCachedRecord,
         );
       }
-      return translatedCachedRecord.toTodayVerse();
+      return _mapTodayVerse(
+        record: translatedCachedRecord,
+        dailyRefreshTime: dailyRefreshTime,
+      );
     }
 
     final List<DailyVersePoolEntry> pool = await _loadPool();
@@ -492,7 +498,7 @@ class SupabaseTodayRepository implements TodayRepository {
     if (_isConfigured && userId != null) {
       await _persistRemoteAssignment(userId: userId, record: record);
     }
-    return record.toTodayVerse();
+    return _mapTodayVerse(record: record, dailyRefreshTime: dailyRefreshTime);
   }
 
   @override
@@ -585,6 +591,30 @@ class SupabaseTodayRepository implements TodayRepository {
       prayer: record.prayer,
       assignedAtIso: record.assignedAtIso,
       openedAtIso: record.openedAtIso,
+    );
+  }
+
+  TodayVerse _mapTodayVerse({
+    required TodayAssignmentLocalRecord record,
+    required TimeOfDay dailyRefreshTime,
+  }) {
+    return TodayVerse(
+      dateLabel: 'Assigned for today',
+      category: record.category,
+      reference: record.reference,
+      translationLabel: record.translationLabel,
+      verseText: record.verseText,
+      reflectionPrompt: record.reflectionPrompt,
+      encouragementLine: record.encouragementLine,
+      contextSummary: record.contextSummary,
+      contextSections: record.contextSections,
+      relatedPassages: record.relatedPassages,
+      keyInsights: record.keyInsights,
+      prayer: record.prayer,
+      sourceLabel: 'Curated daily assignment',
+      assignmentDateKey: record.dateKey,
+      assignmentTimeLabel: _timeLabel(dailyRefreshTime),
+      widgetSyncLabel: 'Aligned with Today assignment',
     );
   }
 
@@ -763,6 +793,13 @@ class SupabaseTodayRepository implements TodayRepository {
 
   String _normalizeBookLabel(String value) {
     return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  String _timeLabel(TimeOfDay time) {
+    final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final String minute = time.minute.toString().padLeft(2, '0');
+    final String period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   bool _didRecordChange(

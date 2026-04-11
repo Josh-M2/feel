@@ -6,6 +6,9 @@ class WidgetDailyVersePayload {
     required this.translationLabel,
     required this.effectiveDateKey,
     required this.updateTimeLabel,
+    required this.refreshHour,
+    required this.refreshMinute,
+    required this.previewStyle,
     required this.showReference,
     required this.showCategory,
     required this.showDate,
@@ -17,6 +20,9 @@ class WidgetDailyVersePayload {
   final String translationLabel;
   final String effectiveDateKey;
   final String updateTimeLabel;
+  final int refreshHour;
+  final int refreshMinute;
+  final String previewStyle;
   final bool showReference;
   final bool showCategory;
   final bool showDate;
@@ -29,6 +35,9 @@ class WidgetDailyVersePayload {
       'translationLabel': translationLabel,
       'effectiveDateKey': effectiveDateKey,
       'updateTimeLabel': updateTimeLabel,
+      'refreshHour': refreshHour,
+      'refreshMinute': refreshMinute,
+      'previewStyle': previewStyle,
       'showReference': showReference,
       'showCategory': showCategory,
       'showDate': showDate,

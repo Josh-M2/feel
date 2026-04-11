@@ -11,6 +11,10 @@ import '../../features/auth/domain/models/user_profile_record.dart';
 import '../../features/auth/domain/repositories/session_repository.dart';
 import '../../features/auth/domain/repositories/user_preferences_repository.dart';
 import '../../features/auth/domain/repositories/user_profile_repository.dart';
+import '../../features/global_settings/data/platform/method_channel_widget_plugin_bridge.dart';
+import '../../features/global_settings/domain/repositories/widget_plugin_bridge.dart';
+import '../../features/today/data/local/local_today_widget_data_bridge.dart';
+import '../../features/today/domain/repositories/widget_data_bridge.dart';
 import '../router/app_routes.dart';
 
 class AppBootstrapController extends ChangeNotifier {
@@ -19,15 +23,22 @@ class AppBootstrapController extends ChangeNotifier {
     required SessionRepository sessionRepository,
     required UserProfileRepository profileRepository,
     required UserPreferencesRepository preferencesRepository,
+    WidgetDataBridge? widgetDataBridge,
+    WidgetPluginBridge? widgetPluginBridge,
   }) : _guestLocalStore = guestLocalStore,
        _sessionRepository = sessionRepository,
        _profileRepository = profileRepository,
-       _preferencesRepository = preferencesRepository;
+       _preferencesRepository = preferencesRepository,
+       _widgetDataBridge = widgetDataBridge ?? LocalTodayWidgetDataBridge(),
+       _widgetPluginBridge =
+           widgetPluginBridge ?? MethodChannelWidgetPluginBridge();
 
   final GuestLocalStore _guestLocalStore;
   final SessionRepository _sessionRepository;
   final UserProfileRepository _profileRepository;
   final UserPreferencesRepository _preferencesRepository;
+  final WidgetDataBridge _widgetDataBridge;
+  final WidgetPluginBridge _widgetPluginBridge;
 
   AppPreferenceSnapshot _preferences = AppPreferenceSnapshot.defaults();
   AppSessionSnapshot _session = AppSessionSnapshot.guest();
@@ -94,6 +105,7 @@ class AppBootstrapController extends ChangeNotifier {
           unawaited(_handleSessionSnapshot(snapshot));
         },
       );
+      await _syncWidgetPayload();
     } catch (error) {
       _initializationError =
           'Backend foundation bootstrap failed: ${error.toString()}';
@@ -124,6 +136,7 @@ class AppBootstrapController extends ChangeNotifier {
     }
 
     await _loadActiveProfileAndPreferences();
+    await _syncWidgetPayload();
     notifyListeners();
   }
 
@@ -295,6 +308,19 @@ class AppBootstrapController extends ChangeNotifier {
 
     if (_session.isAuthenticated && _session.userId != null) {
       await _preferencesRepository.saveSnapshot(_session.userId!, _preferences);
+    }
+
+    await _syncWidgetPayload();
+  }
+
+  Future<void> _syncWidgetPayload() async {
+    try {
+      final payload = await _widgetDataBridge.getPayload(
+        preferences: _preferences,
+      );
+      await _widgetPluginBridge.syncDailyVersePayload(payload: payload);
+    } catch (_) {
+      // Widget sync should never block app bootstrap or preference persistence.
     }
   }
 
