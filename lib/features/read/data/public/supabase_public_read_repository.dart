@@ -1,10 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../today/domain/models/bible_source_passage.dart';
-import '../../../today/domain/repositories/bible_source_adapter.dart';
-import '../../../today/data/source/configurable_bible_source_adapter.dart';
-
 import '../../domain/models/read_book.dart';
 import '../../domain/models/read_continue_point.dart';
 import '../../domain/models/read_reference_search_result.dart';
@@ -19,14 +15,11 @@ class SupabasePublicReadRepository implements ReadRepository {
   SupabasePublicReadRepository({
     SupabaseClient? client,
     ReadProgressLocalStore? localStore,
-    BibleSourceAdapter? bibleSourceAdapter,
   }) : _client = _resolveClient(client),
-       _localStore = localStore ?? SharedPrefsReadProgressLocalStore(),
-       _bibleSourceAdapter = bibleSourceAdapter ?? ConfigurableBibleSourceAdapter();
+       _localStore = localStore ?? SharedPrefsReadProgressLocalStore();
 
   final SupabaseClient? _client;
   final ReadProgressLocalStore _localStore;
-  final BibleSourceAdapter _bibleSourceAdapter;
   static const MockReadRepository _fallback = MockReadRepository();
   static const int _localQueueLimit = 5;
 
@@ -55,7 +48,7 @@ class SupabasePublicReadRepository implements ReadRepository {
           'id, name, testament, chapter_count, short_description, overview, why_read, key_themes, preferred_continue_chapter',
         )
         .eq('is_active', true)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
 
     if (rows.isEmpty) {
       return _fallback.getBooks();
@@ -64,7 +57,7 @@ class SupabasePublicReadRepository implements ReadRepository {
     final List<ReadBook> books = <ReadBook>[];
     for (final dynamic item in rows) {
       final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
-      books.add(await _mapBookRow(row));
+      books.add(_mapBookRow(row));
     }
     return books;
   }
@@ -93,7 +86,9 @@ class SupabasePublicReadRepository implements ReadRepository {
 
   @override
   Future<ReadBook> getContinueReadingBook({String? versionCode}) async {
-    final List<ReadContinuePoint> queue = await getContinueReadingQueue(versionCode: versionCode);
+    final List<ReadContinuePoint> queue = await getContinueReadingQueue(
+      versionCode: versionCode,
+    );
     if (queue.isEmpty) {
       return _fallback.getContinueReadingBook();
     }
@@ -106,13 +101,17 @@ class SupabasePublicReadRepository implements ReadRepository {
   }
 
   @override
-  Future<ReadChapter> getChapter({required String bookId, int? chapterNumber, String? versionCode}) async {
-    final String effectiveVersionCode = _sanitizeVersionCode(versionCode);
+  Future<ReadChapter> getChapter({
+    required String bookId,
+    int? chapterNumber,
+    String? versionCode,
+  }) async {
+    final String requestedVersionCode = _sanitizeVersionCode(versionCode);
     if (!_isConfigured) {
       return const MockReadRepositoryAdapter().getChapter(
         bookId: bookId,
         chapterNumber: chapterNumber,
-        versionCode: effectiveVersionCode,
+        versionCode: requestedVersionCode,
       );
     }
 
@@ -130,7 +129,7 @@ class SupabasePublicReadRepository implements ReadRepository {
       return const MockReadRepositoryAdapter().getChapter(
         bookId: bookId,
         chapterNumber: chapterNumber,
-        versionCode: effectiveVersionCode,
+        versionCode: requestedVersionCode,
       );
     }
 
@@ -139,36 +138,18 @@ class SupabasePublicReadRepository implements ReadRepository {
         .select('heading, verse_start, verse_end, sort_order')
         .eq('book_id', book.id)
         .eq('chapter_number', targetChapter)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
 
     final List<dynamic> requestedVerseRows = await _loadVerseRows(
       bookId: book.id,
       chapterNumber: targetChapter,
-      versionCode: effectiveVersionCode,
+      versionCode: requestedVersionCode,
     );
 
-    String appliedTranslationCode = effectiveVersionCode;
-    String appliedTranslationLabel = _translationLabelFor(effectiveVersionCode);
-    bool isFallbackTranslation = false;
+    String appliedTranslationCode = requestedVersionCode;
+    String appliedTranslationLabel = _translationLabelFor(requestedVersionCode);
+    bool isFallbackTranslation = requestedVersionCode != 'kjv';
     List<dynamic> verseRows = requestedVerseRows;
-
-    if (verseRows.isEmpty && effectiveVersionCode != 'kjv') {
-      final BibleSourcePassage? livePassage = await _bibleSourceAdapter.fetchPassageByReference(
-        reference: '${book.name} $targetChapter',
-        translationCode: effectiveVersionCode,
-      );
-      if (livePassage != null && livePassage.verses.isNotEmpty) {
-        verseRows = livePassage.verses
-            .map(
-              (BibleSourcePassageVerse verse) => <String, dynamic>{
-                'verse_number': verse.number,
-                'verse_text': verse.text,
-              },
-            )
-            .toList(growable: false);
-        appliedTranslationLabel = livePassage.translationLabel;
-      }
-    }
 
     if (verseRows.isEmpty) {
       verseRows = await _loadVerseRows(
@@ -177,10 +158,24 @@ class SupabasePublicReadRepository implements ReadRepository {
         versionCode: 'kjv',
       );
       appliedTranslationCode = 'kjv';
-      appliedTranslationLabel = effectiveVersionCode == 'kjv'
+      appliedTranslationLabel = requestedVersionCode == 'kjv'
           ? _translationLabelFor('kjv')
-          : '${_translationLabelFor(effectiveVersionCode)} requested • KJV fallback';
-      isFallbackTranslation = effectiveVersionCode != 'kjv';
+          : '${_translationLabelFor(requestedVersionCode)} requested - KJV fallback';
+      isFallbackTranslation = requestedVersionCode != 'kjv';
+    }
+
+    if (appliedTranslationCode == 'kjv' && requestedVersionCode != 'kjv') {
+      appliedTranslationLabel =
+          '${_translationLabelFor(requestedVersionCode)} requested - KJV fallback';
+      isFallbackTranslation = true;
+    }
+
+    if (verseRows.isEmpty) {
+      return const MockReadRepositoryAdapter().getChapter(
+        bookId: bookId,
+        chapterNumber: chapterNumber,
+        versionCode: requestedVersionCode,
+      );
     }
 
     return _mapChapterRow(
@@ -220,7 +215,11 @@ class SupabasePublicReadRepository implements ReadRepository {
     if (row == null) return null;
 
     final int previousNumber = (row['chapter_number'] as num).toInt();
-    return getChapter(bookId: bookId, chapterNumber: previousNumber, versionCode: versionCode);
+    return getChapter(
+      bookId: bookId,
+      chapterNumber: previousNumber,
+      versionCode: versionCode,
+    );
   }
 
   @override
@@ -242,20 +241,30 @@ class SupabasePublicReadRepository implements ReadRepository {
         .select('chapter_number')
         .eq('book_id', bookId)
         .gt('chapter_number', chapterNumber)
-        .order('chapter_number')
+        .order('chapter_number', ascending: true)
         .limit(1)
         .maybeSingle();
 
     if (row == null) return null;
 
     final int nextNumber = (row['chapter_number'] as num).toInt();
-    return getChapter(bookId: bookId, chapterNumber: nextNumber, versionCode: versionCode);
+    return getChapter(
+      bookId: bookId,
+      chapterNumber: nextNumber,
+      versionCode: versionCode,
+    );
   }
 
   @override
-  Future<List<ReadReferenceSearchResult>> searchReferences(String query, {String? versionCode}) async {
+  Future<List<ReadReferenceSearchResult>> searchReferences(
+    String query, {
+    String? versionCode,
+  }) async {
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().searchReferences(query, versionCode: versionCode);
+      return const MockReadRepositoryAdapter().searchReferences(
+        query,
+        versionCode: versionCode,
+      );
     }
 
     final String normalized = query.trim().toLowerCase();
@@ -263,15 +272,15 @@ class SupabasePublicReadRepository implements ReadRepository {
 
     final RegExp digitExp = RegExp(r'(\d+)');
     final Match? digitMatch = digitExp.firstMatch(normalized);
-    final int? requestedChapter =
-        digitMatch != null ? int.tryParse(digitMatch.group(1)!) : null;
+    final int? requestedChapter = digitMatch != null
+        ? int.tryParse(digitMatch.group(1)!)
+        : null;
 
     final List<ReadBook> books = await getBooks();
-    final List<Map<String, dynamic>> aliasRows = (await _client!
-            .from('content_book_aliases')
-            .select('book_id, alias'))
-        .map((dynamic item) => Map<String, dynamic>.from(item as Map))
-        .toList();
+    final List<Map<String, dynamic>> aliasRows =
+        (await _client!.from('content_book_aliases').select('book_id, alias'))
+            .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+            .toList();
 
     bool matchesBook(ReadBook book) {
       final String name = book.name.toLowerCase();
@@ -297,12 +306,14 @@ class SupabasePublicReadRepository implements ReadRepository {
           .from('content_bible_chapters')
           .select('chapter_number, title, introduction, focus_line')
           .eq('book_id', book.id)
-          .order('chapter_number');
+          .order('chapter_number', ascending: true);
 
       for (final dynamic item in chapterRows) {
         final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
         final int chapter = (row['chapter_number'] as num).toInt();
-        if (requestedChapter != null && chapter != requestedChapter && !bookMatched) {
+        if (requestedChapter != null &&
+            chapter != requestedChapter &&
+            !bookMatched) {
           continue;
         }
 
@@ -333,17 +344,24 @@ class SupabasePublicReadRepository implements ReadRepository {
     }
 
     if (results.isEmpty) {
-      return const MockReadRepositoryAdapter().searchReferences(query, versionCode: versionCode);
+      return const MockReadRepositoryAdapter().searchReferences(
+        query,
+        versionCode: versionCode,
+      );
     }
 
     return results;
   }
 
   @override
-  Future<List<ReadContinuePoint>> getContinueReadingQueue({String? versionCode}) async {
+  Future<List<ReadContinuePoint>> getContinueReadingQueue({
+    String? versionCode,
+  }) async {
     final String? userId = _authenticatedUserId;
     if (userId != null) {
-      final List<ReadContinuePoint> remoteQueue = await _loadRemoteQueue(userId);
+      final List<ReadContinuePoint> remoteQueue = await _loadRemoteQueue(
+        userId,
+      );
       if (remoteQueue.isNotEmpty) {
         return remoteQueue;
       }
@@ -378,7 +396,9 @@ class SupabasePublicReadRepository implements ReadRepository {
       }
     }
 
-    return const MockReadRepositoryAdapter().getContinueReadingQueue(versionCode: versionCode);
+    return const MockReadRepositoryAdapter().getContinueReadingQueue(
+      versionCode: versionCode,
+    );
   }
 
   @override
@@ -405,7 +425,9 @@ class SupabasePublicReadRepository implements ReadRepository {
           chapterNumber: chapterNumber,
           versionCode: versionCode,
         );
-        resolvedBookName = resolvedBookName.isEmpty ? book.name : resolvedBookName;
+        resolvedBookName = resolvedBookName.isEmpty
+            ? book.name
+            : resolvedBookName;
         resolvedChapterTitle = resolvedChapterTitle.isEmpty
             ? chapter.title
             : resolvedChapterTitle;
@@ -428,7 +450,9 @@ class SupabasePublicReadRepository implements ReadRepository {
       focusLine: resolvedFocusLine,
       openedAtIso: DateTime.now().toUtc().toIso8601String(),
       versionCode: _sanitizeVersionCode(versionCode),
-      versionLabel: versionLabel ?? _translationLabelFor(_sanitizeVersionCode(versionCode)),
+      versionLabel:
+          versionLabel ??
+          _translationLabelFor(_sanitizeVersionCode(versionCode)),
     );
 
     await _saveLocalEntry(entry);
@@ -439,22 +463,17 @@ class SupabasePublicReadRepository implements ReadRepository {
     }
 
     try {
-      await _client!
-          .from('user_read_progress')
-          .upsert(
-            <String, dynamic>{
-              'user_id': userId,
-              'book_id': bookId,
-              'chapter_number': chapterNumber,
-              'book_name': resolvedBookName,
-              'chapter_title': resolvedChapterTitle,
-              'focus_line': resolvedFocusLine,
-              'version_code': entry.versionCode,
-              'version_label': entry.versionLabel,
-              'last_opened_at': DateTime.now().toUtc().toIso8601String(),
-            },
-            onConflict: 'user_id,book_id,chapter_number',
-          );
+      await _client!.from('user_read_progress').upsert(<String, dynamic>{
+        'user_id': userId,
+        'book_id': bookId,
+        'chapter_number': chapterNumber,
+        'book_name': resolvedBookName,
+        'chapter_title': resolvedChapterTitle,
+        'focus_line': resolvedFocusLine,
+        'version_code': entry.versionCode,
+        'version_label': entry.versionLabel,
+        'last_opened_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id,book_id,chapter_number');
     } catch (_) {
       // Local persistence already succeeded. Remote sync can be retried later.
     }
@@ -471,21 +490,31 @@ class SupabasePublicReadRepository implements ReadRepository {
           .order('last_opened_at', ascending: false)
           .limit(_localQueueLimit);
 
-      return rows.asMap().entries.map((MapEntry<int, dynamic> entry) {
-        final Map<String, dynamic> row = Map<String, dynamic>.from(entry.value as Map);
-        final int chapterNumber = (row['chapter_number'] as num?)?.toInt() ?? 1;
-        return ReadContinuePoint(
-          bookId: row['book_id']?.toString() ?? '',
-          bookName: row['book_name']?.toString() ?? row['book_id']?.toString() ?? '',
-          chapterNumber: chapterNumber,
-          chapterTitle:
-              row['chapter_title']?.toString() ?? 'Chapter $chapterNumber',
-          label: entry.key == 0 ? 'Most recent' : 'Recent reading',
-          focusLine: row['focus_line']?.toString() ?? '',
-          versionCode: row['version_code']?.toString() ?? 'kjv',
-          versionLabel: row['version_label']?.toString() ?? 'KJV',
-        );
-      }).toList(growable: false);
+      return rows
+          .asMap()
+          .entries
+          .map((MapEntry<int, dynamic> entry) {
+            final Map<String, dynamic> row = Map<String, dynamic>.from(
+              entry.value as Map,
+            );
+            final int chapterNumber =
+                (row['chapter_number'] as num?)?.toInt() ?? 1;
+            return ReadContinuePoint(
+              bookId: row['book_id']?.toString() ?? '',
+              bookName:
+                  row['book_name']?.toString() ??
+                  row['book_id']?.toString() ??
+                  '',
+              chapterNumber: chapterNumber,
+              chapterTitle:
+                  row['chapter_title']?.toString() ?? 'Chapter $chapterNumber',
+              label: entry.key == 0 ? 'Most recent' : 'Recent reading',
+              focusLine: row['focus_line']?.toString() ?? '',
+              versionCode: row['version_code']?.toString() ?? 'kjv',
+              versionLabel: row['version_label']?.toString() ?? 'KJV',
+            );
+          })
+          .toList(growable: false);
     } catch (_) {
       return const <ReadContinuePoint>[];
     }
@@ -497,29 +526,37 @@ class SupabasePublicReadRepository implements ReadRepository {
       return const <ReadContinuePoint>[];
     }
 
-    final List<ReadProgressLocalRecord> sorted = List<ReadProgressLocalRecord>.from(
-      snapshot.entries,
-    )..sort((ReadProgressLocalRecord a, ReadProgressLocalRecord b) {
-        final DateTime aTime = DateTime.tryParse(a.openedAtIso) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final DateTime bTime = DateTime.tryParse(b.openedAtIso) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bTime.compareTo(aTime);
-      });
+    final List<ReadProgressLocalRecord> sorted =
+        List<ReadProgressLocalRecord>.from(snapshot.entries)
+          ..sort((ReadProgressLocalRecord a, ReadProgressLocalRecord b) {
+            final DateTime aTime =
+                DateTime.tryParse(a.openedAtIso) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final DateTime bTime =
+                DateTime.tryParse(b.openedAtIso) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
 
-    return sorted.take(_localQueueLimit).toList(growable: false).asMap().entries.map(
-      (MapEntry<int, ReadProgressLocalRecord> entry) {
-        final ReadProgressLocalRecord item = entry.value;
-        return ReadContinuePoint(
-          bookId: item.bookId,
-          bookName: item.bookName,
-          chapterNumber: item.chapterNumber,
-          chapterTitle: item.chapterTitle,
-          label: entry.key == 0 ? 'Most recent' : 'Recent reading',
-          focusLine: item.focusLine,
-          versionCode: item.versionCode,
-          versionLabel: item.versionLabel,
-        );
-      },
-    ).toList(growable: false);
+    return sorted
+        .take(_localQueueLimit)
+        .toList(growable: false)
+        .asMap()
+        .entries
+        .map((MapEntry<int, ReadProgressLocalRecord> entry) {
+          final ReadProgressLocalRecord item = entry.value;
+          return ReadContinuePoint(
+            bookId: item.bookId,
+            bookName: item.bookName,
+            chapterNumber: item.chapterNumber,
+            chapterTitle: item.chapterTitle,
+            label: entry.key == 0 ? 'Most recent' : 'Recent reading',
+            focusLine: item.focusLine,
+            versionCode: item.versionCode,
+            versionLabel: item.versionLabel,
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<void> _saveLocalEntry(ReadProgressLocalRecord entry) async {
@@ -528,68 +565,59 @@ class SupabasePublicReadRepository implements ReadRepository {
       entry,
       ...snapshot.entries.where(
         (ReadProgressLocalRecord item) =>
-            item.bookId != entry.bookId || item.chapterNumber != entry.chapterNumber,
+            item.bookId != entry.bookId ||
+            item.chapterNumber != entry.chapterNumber,
       ),
     ];
 
     await _localStore.save(
-      snapshot.copyWith(entries: next.take(_localQueueLimit).toList(growable: false)),
+      snapshot.copyWith(
+        entries: next.take(_localQueueLimit).toList(growable: false),
+      ),
     );
   }
 
-  Future<ReadBook> _mapBookRow(Map<String, dynamic> row) async {
-    final String bookId = row['id'].toString();
-    final List<dynamic> chapterRows = await _client!
-        .from('content_bible_chapters')
-        .select('chapter_number, title, introduction, focus_line')
-        .eq('book_id', bookId)
-        .order('chapter_number');
+  ReadBook _mapBookRow(Map<String, dynamic> row) {
+    final int chapterCount = (row['chapter_count'] as num?)?.toInt() ?? 1;
+    final int safeChapterCount = chapterCount < 1 ? 1 : chapterCount;
+    final int preferredContinueChapter =
+        (row['preferred_continue_chapter'] as num?)?.toInt() ?? 1;
+    final int safeContinueChapter = preferredContinueChapter.clamp(
+      1,
+      safeChapterCount,
+    );
 
-    final List<ReadChapter> chapters = <ReadChapter>[];
-    for (final dynamic item in chapterRows) {
-      final Map<String, dynamic> chapterRow = Map<String, dynamic>.from(item as Map);
-      final int chapterNumber = (chapterRow['chapter_number'] as num).toInt();
-      final List<dynamic> sectionRows = await _client!
-          .from('content_chapter_sections')
-          .select('heading, verse_start, verse_end, sort_order')
-          .eq('book_id', bookId)
-          .eq('chapter_number', chapterNumber)
-          .order('sort_order');
-      final List<dynamic> verseRows = await _client!
-          .from('content_bible_verses')
-          .select('verse_number, verse_text')
-          .eq('book_id', bookId)
-          .eq('version_id', 'kjv')
-          .eq('chapter_number', chapterNumber)
-          .order('verse_number');
-
-      chapters.add(
-        _mapChapterRow(
-          bookName: row['name']?.toString() ?? '',
-          chapterRow: chapterRow,
-          sectionRows: sectionRows,
-          verseRows: verseRows,
-        ),
-      );
-    }
-
-    final int continueChapterNumber =
-        (row['preferred_continue_chapter'] as num?)?.toInt() ??
-        (chapters.isEmpty ? 1 : chapters.first.number);
+    final List<ReadChapter> chapterStubs = List<ReadChapter>.generate(
+      safeChapterCount,
+      (int index) {
+        final int chapterNumber = index + 1;
+        return ReadChapter(
+          number: chapterNumber,
+          title: 'Chapter $chapterNumber',
+          introduction: '',
+          focusLine: '',
+          blocks: const <ReadPassageBlock>[],
+          translationCode: 'kjv',
+          translationLabel: 'KJV',
+          isTranslationFallback: false,
+        );
+      },
+      growable: false,
+    );
 
     return ReadBook(
-      id: bookId,
+      id: row['id']?.toString() ?? '',
       name: row['name']?.toString() ?? '',
       testament: row['testament']?.toString() ?? 'New Testament',
-      chapterCount: (row['chapter_count'] as num?)?.toInt() ?? chapters.length,
+      chapterCount: safeChapterCount,
       shortDescription: row['short_description']?.toString() ?? '',
       overview: row['overview']?.toString() ?? '',
       whyRead: row['why_read']?.toString() ?? '',
       keyThemes: (row['key_themes'] as List<dynamic>? ?? const <dynamic>[])
           .map((dynamic item) => item.toString())
           .toList(growable: false),
-      continueChapterNumber: continueChapterNumber,
-      mockChapters: chapters,
+      continueChapterNumber: safeContinueChapter,
+      mockChapters: chapterStubs,
     );
   }
 
@@ -604,7 +632,7 @@ class SupabasePublicReadRepository implements ReadRepository {
         .eq('book_id', bookId)
         .eq('version_id', versionCode)
         .eq('chapter_number', chapterNumber)
-        .order('verse_number');
+        .order('verse_number', ascending: true);
   }
 
   String _sanitizeVersionCode(String? value) {
@@ -624,12 +652,31 @@ class SupabasePublicReadRepository implements ReadRepository {
     String translationLabel = 'KJV',
     bool isTranslationFallback = false,
   }) {
-    final int chapterNumber = (chapterRow['chapter_number'] as num?)?.toInt() ?? 1;
-    final List<Map<String, dynamic>> normalizedVerses = verseRows
-        .map((dynamic item) => Map<String, dynamic>.from(item as Map))
-        .toList(growable: false);
+    final int chapterNumber =
+        (chapterRow['chapter_number'] as num?)?.toInt() ?? 1;
+    final List<Map<String, dynamic>> normalizedVerses =
+        verseRows
+            .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+            .toList(growable: false)
+          ..sort(
+            (Map<String, dynamic> a, Map<String, dynamic> b) =>
+                ((a['verse_number'] as num?)?.toInt() ?? 0).compareTo(
+                  ((b['verse_number'] as num?)?.toInt() ?? 0),
+                ),
+          );
 
-    final List<ReadPassageBlock> blocks = sectionRows.isEmpty
+    final List<Map<String, dynamic>> normalizedSections =
+        sectionRows
+            .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+            .toList(growable: false)
+          ..sort(
+            (Map<String, dynamic> a, Map<String, dynamic> b) =>
+                ((a['sort_order'] as num?)?.toInt() ?? 0).compareTo(
+                  ((b['sort_order'] as num?)?.toInt() ?? 0),
+                ),
+          );
+
+    final List<ReadPassageBlock> blocks = normalizedSections.isEmpty
         ? <ReadPassageBlock>[
             ReadPassageBlock(
               heading: '$bookName $chapterNumber',
@@ -644,31 +691,36 @@ class SupabasePublicReadRepository implements ReadRepository {
                   .toList(growable: false),
             ),
           ]
-        : sectionRows.map((dynamic item) {
-            final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
-            final int verseStart = (row['verse_start'] as num?)?.toInt() ?? 1;
-            final int verseEnd = (row['verse_end'] as num?)?.toInt() ?? verseStart;
-            final List<ReadVerseLine> verses = normalizedVerses
-                .where(
-                  (Map<String, dynamic> verse) {
-                    final int verseNumber = (verse['verse_number'] as num?)?.toInt() ?? 1;
-                    return verseNumber >= verseStart && verseNumber <= verseEnd;
-                  },
-                )
-                .map(
-                  (Map<String, dynamic> verse) => ReadVerseLine(
-                    number: (verse['verse_number'] as num?)?.toInt() ?? 1,
-                    text: verse['verse_text']?.toString() ?? '',
-                  ),
-                )
-                .toList(growable: false);
+        : normalizedSections
+              .map((Map<String, dynamic> row) {
+                final int verseStart =
+                    (row['verse_start'] as num?)?.toInt() ?? 1;
+                final int verseEnd =
+                    (row['verse_end'] as num?)?.toInt() ?? verseStart;
+                final List<ReadVerseLine> verses = normalizedVerses
+                    .where((Map<String, dynamic> verse) {
+                      final int verseNumber =
+                          (verse['verse_number'] as num?)?.toInt() ?? 1;
+                      return verseNumber >= verseStart &&
+                          verseNumber <= verseEnd;
+                    })
+                    .map(
+                      (Map<String, dynamic> verse) => ReadVerseLine(
+                        number: (verse['verse_number'] as num?)?.toInt() ?? 1,
+                        text: verse['verse_text']?.toString() ?? '',
+                      ),
+                    )
+                    .toList(growable: false);
 
-            return ReadPassageBlock(
-              heading: row['heading']?.toString() ?? '$bookName $chapterNumber',
-              rangeLabel: '$bookName $chapterNumber:$verseStart${verseEnd == verseStart ? '' : '–$verseEnd'}',
-              verses: verses,
-            );
-          }).toList(growable: false);
+                return ReadPassageBlock(
+                  heading:
+                      row['heading']?.toString() ?? '$bookName $chapterNumber',
+                  rangeLabel:
+                      '$bookName $chapterNumber:$verseStart${verseEnd == verseStart ? '' : '-$verseEnd'}',
+                  verses: verses,
+                );
+              })
+              .toList(growable: false);
 
     return ReadChapter(
       number: chapterNumber,

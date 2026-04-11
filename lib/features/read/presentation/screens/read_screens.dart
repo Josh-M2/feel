@@ -139,9 +139,10 @@ class ReadBooksScreen extends StatelessWidget {
 
   Future<_ReadBooksScreenData> _loadReadBooksScreenData() async {
     final List<ReadBook> books = await _repository.getBooks();
-    final List<ReadContinuePoint> queue = await _repository.getContinueReadingQueue(
-      versionCode: bootstrap.preferredTranslationCode,
-    );
+    final List<ReadContinuePoint> queue = await _repository
+        .getContinueReadingQueue(
+          versionCode: bootstrap.preferredTranslationCode,
+        );
 
     late final ReadBook continueBook;
     late final ReadChapter continueChapter;
@@ -356,7 +357,12 @@ class ReadBookDetailScreen extends StatelessWidget {
 }
 
 class ChapterReadScreen extends StatefulWidget {
-  const ChapterReadScreen({super.key, required this.bootstrap, this.bookId, this.chapterNumber});
+  const ChapterReadScreen({
+    super.key,
+    required this.bootstrap,
+    this.bookId,
+    this.chapterNumber,
+  });
 
   final AppBootstrapController bootstrap;
   final String? bookId;
@@ -468,9 +474,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: _saveBusy
-                            ? null
-                            : () => _saveBookmark(data),
+                        onPressed: _saveBusy ? null : () => _saveBookmark(data),
                         icon: const Icon(Icons.bookmark_add_outlined),
                         label: const Text('Save bookmark'),
                       ),
@@ -731,7 +735,9 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
     await _runSaveAction(() async {
       await _savedRepository.saveNote(
         anchor: _buildChapterAnchor(data),
-        title: title.isEmpty ? '${data.book.name} ${data.chapter.number}' : title,
+        title: title.isEmpty
+            ? '${data.book.name} ${data.chapter.number}'
+            : title,
         body: body,
       );
       _showSnackBar('Note saved to Saved.');
@@ -875,7 +881,9 @@ class _ReadReferenceSearchScreenState extends State<ReadReferenceSearchScreen> {
                 const SizedBox(height: AppSpacing.md),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Chip(label: Text(widget.bootstrap.preferredTranslationLabel)),
+                  child: Chip(
+                    label: Text(widget.bootstrap.preferredTranslationLabel),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Wrap(
@@ -1149,7 +1157,9 @@ class ReadContinueReadingScreen extends StatelessWidget {
                         child: OutlinedButton(
                           onPressed: () => context.push(
                             AppRoutes.readBookDetail,
-                            extra: ReadBookRouteArgs(bookId: continuePoint.bookId),
+                            extra: ReadBookRouteArgs(
+                              bookId: continuePoint.bookId,
+                            ),
                           ),
                           child: Text('Open ${continuePoint.bookName} details'),
                         ),
@@ -1208,20 +1218,49 @@ class _ReadLoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: const <Widget>[
-        AppCard(
+    return SizedBox.expand(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              CircularProgressIndicator(),
-              SizedBox(height: AppSpacing.lg),
-              Text('Loading reading content...'),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.border),
+                ),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Loading reading content...',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Preparing books, chapters, and your recent reading state.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
