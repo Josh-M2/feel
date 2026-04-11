@@ -42,4 +42,11 @@ app.*.map.json
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
-/android/app/release
+/android/app/
+
+
+.codex
+AGENTS.md
+supabase\generated
+eng-kjv.osis.xml
+supabase/generated/open_bibles_kjv_import.sql
