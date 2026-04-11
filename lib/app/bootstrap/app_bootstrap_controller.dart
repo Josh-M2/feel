@@ -14,6 +14,8 @@ import '../../features/auth/domain/repositories/user_profile_repository.dart';
 import '../../features/global_settings/data/platform/method_channel_widget_plugin_bridge.dart';
 import '../../features/global_settings/domain/repositories/widget_plugin_bridge.dart';
 import '../../features/today/data/local/local_today_widget_data_bridge.dart';
+import '../../features/today/data/public/supabase_today_repository.dart';
+import '../../features/today/domain/repositories/today_repository.dart';
 import '../../features/today/domain/repositories/widget_data_bridge.dart';
 import '../router/app_routes.dart';
 
@@ -23,12 +25,14 @@ class AppBootstrapController extends ChangeNotifier {
     required SessionRepository sessionRepository,
     required UserProfileRepository profileRepository,
     required UserPreferencesRepository preferencesRepository,
+    TodayRepository? todayRepository,
     WidgetDataBridge? widgetDataBridge,
     WidgetPluginBridge? widgetPluginBridge,
   }) : _guestLocalStore = guestLocalStore,
        _sessionRepository = sessionRepository,
        _profileRepository = profileRepository,
        _preferencesRepository = preferencesRepository,
+       _todayRepository = todayRepository ?? SupabaseTodayRepository(),
        _widgetDataBridge = widgetDataBridge ?? LocalTodayWidgetDataBridge(),
        _widgetPluginBridge =
            widgetPluginBridge ?? MethodChannelWidgetPluginBridge();
@@ -37,6 +41,7 @@ class AppBootstrapController extends ChangeNotifier {
   final SessionRepository _sessionRepository;
   final UserProfileRepository _profileRepository;
   final UserPreferencesRepository _preferencesRepository;
+  final TodayRepository _todayRepository;
   final WidgetDataBridge _widgetDataBridge;
   final WidgetPluginBridge _widgetPluginBridge;
 
@@ -50,6 +55,7 @@ class AppBootstrapController extends ChangeNotifier {
   bool _authBusy = false;
   String? _authFeedbackMessage;
   String? _pendingAuthRedirect;
+  String? _hydratedAccountUserId;
 
   bool get isInitializing => _isInitializing;
   String? get initializationError => _initializationError;
@@ -99,6 +105,7 @@ class AppBootstrapController extends ChangeNotifier {
       _preferences = await _guestLocalStore.load();
       _session = await _sessionRepository.getCurrentSession();
       await _loadActiveProfileAndPreferences();
+      await _hydrateAccountBackedData();
       await _sessionSubscription?.cancel();
       _sessionSubscription = _sessionRepository.watchSessionChanges().listen(
         (AppSessionSnapshot snapshot) {
@@ -124,10 +131,13 @@ class AppBootstrapController extends ChangeNotifier {
         _authFeedbackMessage = 'Set a new password to finish recovery.';
         break;
       case AppAuthEvent.signedIn:
-        _pendingAuthRedirect = AppRoutes.authCallback;
-        _authFeedbackMessage = 'Your account session is active on this device.';
+        _pendingAuthRedirect = null;
+        _authFeedbackMessage =
+            'Signed in successfully. Refreshing account-backed preferences and today assignment on this device.';
         break;
       case AppAuthEvent.signedOut:
+        _pendingAuthRedirect = null;
+        _hydratedAccountUserId = null;
         _authFeedbackMessage =
             'Signed out. This device stays available in guest mode.';
         break;
@@ -136,6 +146,7 @@ class AppBootstrapController extends ChangeNotifier {
     }
 
     await _loadActiveProfileAndPreferences();
+    await _hydrateAccountBackedData(force: snapshot.event == AppAuthEvent.signedIn);
     await _syncWidgetPayload();
     notifyListeners();
   }
@@ -156,7 +167,34 @@ class AppBootstrapController extends ChangeNotifier {
     }
 
     _profile = null;
+    _hydratedAccountUserId = null;
     _preferences = await _guestLocalStore.load();
+  }
+
+  Future<void> _hydrateAccountBackedData({bool force = false}) async {
+    final String? userId = _session.userId;
+    if (!_session.isAuthenticated || userId == null) {
+      _hydratedAccountUserId = null;
+      return;
+    }
+
+    if (!force && _hydratedAccountUserId == userId) {
+      return;
+    }
+
+    try {
+      await _todayRepository.syncTodayAssignment(
+        selectedCategories: _preferences.selectedCategories,
+        dailyRefreshTime: _preferences.dailyNotificationTime,
+        preferredTranslationCode: _preferences.preferredTranslationCode,
+      );
+      _hydratedAccountUserId = userId;
+    } catch (_) {
+      if (force) {
+        _authFeedbackMessage =
+            'Signed in successfully. Account preferences loaded, and today will finish syncing the next time it resolves.';
+      }
+    }
   }
 
   void clearPendingAuthRedirect() {

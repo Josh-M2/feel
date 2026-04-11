@@ -92,12 +92,18 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.authCallback,
-        builder: (context, state) => AuthCallbackScreen(bootstrap: bootstrap),
+        builder: (context, state) => AuthCallbackScreen(
+          bootstrap: bootstrap,
+          returnTo: state.uri.queryParameters['returnTo'],
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.authResetPassword,
-        builder: (context, state) => ResetPasswordScreen(bootstrap: bootstrap),
+        builder: (context, state) => ResetPasswordScreen(
+          bootstrap: bootstrap,
+          returnTo: state.uri.queryParameters['returnTo'],
+        ),
       ),
 
       StatefulShellRoute.indexedStack(
@@ -249,12 +255,18 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignIn,
-        builder: (context, state) => SignInScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignInScreen(
+          bootstrap: bootstrap,
+          returnTo: state.uri.queryParameters['returnTo'],
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignUp,
-        builder: (context, state) => SignUpScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignUpScreen(
+          bootstrap: bootstrap,
+          returnTo: state.uri.queryParameters['returnTo'],
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -264,7 +276,10 @@ GoRouter createAppRouter(AppBootstrapController bootstrap) {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.profileSignOut,
-        builder: (context, state) => SignOutScreen(bootstrap: bootstrap),
+        builder: (context, state) => SignOutScreen(
+          bootstrap: bootstrap,
+          returnTo: state.uri.queryParameters['returnTo'],
+        ),
       ),
 
       GoRoute(

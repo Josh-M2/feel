@@ -764,6 +764,11 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
     final int verseEnd = verses.isEmpty ? verseStart : verses.last.number;
     final String referenceLabel =
         '${data.book.name} ${data.chapter.number}:$verseStart${verseEnd == verseStart ? '' : '–$verseEnd'}';
+    final String normalizedReferenceLabel = referenceLabel
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2014', '-')
+        .replaceAll('\u00e2\u20ac\u201c', '-')
+        .replaceAll('\u00e2\u20ac\u201d', '-');
     final String verseTextSnapshot = verses
         .take(2)
         .map((ReadVerseLine verse) => '${verse.number}. ${verse.text}')
@@ -778,7 +783,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
       verseStart: verseStart,
       chapterEnd: data.chapter.number,
       verseEnd: verseEnd,
-      referenceLabel: referenceLabel,
+      referenceLabel: normalizedReferenceLabel,
       verseTextSnapshot: verseTextSnapshot.isEmpty
           ? data.chapter.focusLine
           : verseTextSnapshot,

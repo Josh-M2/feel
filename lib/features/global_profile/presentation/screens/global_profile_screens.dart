@@ -18,6 +18,19 @@ class ProfileOverviewScreen extends StatelessWidget {
 
   String get _modeLabel => bootstrap.isGuestMode ? 'GUEST' : 'ACCOUNT';
 
+  String _routeWithOrigin(BuildContext context, String route) {
+    final String? origin = _originRouteFromContext(context);
+    if (origin == null) {
+      return route;
+    }
+    return '$route?origin=${Uri.encodeComponent(origin)}';
+  }
+
+  String _routeWithReturnTo(BuildContext context, String route) {
+    final String returnTo = GoRouterState.of(context).uri.toString();
+    return '$route?returnTo=${Uri.encodeComponent(returnTo)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -26,6 +39,7 @@ class ProfileOverviewScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Profile',
           subtitle: 'Guest-first overview',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -97,7 +111,8 @@ class ProfileOverviewScreen extends StatelessWidget {
                           'See whether you are currently using guest mode or account mode.',
                       icon: Icons.badge_outlined,
                       trailingLabel: _modeLabel,
-                      onTap: () => context.push(AppRoutes.profileAuthStatus),
+                      onTap: () =>
+                          context.push(_routeWithOrigin(context, AppRoutes.profileAuthStatus)),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ProfileNavTile(
@@ -105,7 +120,8 @@ class ProfileOverviewScreen extends StatelessWidget {
                       subtitle:
                           'Review the local guest store boundary and the account-backed phase 1 sync layer.',
                       icon: Icons.sync_outlined,
-                      onTap: () => context.push(AppRoutes.profileDataSync),
+                      onTap: () =>
+                          context.push(_routeWithOrigin(context, AppRoutes.profileDataSync)),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     if (bootstrap.isGuestMode) ...<Widget>[
@@ -114,7 +130,9 @@ class ProfileOverviewScreen extends StatelessWidget {
                         subtitle:
                             'Use Supabase email and password auth when you want account continuity.',
                         icon: Icons.login_rounded,
-                        onTap: () => context.push(AppRoutes.profileSignIn),
+                        onTap: () => context.push(
+                          _routeWithReturnTo(context, AppRoutes.profileSignIn),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       ProfileNavTile(
@@ -122,7 +140,9 @@ class ProfileOverviewScreen extends StatelessWidget {
                         subtitle:
                             'Create an account and prepare this device for cross-device continuity later on.',
                         icon: Icons.person_add_alt_1_rounded,
-                        onTap: () => context.push(AppRoutes.profileSignUp),
+                        onTap: () => context.push(
+                          _routeWithReturnTo(context, AppRoutes.profileSignUp),
+                        ),
                       ),
                     ] else ...<Widget>[
                       ProfileNavTile(
@@ -130,7 +150,9 @@ class ProfileOverviewScreen extends StatelessWidget {
                         subtitle:
                             'End the current account session and stay usable in guest mode.',
                         icon: Icons.logout_rounded,
-                        onTap: () => context.push(AppRoutes.profileSignOut),
+                        onTap: () => context.push(
+                          _routeWithReturnTo(context, AppRoutes.profileSignOut),
+                        ),
                       ),
                     ],
                   ],
@@ -157,6 +179,7 @@ class AuthStatusScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Auth status',
           subtitle: 'Current access mode',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -212,7 +235,7 @@ class AuthStatusScreen extends StatelessWidget {
                     ),
                     _ProfileBullet(
                       text:
-                          'Guest-to-account content merge for bookmarks, notes, highlights, and progress is intentionally deferred to a later phase.',
+                          'Today refreshes against the account-backed assignment after sign-in, while guest-to-account merge for bookmarks, notes, highlights, and progress is intentionally deferred to a later phase.',
                     ),
                   ],
                 ),
@@ -238,6 +261,7 @@ class DataSyncScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Data sync',
           subtitle: 'This device and future account sync',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -263,7 +287,7 @@ class DataSyncScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'This build intentionally syncs only onboarding, reminder, widget, and category preference data. Saved reading content will be merged in a later phase.',
+                      'This build syncs onboarding, reminder, widget, and category preference data, and it refreshes Today against the signed-in assignment on this device. Saved reading content merge still comes in a later phase.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -306,6 +330,10 @@ class DataSyncScreen extends StatelessWidget {
                       text:
                           'user_category_preferences keeps the selected Today categories in order.',
                     ),
+                    _ProfileBullet(
+                      text:
+                          'Today rehydrates from the signed-in assignment after login so the app and widget stay aligned on this device.',
+                    ),
                   ],
                 ),
               ),
@@ -336,9 +364,14 @@ class DataSyncScreen extends StatelessWidget {
 }
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key, required this.bootstrap});
+  const SignInScreen({
+    super.key,
+    required this.bootstrap,
+    this.returnTo,
+  });
 
   final AppBootstrapController bootstrap;
+  final String? returnTo;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -370,7 +403,7 @@ class _SignInScreenState extends State<SignInScreen> {
       ..showSnackBar(SnackBar(content: Text(result.message)));
 
     if (result.success) {
-      context.go(AppRoutes.profileAuthStatus);
+      _goToPostAuthDestination(context, widget.returnTo);
     }
   }
 
@@ -398,6 +431,7 @@ class _SignInScreenState extends State<SignInScreen> {
         return GlobalScreenScaffold(
           title: 'Sign in',
           subtitle: 'Optional account access',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -485,9 +519,14 @@ class _SignInScreenState extends State<SignInScreen> {
 }
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key, required this.bootstrap});
+  const SignUpScreen({
+    super.key,
+    required this.bootstrap,
+    this.returnTo,
+  });
 
   final AppBootstrapController bootstrap;
+  final String? returnTo;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -525,11 +564,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ..showSnackBar(SnackBar(content: Text(result.message)));
 
     if (result.success) {
-      context.go(
-        result.needsEmailConfirmation
-            ? AppRoutes.profileAuthStatus
-            : AppRoutes.profileOverview,
-      );
+      _goToPostAuthDestination(context, widget.returnTo);
     }
   }
 
@@ -541,6 +576,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return GlobalScreenScaffold(
           title: 'Sign up',
           subtitle: 'Create an optional account',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -643,9 +679,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 }
 
 class SignOutScreen extends StatelessWidget {
-  const SignOutScreen({super.key, required this.bootstrap});
+  const SignOutScreen({
+    super.key,
+    required this.bootstrap,
+    this.returnTo,
+  });
 
   final AppBootstrapController bootstrap;
+  final String? returnTo;
 
   Future<void> _submit(BuildContext context) async {
     final result = await bootstrap.signOut();
@@ -655,7 +696,7 @@ class SignOutScreen extends StatelessWidget {
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(result.message)));
 
-    context.go(AppRoutes.profileOverview);
+    _goToPostAuthDestination(context, returnTo);
   }
 
   @override
@@ -666,6 +707,7 @@ class SignOutScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Sign out',
           subtitle: 'Account and guest use on this device',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -702,9 +744,14 @@ class SignOutScreen extends StatelessWidget {
 }
 
 class AuthCallbackScreen extends StatefulWidget {
-  const AuthCallbackScreen({super.key, required this.bootstrap});
+  const AuthCallbackScreen({
+    super.key,
+    required this.bootstrap,
+    this.returnTo,
+  });
 
   final AppBootstrapController bootstrap;
+  final String? returnTo;
 
   @override
   State<AuthCallbackScreen> createState() => _AuthCallbackScreenState();
@@ -724,6 +771,7 @@ class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
     return GlobalScreenScaffold(
       title: 'Account ready',
       subtitle: 'Auth callback completed',
+      originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -744,8 +792,9 @@ class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => context.go(AppRoutes.profileAuthStatus),
-                    child: const Text('Open auth status'),
+                    onPressed: () =>
+                        _goToPostAuthDestination(context, widget.returnTo),
+                    child: const Text('Back to profile'),
                   ),
                 ),
               ],
@@ -758,9 +807,14 @@ class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
 }
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key, required this.bootstrap});
+  const ResetPasswordScreen({
+    super.key,
+    required this.bootstrap,
+    this.returnTo,
+  });
 
   final AppBootstrapController bootstrap;
+  final String? returnTo;
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -800,7 +854,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ..showSnackBar(SnackBar(content: Text(result.message)));
 
     if (result.success) {
-      context.go(AppRoutes.profileAuthStatus);
+      _goToPostAuthDestination(context, widget.returnTo);
     }
   }
 
@@ -812,6 +866,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         return GlobalScreenScaffold(
           title: 'Reset password',
           subtitle: 'Recovery deep link flow',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -993,4 +1048,74 @@ class _ProfileBullet extends StatelessWidget {
       ),
     );
   }
+}
+
+void _goToPostAuthDestination(BuildContext context, String? returnTo) {
+  context.go(_resolvePostAuthDestination(returnTo));
+}
+
+String _resolvePostAuthDestination(String? returnTo) {
+  final String candidate = (returnTo ?? '').trim();
+  if (candidate.isEmpty) {
+    return AppRoutes.profileOverview;
+  }
+
+  final Uri? uri = Uri.tryParse(candidate);
+  final String path = uri?.path ?? '';
+  if (_isSafePostAuthPath(path)) {
+    final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
+    final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+    return '$path$query$fragment';
+  }
+
+  return AppRoutes.profileOverview;
+}
+
+bool _isSafePostAuthPath(String path) {
+  if (path.isEmpty) {
+    return false;
+  }
+
+  const Set<String> blockedPaths = <String>{
+    AppRoutes.profileSignIn,
+    AppRoutes.profileSignUp,
+    AppRoutes.profileSignOut,
+    AppRoutes.authCallback,
+    AppRoutes.authResetPassword,
+  };
+  if (blockedPaths.contains(path)) {
+    return false;
+  }
+
+  return path.startsWith('/tab_') ||
+      path.startsWith('/global_') ||
+      path == AppRoutes.profileOverview;
+}
+
+String? _originRouteFromContext(BuildContext context) {
+  final String raw = (GoRouterState.of(context).uri.queryParameters['origin'] ?? '')
+      .trim();
+  if (raw.isEmpty) {
+    return null;
+  }
+
+  final Uri? uri = Uri.tryParse(raw);
+  final String path = uri?.path ?? '';
+  if (!_isSafeOriginPath(path)) {
+    return null;
+  }
+
+  final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
+  final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+  return '$path$query$fragment';
+}
+
+bool _isSafeOriginPath(String path) {
+  if (path.isEmpty) {
+    return false;
+  }
+
+  return !path.startsWith('/auth/') &&
+      !path.startsWith('/global_profile/') &&
+      !path.startsWith('/global_settings/');
 }

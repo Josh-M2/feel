@@ -812,7 +812,10 @@ Future<void> _showTodayReflectionComposer(
 }
 
 SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
-  final _ParsedReference parsed = _parseTodayReference(verse.reference);
+  final String normalizedReference = _normalizeReferenceDelimiters(
+    verse.reference,
+  );
+  final _ParsedReference parsed = _parseTodayReference(normalizedReference);
   return SavedReferenceAnchor(
     versionCode: verse.translationLabel.toLowerCase().contains('web') ? 'web' : 'kjv',
     bookId: parsed.bookId,
@@ -821,7 +824,7 @@ SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
     verseStart: parsed.verseStart,
     chapterEnd: parsed.chapterEnd,
     verseEnd: parsed.verseEnd,
-    referenceLabel: verse.reference,
+    referenceLabel: normalizedReference,
     verseTextSnapshot: verse.verseText,
   );
 }
@@ -829,11 +832,19 @@ SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
 _ParsedReference _parseTodayReference(String reference) {
   final RegExp sameChapterExp = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:[–-](\d+))?$');
   final Match? sameChapterMatch = sameChapterExp.firstMatch(reference.trim());
-  if (sameChapterMatch != null) {
-    final String bookName = sameChapterMatch.group(1)!.trim();
-    final int chapter = int.tryParse(sameChapterMatch.group(2)!) ?? 1;
-    final int verseStart = int.tryParse(sameChapterMatch.group(3)!) ?? 1;
-    final int verseEnd = int.tryParse(sameChapterMatch.group(4) ?? '') ?? verseStart;
+  final String normalizedReference = _normalizeReferenceDelimiters(reference);
+  final Match? normalizedSameChapterMatch = RegExp(
+    r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$',
+  ).firstMatch(normalizedReference);
+  final Match? effectiveSameChapterMatch =
+      normalizedSameChapterMatch ?? sameChapterMatch;
+  if (effectiveSameChapterMatch != null) {
+    final String bookName = effectiveSameChapterMatch.group(1)!.trim();
+    final int chapter = int.tryParse(effectiveSameChapterMatch.group(2)!) ?? 1;
+    final int verseStart =
+        int.tryParse(effectiveSameChapterMatch.group(3)!) ?? 1;
+    final int verseEnd =
+        int.tryParse(effectiveSameChapterMatch.group(4) ?? '') ?? verseStart;
     return _ParsedReference(
       bookName: bookName,
       bookId: _bookIdFromName(bookName),
@@ -845,7 +856,9 @@ _ParsedReference _parseTodayReference(String reference) {
   }
 
   final RegExp chapterOnlyExp = RegExp(r'^(.+?)\s+(\d+)$');
-  final Match? chapterOnlyMatch = chapterOnlyExp.firstMatch(reference.trim());
+  final Match? chapterOnlyMatch = chapterOnlyExp.firstMatch(
+    normalizedReference,
+  );
   if (chapterOnlyMatch != null) {
     final String bookName = chapterOnlyMatch.group(1)!.trim();
     final int chapter = int.tryParse(chapterOnlyMatch.group(2)!) ?? 1;
@@ -860,13 +873,22 @@ _ParsedReference _parseTodayReference(String reference) {
   }
 
   return _ParsedReference(
-    bookName: reference,
-    bookId: _bookIdFromName(reference),
+    bookName: normalizedReference,
+    bookId: _bookIdFromName(normalizedReference),
     chapterStart: 1,
     verseStart: 1,
     chapterEnd: 1,
     verseEnd: 1,
   );
+}
+
+String _normalizeReferenceDelimiters(String value) {
+  return value
+      .trim()
+      .replaceAll('\u2013', '-')
+      .replaceAll('\u2014', '-')
+      .replaceAll('\u00e2\u20ac\u201c', '-')
+      .replaceAll('\u00e2\u20ac\u201d', '-');
 }
 
 String _bookIdFromName(String bookName) {

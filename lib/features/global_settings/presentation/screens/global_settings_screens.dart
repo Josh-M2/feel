@@ -26,6 +26,42 @@ import '../../domain/repositories/widget_plugin_bridge.dart';
 final WidgetDataBridge _widgetDataBridge = LocalTodayWidgetDataBridge();
 final WidgetPluginBridge _widgetPluginBridge = MethodChannelWidgetPluginBridge();
 
+String _routeWithOrigin(BuildContext context, String route) {
+  final String? origin = _originRouteFromContext(context);
+  if (origin == null) {
+    return route;
+  }
+  return '$route?origin=${Uri.encodeComponent(origin)}';
+}
+
+String? _originRouteFromContext(BuildContext context) {
+  final String raw = (GoRouterState.of(context).uri.queryParameters['origin'] ?? '')
+      .trim();
+  if (raw.isEmpty) {
+    return null;
+  }
+
+  final Uri? uri = Uri.tryParse(raw);
+  final String path = uri?.path ?? '';
+  if (!_isSafeOriginPath(path)) {
+    return null;
+  }
+
+  final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
+  final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+  return '$path$query$fragment';
+}
+
+bool _isSafeOriginPath(String path) {
+  if (path.isEmpty) {
+    return false;
+  }
+
+  return !path.startsWith('/auth/') &&
+      !path.startsWith('/global_profile/') &&
+      !path.startsWith('/global_settings/');
+}
+
 String _widgetStyleLabel(WidgetPreviewStyle style) {
   switch (style) {
     case WidgetPreviewStyle.cozy:
@@ -142,6 +178,8 @@ class SettingsHomeScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Settings',
           subtitle: 'Content, reminders, widgets, support, and app info',
+          originRoute: _originRouteFromContext(context),
+          fallbackRoute: AppRoutes.profileOverview,
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -208,7 +246,12 @@ class SettingsHomeScreen extends StatelessWidget {
                       icon: Icons.auto_stories_outlined,
                       trailingLabel: '$categoryCount selected',
                       onTap: () =>
-                          context.push(AppRoutes.settingsContentPreferences),
+                          context.push(
+                            _routeWithOrigin(
+                              context,
+                              AppRoutes.settingsContentPreferences,
+                            ),
+                          ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -217,8 +260,9 @@ class SettingsHomeScreen extends StatelessWidget {
                           'Choose whether reminders are on and when they appear.',
                       icon: Icons.notifications_none_rounded,
                       trailingLabel: notificationsEnabled ? 'On' : 'Off',
-                      onTap: () =>
-                          context.push(AppRoutes.settingsNotifications),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.settingsNotifications),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -229,8 +273,12 @@ class SettingsHomeScreen extends StatelessWidget {
                       trailingLabel: _widgetStyleLabel(
                         bootstrap.widgetPreviewStyle,
                       ),
-                      onTap: () =>
-                          context.push(AppRoutes.settingsWidgetPreferences),
+                      onTap: () => context.push(
+                        _routeWithOrigin(
+                          context,
+                          AppRoutes.settingsWidgetPreferences,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -249,8 +297,12 @@ class SettingsHomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.settingsWidgetPreferences),
+                        onPressed: () => context.push(
+                          _routeWithOrigin(
+                            context,
+                            AppRoutes.settingsWidgetPreferences,
+                          ),
+                        ),
                         child: const Text('Open widget preferences'),
                       ),
                     ),
@@ -271,7 +323,9 @@ class SettingsHomeScreen extends StatelessWidget {
                           'See support availability, transparency, and coffee support.',
                       icon: Icons.volunteer_activism_outlined,
                       trailingLabel: _supportStateLabel(bootstrap.supportState),
-                      onTap: () => context.push(AppRoutes.settingsSupportHome),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.settingsSupportHome),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -279,7 +333,9 @@ class SettingsHomeScreen extends StatelessWidget {
                       subtitle:
                           'Read how the app handles guest use and optional account features.',
                       icon: Icons.shield_outlined,
-                      onTap: () => context.push(AppRoutes.settingsPrivacy),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.settingsPrivacy),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -287,7 +343,9 @@ class SettingsHomeScreen extends StatelessWidget {
                       subtitle:
                           'Read the mission, direction, and heart behind the app.',
                       icon: Icons.info_outline_rounded,
-                      onTap: () => context.push(AppRoutes.settingsAbout),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.settingsAbout),
+                      ),
                     ),
                   ],
                 ),
@@ -315,6 +373,7 @@ class ContentPreferencesScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Content preferences',
           subtitle: 'Category choices and reading focus',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -510,6 +569,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Notifications',
           subtitle: 'Daily verse reminders and timing',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -638,6 +698,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Widget preferences',
           subtitle: 'Style and display choices',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -757,8 +818,12 @@ class WidgetPreferencesScreen extends StatelessWidget {
                               ),
                             ),
                             OutlinedButton(
-                              onPressed: () =>
-                                  context.push(AppRoutes.settingsNotifications),
+                              onPressed: () => context.push(
+                                _routeWithOrigin(
+                                  context,
+                                  AppRoutes.settingsNotifications,
+                                ),
+                              ),
                               child: const Text('Edit time'),
                             ),
                           ],
@@ -923,6 +988,7 @@ class SupportHomeScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Support',
           subtitle: 'Transparent and optional',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -957,7 +1023,10 @@ class SupportHomeScreen extends StatelessWidget {
                         icon: Icons.savings_outlined,
                         trailingLabel: 'OPEN',
                         onTap: () => context.push(
-                          AppRoutes.settingsSupportMaintenanceFund,
+                          _routeWithOrigin(
+                            context,
+                            AppRoutes.settingsSupportMaintenanceFund,
+                          ),
                         ),
                       )
                     else
@@ -967,8 +1036,9 @@ class SupportHomeScreen extends StatelessWidget {
                             'This becomes the visible support path when the maintenance goal has been reached.',
                         icon: Icons.coffee_outlined,
                         trailingLabel: 'AVAILABLE',
-                        onTap: () =>
-                            context.push(AppRoutes.settingsSupportCoffee),
+                        onTap: () => context.push(
+                          _routeWithOrigin(context, AppRoutes.settingsSupportCoffee),
+                        ),
                       ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -977,8 +1047,12 @@ class SupportHomeScreen extends StatelessWidget {
                           'This page stays available so the current support state is always easy to understand.',
                       icon: Icons.receipt_long_outlined,
                       trailingLabel: 'ALWAYS',
-                      onTap: () =>
-                          context.push(AppRoutes.settingsSupportTransparency),
+                      onTap: () => context.push(
+                        _routeWithOrigin(
+                          context,
+                          AppRoutes.settingsSupportTransparency,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1031,6 +1105,7 @@ class SupportTransparencyScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Support transparency',
           subtitle: 'Always visible',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -1096,6 +1171,7 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
         return GlobalScreenScaffold(
           title: 'Maintenance fund',
           subtitle: 'Optional support',
+          originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -1156,8 +1232,12 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () =>
-                              context.push(AppRoutes.settingsSupportCoffee),
+                          onPressed: () => context.push(
+                            _routeWithOrigin(
+                              context,
+                              AppRoutes.settingsSupportCoffee,
+                            ),
+                          ),
                           child: const Text('Open coffee support'),
                         ),
                       ),
@@ -1184,6 +1264,7 @@ class SupportCoffeeScreen extends StatelessWidget {
     return GlobalScreenScaffold(
       title: 'Buy me a coffee',
       subtitle: 'A simple way to show appreciation',
+      originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -1241,6 +1322,7 @@ class PrivacyScreen extends StatelessWidget {
     return GlobalScreenScaffold(
       title: 'Privacy',
       subtitle: 'Guest-first and straightforward',
+      originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
@@ -1317,6 +1399,7 @@ class AboutScreen extends StatelessWidget {
     return GlobalScreenScaffold(
       title: 'About',
       subtitle: 'Mission, direction, and heart',
+      originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[

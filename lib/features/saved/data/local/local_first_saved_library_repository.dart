@@ -385,10 +385,17 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     final Match? match = matchExp.firstMatch(
       reference.replaceAll('—', '–').trim(),
     );
-    final String bookName = match?.group(1)?.trim() ?? reference;
-    final int chapter = int.tryParse(match?.group(2) ?? '') ?? 1;
-    final int verseStart = int.tryParse(match?.group(3) ?? '') ?? 1;
-    final int verseEnd = int.tryParse(match?.group(4) ?? '') ?? verseStart;
+    final String normalizedReference = _normalizeReferenceDelimiters(reference);
+    final Match? normalizedMatch = RegExp(
+      r'^(.*?)\s+(\d+):(\d+)(?:-(\d+))?$',
+    ).firstMatch(normalizedReference);
+    final Match? effectiveMatch = normalizedMatch ?? match;
+    final String bookName =
+        effectiveMatch?.group(1)?.trim() ?? normalizedReference;
+    final int chapter = int.tryParse(effectiveMatch?.group(2) ?? '') ?? 1;
+    final int verseStart = int.tryParse(effectiveMatch?.group(3) ?? '') ?? 1;
+    final int verseEnd =
+        int.tryParse(effectiveMatch?.group(4) ?? '') ?? verseStart;
 
     return SavedReferenceAnchor(
       versionCode: translationLabel.toLowerCase(),
@@ -398,9 +405,18 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
       verseStart: verseStart,
       chapterEnd: chapter,
       verseEnd: verseEnd,
-      referenceLabel: reference,
+      referenceLabel: normalizedReference,
       verseTextSnapshot: verseText,
     );
+  }
+
+  String _normalizeReferenceDelimiters(String value) {
+    return value
+        .trim()
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2014', '-')
+        .replaceAll('\u00e2\u20ac\u201c', '-')
+        .replaceAll('\u00e2\u20ac\u201d', '-');
   }
 
   String _bookIdFromName(String bookName) {
