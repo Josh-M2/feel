@@ -2,29 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../domain/models/bible_source_verse.dart';
 import '../../domain/models/daily_verse_pool_entry.dart';
 import '../../domain/models/today_verse.dart';
-import '../../domain/repositories/bible_source_adapter.dart';
 import '../../domain/repositories/today_repository.dart';
 import '../local/shared_prefs_today_assignment_local_store.dart';
 import '../local/today_assignment_local_snapshot.dart';
 import '../local/today_assignment_local_store.dart';
-import '../source/configurable_bible_source_adapter.dart';
 
 class SupabaseTodayRepository implements TodayRepository {
   SupabaseTodayRepository({
     SupabaseClient? client,
     TodayAssignmentLocalStore? localStore,
-    BibleSourceAdapter? bibleSourceAdapter,
   }) : _client = _resolveClient(client),
-       _localStore = localStore ?? SharedPrefsTodayAssignmentLocalStore(),
-       _bibleSourceAdapter =
-           bibleSourceAdapter ?? ConfigurableBibleSourceAdapter();
+       _localStore = localStore ?? SharedPrefsTodayAssignmentLocalStore();
 
   final SupabaseClient? _client;
   final TodayAssignmentLocalStore _localStore;
-  final BibleSourceAdapter _bibleSourceAdapter;
 
   static const List<DailyVersePoolEntry> _fallbackPool = <DailyVersePoolEntry>[
     DailyVersePoolEntry(
@@ -425,8 +418,7 @@ class SupabaseTodayRepository implements TodayRepository {
               preferredTranslationCode: effectiveTranslationCode,
             );
         await _localStore.save(localSnapshot.upsert(translatedRemoteRecord));
-        if (translatedRemoteRecord.translationCode !=
-            remoteRecord.translationCode) {
+        if (_didRecordChange(remoteRecord, translatedRemoteRecord)) {
           await _persistRemoteAssignment(
             userId: userId,
             record: translatedRemoteRecord,
@@ -445,7 +437,7 @@ class SupabaseTodayRepository implements TodayRepository {
             record: cached,
             preferredTranslationCode: effectiveTranslationCode,
           );
-      if (translatedCachedRecord.translationCode != cached.translationCode) {
+      if (_didRecordChange(cached, translatedCachedRecord)) {
         await _localStore.save(localSnapshot.upsert(translatedCachedRecord));
       }
       if (_isConfigured && userId != null) {
@@ -468,29 +460,24 @@ class SupabaseTodayRepository implements TodayRepository {
       dateKey: dateKey,
       recentReferences: recentReferences,
     );
-
-    final BibleSourceVerse? liveVerse = await _bibleSourceAdapter
-        .fetchVerseByReference(
+    final _ResolvedVerseSnapshot? resolvedVerse =
+        await _resolveScriptureFromSupabase(
           reference: entry.reference,
-          translationCode: effectiveTranslationCode,
+          preferredTranslationCode: effectiveTranslationCode,
         );
-
-    final String resolvedTranslationCode = liveVerse != null
-        ? effectiveTranslationCode
-        : entry.translationCode;
 
     final TodayAssignmentLocalRecord record = TodayAssignmentLocalRecord(
       dateKey: dateKey,
       category: entry.category,
-      reference: liveVerse?.reference ?? entry.reference,
-      translationCode: resolvedTranslationCode,
+      reference: resolvedVerse?.reference ?? entry.reference,
+      translationCode: resolvedVerse?.translationCode ?? entry.translationCode,
       translationLabel:
-          liveVerse?.translationLabel ??
+          resolvedVerse?.translationLabel ??
           _fallbackTranslationLabel(
             requestedTranslationCode: effectiveTranslationCode,
             fallbackTranslationCode: entry.translationCode,
           ),
-      verseText: liveVerse?.text ?? entry.verseTextFallback,
+      verseText: resolvedVerse?.verseText ?? entry.verseTextFallback,
       reflectionPrompt: entry.reflectionPrompt,
       encouragementLine: entry.encouragementLine,
       contextSummary: entry.contextSummary,
@@ -573,30 +560,22 @@ class SupabaseTodayRepository implements TodayRepository {
     required TodayAssignmentLocalRecord record,
     required String preferredTranslationCode,
   }) async {
-    final String sanitizedCode = AppConstants.sanitizeTranslationCode(
-      preferredTranslationCode,
-    );
-    if (record.translationCode == sanitizedCode) {
-      return record;
-    }
-
-    final BibleSourceVerse? translatedVerse = await _bibleSourceAdapter
-        .fetchVerseByReference(
+    final _ResolvedVerseSnapshot? resolvedVerse =
+        await _resolveScriptureFromSupabase(
           reference: record.reference,
-          translationCode: sanitizedCode,
+          preferredTranslationCode: preferredTranslationCode,
         );
-
-    if (translatedVerse == null) {
+    if (resolvedVerse == null) {
       return record;
     }
 
     return TodayAssignmentLocalRecord(
       dateKey: record.dateKey,
       category: record.category,
-      reference: translatedVerse.reference,
-      translationCode: sanitizedCode,
-      translationLabel: translatedVerse.translationLabel,
-      verseText: translatedVerse.text,
+      reference: resolvedVerse.reference,
+      translationCode: resolvedVerse.translationCode,
+      translationLabel: resolvedVerse.translationLabel,
+      verseText: resolvedVerse.verseText,
       reflectionPrompt: record.reflectionPrompt,
       encouragementLine: record.encouragementLine,
       contextSummary: record.contextSummary,
@@ -617,7 +596,183 @@ class SupabaseTodayRepository implements TodayRepository {
       return '${fallbackTranslationCode.toUpperCase()} fallback snapshot';
     }
 
-    return '${requestedTranslationCode.toUpperCase()} requested • ${fallbackTranslationCode.toUpperCase()} fallback snapshot';
+    return '${requestedTranslationCode.toUpperCase()} requested - ${fallbackTranslationCode.toUpperCase()} fallback snapshot';
+  }
+
+  Future<_ResolvedVerseSnapshot?> _resolveScriptureFromSupabase({
+    required String reference,
+    required String preferredTranslationCode,
+  }) async {
+    if (!_isConfigured) {
+      return null;
+    }
+
+    final _ReferenceParts? referenceParts = _parseReference(reference);
+    if (referenceParts == null) {
+      return null;
+    }
+
+    final String? bookId = await _resolveBookId(referenceParts.bookLabel);
+    if (bookId == null) {
+      return null;
+    }
+
+    final String requestedTranslationCode =
+        AppConstants.sanitizeTranslationCode(preferredTranslationCode);
+    List<Map<String, dynamic>> verseRows = await _loadPassageVerseRows(
+      bookId: bookId,
+      chapterNumber: referenceParts.chapterNumber,
+      versionCode: requestedTranslationCode,
+      verseStart: referenceParts.verseStart,
+      verseEnd: referenceParts.verseEnd,
+    );
+
+    String appliedTranslationCode = requestedTranslationCode;
+    if (verseRows.isEmpty && requestedTranslationCode != 'kjv') {
+      verseRows = await _loadPassageVerseRows(
+        bookId: bookId,
+        chapterNumber: referenceParts.chapterNumber,
+        versionCode: 'kjv',
+        verseStart: referenceParts.verseStart,
+        verseEnd: referenceParts.verseEnd,
+      );
+      appliedTranslationCode = 'kjv';
+    }
+
+    if (verseRows.isEmpty) {
+      return null;
+    }
+
+    final String translationLabel =
+        appliedTranslationCode == requestedTranslationCode
+        ? AppConstants.translationOptionFor(appliedTranslationCode).label
+        : '${AppConstants.translationOptionFor(requestedTranslationCode).label} requested - KJV fallback';
+
+    return _ResolvedVerseSnapshot(
+      reference: reference,
+      translationCode: appliedTranslationCode,
+      translationLabel: translationLabel,
+      verseText: verseRows
+          .map(
+            (Map<String, dynamic> row) => row['verse_text']?.toString() ?? '',
+          )
+          .where((String text) => text.trim().isNotEmpty)
+          .join(' '),
+    );
+  }
+
+  _ReferenceParts? _parseReference(String reference) {
+    final RegExp matchExp = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$');
+    final RegExpMatch? match = matchExp.firstMatch(reference.trim());
+    if (match == null) {
+      return null;
+    }
+
+    final int? chapterNumber = int.tryParse(match.group(2)!);
+    final int? verseStart = int.tryParse(match.group(3)!);
+    final int? verseEnd = int.tryParse(match.group(4) ?? match.group(3)!);
+    if (chapterNumber == null || verseStart == null || verseEnd == null) {
+      return null;
+    }
+
+    return _ReferenceParts(
+      bookLabel: match.group(1)!.trim(),
+      chapterNumber: chapterNumber,
+      verseStart: verseStart,
+      verseEnd: verseEnd,
+    );
+  }
+
+  Future<String?> _resolveBookId(String bookLabel) async {
+    final String normalizedLabel = _normalizeBookLabel(bookLabel);
+    if (normalizedLabel.isEmpty) {
+      return null;
+    }
+
+    try {
+      final List<dynamic> bookRows = await _client!
+          .from('content_bible_books')
+          .select('id, name, short_name')
+          .eq('is_active', true)
+          .order('sort_order');
+      final List<dynamic> aliasRows = await _client!
+          .from('content_book_aliases')
+          .select('book_id, alias');
+
+      final Map<String, Set<String>> candidatesByBookId =
+          <String, Set<String>>{};
+
+      for (final dynamic item in bookRows) {
+        final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
+        final String id = row['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        candidatesByBookId[id] = <String>{
+          _normalizeBookLabel(id),
+          _normalizeBookLabel(row['name']?.toString() ?? ''),
+          _normalizeBookLabel(row['short_name']?.toString() ?? ''),
+        }..removeWhere((String value) => value.isEmpty);
+      }
+
+      for (final dynamic item in aliasRows) {
+        final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
+        final String id = row['book_id']?.toString() ?? '';
+        final String alias = _normalizeBookLabel(
+          row['alias']?.toString() ?? '',
+        );
+        if (id.isEmpty || alias.isEmpty) continue;
+        candidatesByBookId.putIfAbsent(id, () => <String>{}).add(alias);
+      }
+
+      for (final MapEntry<String, Set<String>> entry
+          in candidatesByBookId.entries) {
+        if (entry.value.contains(normalizedLabel)) {
+          return entry.key;
+        }
+      }
+    } catch (_) {
+      return null;
+    }
+
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPassageVerseRows({
+    required String bookId,
+    required int chapterNumber,
+    required String versionCode,
+    required int verseStart,
+    required int verseEnd,
+  }) async {
+    try {
+      final List<dynamic> rows = await _client!
+          .from('content_bible_verses')
+          .select('verse_number, verse_text')
+          .eq('book_id', bookId)
+          .eq('chapter_number', chapterNumber)
+          .eq('version_id', versionCode)
+          .gte('verse_number', verseStart)
+          .lte('verse_number', verseEnd)
+          .order('verse_number');
+      return rows
+          .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+          .toList(growable: false);
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
+  }
+
+  String _normalizeBookLabel(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  bool _didRecordChange(
+    TodayAssignmentLocalRecord original,
+    TodayAssignmentLocalRecord next,
+  ) {
+    return original.reference != next.reference ||
+        original.translationCode != next.translationCode ||
+        original.translationLabel != next.translationLabel ||
+        original.verseText != next.verseText;
   }
 
   Future<TodayAssignmentLocalRecord?> _fetchRemoteAssignment({
@@ -864,4 +1019,32 @@ class SupabaseTodayRepository implements TodayRepository {
     }
     return hash;
   }
+}
+
+class _ReferenceParts {
+  const _ReferenceParts({
+    required this.bookLabel,
+    required this.chapterNumber,
+    required this.verseStart,
+    required this.verseEnd,
+  });
+
+  final String bookLabel;
+  final int chapterNumber;
+  final int verseStart;
+  final int verseEnd;
+}
+
+class _ResolvedVerseSnapshot {
+  const _ResolvedVerseSnapshot({
+    required this.reference,
+    required this.translationCode,
+    required this.translationLabel,
+    required this.verseText,
+  });
+
+  final String reference;
+  final String translationCode;
+  final String translationLabel;
+  final String verseText;
 }
