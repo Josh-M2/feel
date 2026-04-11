@@ -148,20 +148,21 @@ class SupabasePublicReadRepository implements ReadRepository {
 
     String appliedTranslationCode = requestedVersionCode;
     String appliedTranslationLabel = _translationLabelFor(requestedVersionCode);
-    bool isFallbackTranslation = requestedVersionCode != 'kjv';
+    bool isFallbackTranslation = false;
     List<dynamic> verseRows = requestedVerseRows;
 
-    if (verseRows.isEmpty) {
+    if (verseRows.isEmpty && requestedVersionCode != 'kjv') {
       verseRows = await _loadVerseRows(
         bookId: book.id,
         chapterNumber: targetChapter,
         versionCode: 'kjv',
       );
-      appliedTranslationCode = 'kjv';
-      appliedTranslationLabel = requestedVersionCode == 'kjv'
-          ? _translationLabelFor('kjv')
-          : '${_translationLabelFor(requestedVersionCode)} requested - KJV fallback';
-      isFallbackTranslation = requestedVersionCode != 'kjv';
+      if (verseRows.isNotEmpty) {
+        appliedTranslationCode = 'kjv';
+        appliedTranslationLabel =
+            '${_translationLabelFor(requestedVersionCode)} requested - KJV fallback';
+        isFallbackTranslation = true;
+      }
     }
 
     if (appliedTranslationCode == 'kjv' && requestedVersionCode != 'kjv') {

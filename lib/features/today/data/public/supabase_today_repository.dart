@@ -694,7 +694,7 @@ class SupabaseTodayRepository implements TodayRepository {
           .from('content_bible_books')
           .select('id, name, short_name')
           .eq('is_active', true)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
       final List<dynamic> aliasRows = await _client!
           .from('content_book_aliases')
           .select('book_id, alias');
@@ -752,7 +752,7 @@ class SupabaseTodayRepository implements TodayRepository {
           .eq('version_id', versionCode)
           .gte('verse_number', verseStart)
           .lte('verse_number', verseEnd)
-          .order('verse_number');
+          .order('verse_number', ascending: true);
       return rows
           .map((dynamic item) => Map<String, dynamic>.from(item as Map))
           .toList(growable: false);
@@ -839,7 +839,7 @@ class SupabaseTodayRepository implements TodayRepository {
             'id, category_label, reference_label, translation_code, verse_text_fallback, reflection_prompt, encouragement_line, context_summary, context_sections, related_passages, key_insights, prayer, sort_order',
           )
           .eq('is_active', true)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
       if (rows.isEmpty) return _fallbackPool;
       return rows
           .map(
