@@ -125,9 +125,7 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'God’s strength showing up in weakness.',
         ),
       ],
-      keyInsights: <String>[
-        'God renews the weary, not just the strong.',
-      ],
+      keyInsights: <String>['God renews the weary, not just the strong.'],
       prayer:
           'Lord, renew what feels tired in me and teach me to wait for Your strength instead of pretending I have enough on my own.',
       sortOrder: 30,
@@ -192,9 +190,7 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'Jesus inviting the weary to come to Him.',
         ),
       ],
-      keyInsights: <String>[
-        'God’s nearness meets honest sorrow.',
-      ],
+      keyInsights: <String>['God’s nearness meets honest sorrow.'],
       prayer:
           'Lord, meet me in the places that feel tender and broken, and let Your nearness become more real than my fear.',
       sortOrder: 50,
@@ -204,8 +200,7 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Faith in Doubt',
       reference: 'Mark 9:24',
       translationCode: 'kjv',
-      verseTextFallback:
-          'Lord, I believe; help thou mine unbelief.',
+      verseTextFallback: 'Lord, I believe; help thou mine unbelief.',
       reflectionPrompt:
           'What doubt do you need to bring to Jesus honestly instead of hiding it?',
       encouragementLine:
@@ -225,12 +220,44 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'God as strength when the heart fails.',
         ),
       ],
-      keyInsights: <String>[
-        'Doubt does not have to be hidden from God.',
-      ],
+      keyInsights: <String>['Doubt does not have to be hidden from God.'],
       prayer:
           'Lord, meet the places where my faith feels weak and teach me to bring my doubts to You honestly.',
       sortOrder: 60,
+    ),
+
+    DailyVersePoolEntry(
+      id: 'obedience-james-1-22',
+      category: 'Obedience',
+      reference: 'James 1:22',
+      translationCode: 'kjv',
+      verseTextFallback:
+          'But be ye doers of the word, and not hearers only, deceiving your own selves.',
+      reflectionPrompt:
+          'What truth from God do you need to practice today instead of only agreeing with in theory?',
+      encouragementLine:
+          'Obedience gives direction a real shape. Scripture invites response, not only reflection.',
+      contextSummary:
+          'James keeps bringing faith into everyday action. This verse warns against hearing truth without letting it change the way we live.',
+      contextSections: <VerseContextSection>[
+        VerseContextSection(
+          title: 'Truth that moves into action',
+          body:
+              'The call is not toward performance for approval, but toward a faith that responds honestly to what God has said.',
+        ),
+      ],
+      relatedPassages: <RelatedPassagePreview>[
+        RelatedPassagePreview(
+          reference: 'John 14:15',
+          note: 'Jesus connecting love for Him with willing obedience.',
+        ),
+      ],
+      keyInsights: <String>[
+        'Obedience is lived trust, not just stated belief.',
+      ],
+      prayer:
+          'Lord, help me respond to Your word with willing action and not settle for agreement without obedience.',
+      sortOrder: 65,
     ),
     DailyVersePoolEntry(
       id: 'forgiveness-1-john-1-9',
@@ -258,9 +285,7 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'A vivid picture of how far God removes transgressions.',
         ),
       ],
-      keyInsights: <String>[
-        'Forgiveness rests on God’s faithfulness.',
-      ],
+      keyInsights: <String>['Forgiveness rests on God’s faithfulness.'],
       prayer:
           'Lord, give me courage to confess honestly and rest in the cleansing You freely give.',
       sortOrder: 70,
@@ -291,9 +316,7 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'Living every action under the name of Jesus.',
         ),
       ],
-      keyInsights: <String>[
-        'Calling grows from identity in Christ.',
-      ],
+      keyInsights: <String>['Calling grows from identity in Christ.'],
       prayer:
           'Lord, help me walk in the good works You have prepared and remember that my purpose starts with belonging to You.',
       sortOrder: 80,
@@ -324,9 +347,7 @@ class SupabaseTodayRepository implements TodayRepository {
           note: 'Jesus commanding His people to love one another.',
         ),
       ],
-      keyInsights: <String>[
-        'Love is patient before it is impressive.',
-      ],
+      keyInsights: <String>['Love is patient before it is impressive.'],
       prayer:
           'Lord, shape the way I love others so it reflects Your patience, humility, and steadfastness.',
       sortOrder: 90,
@@ -400,11 +421,12 @@ class SupabaseTodayRepository implements TodayRepository {
       if (remoteRecord != null) {
         final TodayAssignmentLocalRecord translatedRemoteRecord =
             await _ensurePreferredTranslation(
-          record: remoteRecord,
-          preferredTranslationCode: effectiveTranslationCode,
-        );
+              record: remoteRecord,
+              preferredTranslationCode: effectiveTranslationCode,
+            );
         await _localStore.save(localSnapshot.upsert(translatedRemoteRecord));
-        if (translatedRemoteRecord.translationCode != remoteRecord.translationCode) {
+        if (translatedRemoteRecord.translationCode !=
+            remoteRecord.translationCode) {
           await _persistRemoteAssignment(
             userId: userId,
             record: translatedRemoteRecord,
@@ -420,14 +442,17 @@ class SupabaseTodayRepository implements TodayRepository {
     if (cached != null) {
       final TodayAssignmentLocalRecord translatedCachedRecord =
           await _ensurePreferredTranslation(
-        record: cached,
-        preferredTranslationCode: effectiveTranslationCode,
-      );
+            record: cached,
+            preferredTranslationCode: effectiveTranslationCode,
+          );
       if (translatedCachedRecord.translationCode != cached.translationCode) {
         await _localStore.save(localSnapshot.upsert(translatedCachedRecord));
       }
       if (_isConfigured && userId != null) {
-        await _persistRemoteAssignment(userId: userId, record: translatedCachedRecord);
+        await _persistRemoteAssignment(
+          userId: userId,
+          record: translatedCachedRecord,
+        );
       }
       return translatedCachedRecord.toTodayVerse();
     }
@@ -459,7 +484,8 @@ class SupabaseTodayRepository implements TodayRepository {
       category: entry.category,
       reference: liveVerse?.reference ?? entry.reference,
       translationCode: resolvedTranslationCode,
-      translationLabel: liveVerse?.translationLabel ??
+      translationLabel:
+          liveVerse?.translationLabel ??
           _fallbackTranslationLabel(
             requestedTranslationCode: effectiveTranslationCode,
             fallbackTranslationCode: entry.translationCode,
@@ -528,16 +554,16 @@ class SupabaseTodayRepository implements TodayRepository {
 
     final String dateKey = _toDateKey(_resolveEffectiveDate(dailyRefreshTime));
     final TodayAssignmentLocalSnapshot snapshot = await _localStore.load();
-    final TodayAssignmentLocalRecord? localRecord = snapshot.findByDateKey(dateKey);
+    final TodayAssignmentLocalRecord? localRecord = snapshot.findByDateKey(
+      dateKey,
+    );
     if (localRecord != null) {
       await _persistRemoteAssignment(userId: userId, record: localRecord);
       return;
     }
 
-    final TodayAssignmentLocalRecord? remoteRecord = await _fetchRemoteAssignment(
-      userId: userId,
-      dateKey: dateKey,
-    );
+    final TodayAssignmentLocalRecord? remoteRecord =
+        await _fetchRemoteAssignment(userId: userId, dateKey: dateKey);
     if (remoteRecord != null) {
       await _localStore.save(snapshot.upsert(remoteRecord));
     }
@@ -547,8 +573,9 @@ class SupabaseTodayRepository implements TodayRepository {
     required TodayAssignmentLocalRecord record,
     required String preferredTranslationCode,
   }) async {
-    final String sanitizedCode =
-        AppConstants.sanitizeTranslationCode(preferredTranslationCode);
+    final String sanitizedCode = AppConstants.sanitizeTranslationCode(
+      preferredTranslationCode,
+    );
     if (record.translationCode == sanitizedCode) {
       return record;
     }
@@ -675,7 +702,9 @@ class SupabaseTodayRepository implements TodayRepository {
     required TodayAssignmentLocalSnapshot localSnapshot,
     required String? userId,
   }) async {
-    final Set<String> references = localSnapshot.recentReferences(limit: 7).toSet();
+    final Set<String> references = localSnapshot
+        .recentReferences(limit: 7)
+        .toSet();
     if (!_isConfigured || userId == null) {
       return references.toList(growable: false);
     }
@@ -706,9 +735,14 @@ class SupabaseTodayRepository implements TodayRepository {
     required String dateKey,
     required List<String> recentReferences,
   }) {
-    final List<DailyVersePoolEntry> activePool = pool.isEmpty ? _fallbackPool : pool;
+    final List<DailyVersePoolEntry> activePool = pool.isEmpty
+        ? _fallbackPool
+        : pool;
     final List<DailyVersePoolEntry> categoryMatches = activePool
-        .where((DailyVersePoolEntry item) => selectedCategories.contains(item.category))
+        .where(
+          (DailyVersePoolEntry item) =>
+              selectedCategories.contains(item.category),
+        )
         .toList(growable: false);
     final List<DailyVersePoolEntry> scopedPool = categoryMatches.isEmpty
         ? activePool
@@ -782,9 +816,10 @@ class SupabaseTodayRepository implements TodayRepository {
                 ),
               )
               .toList(growable: false),
-      keyInsights: (details['key_insights'] as List<dynamic>? ?? const <dynamic>[])
-          .map((dynamic item) => item.toString())
-          .toList(growable: false),
+      keyInsights:
+          (details['key_insights'] as List<dynamic>? ?? const <dynamic>[])
+              .map((dynamic item) => item.toString())
+              .toList(growable: false),
       prayer: row['prayer']?.toString() ?? '',
       assignedAtIso: row['assigned_at']?.toString() ?? '',
       openedAtIso: row['opened_at']?.toString(),
