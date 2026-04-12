@@ -36,14 +36,6 @@ class TodayVerseHeroCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Today’s verse',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
           const SizedBox(height: AppSpacing.md),
           Text(
             verse.verseText,

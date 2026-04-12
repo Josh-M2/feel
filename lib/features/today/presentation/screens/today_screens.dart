@@ -992,13 +992,32 @@ class _TodayVerseLoader extends StatelessWidget {
         if (snapshot.connectionState != ConnectionState.done) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: const <Widget>[
+            children: <Widget>[
               TodayInfoCard(
                 title: 'Loading today’s verse',
                 subtitle:
                     'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
                 icon: Icons.hourglass_top_rounded,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: const SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           );

@@ -6,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_loading_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../data/public/supabase_plans_repository.dart';
 import '../../domain/models/reading_plan.dart';
@@ -53,7 +54,10 @@ class PlansListScreen extends StatelessWidget {
     AsyncSnapshot<_PlansListScreenData> snapshot,
   ) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
+      return const _PlansLoadingBody(
+        title: 'Loading plans',
+        subtitle: 'Preparing the reading plan catalog and your current place.',
+      );
     }
 
     if (snapshot.hasError) {
@@ -61,6 +65,7 @@ class PlansListScreen extends StatelessWidget {
         title: 'Plans are not ready yet',
         message:
             'The plans catalog could not be loaded from Supabase for this session. Apply the plans migration and seed content, then try again.',
+        icon: Icons.cloud_off_rounded,
       );
     }
 
@@ -71,6 +76,7 @@ class PlansListScreen extends StatelessWidget {
         title: 'No plans available yet',
         message:
             'The V1 plans catalog is empty right now. Once the seeded plans are available in Supabase, they will appear here automatically.',
+        icon: Icons.menu_book_outlined,
       );
     }
 
@@ -211,7 +217,10 @@ class PlanDetailScreen extends StatelessWidget {
     AsyncSnapshot<_PlanDetailScreenData> snapshot,
   ) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
+      return const _PlansLoadingBody(
+        title: 'Loading plan detail',
+        subtitle: 'Preparing the plan overview, current day, and reading path.',
+      );
     }
 
     if (snapshot.hasError) {
@@ -219,6 +228,7 @@ class PlanDetailScreen extends StatelessWidget {
         title: 'Plan detail is unavailable',
         message:
             'This plan could not be loaded from Supabase right now. Try again after the plans content and progress tables are available.',
+        icon: Icons.cloud_off_rounded,
       );
     }
 
@@ -227,6 +237,7 @@ class PlanDetailScreen extends StatelessWidget {
       return const _PlansMessageBody(
         title: 'Plan detail is unavailable',
         message: 'The requested plan could not be found.',
+        icon: Icons.search_off_rounded,
       );
     }
 
@@ -407,7 +418,10 @@ class PlanDayReadScreen extends StatelessWidget {
     AsyncSnapshot<PlanDayReadState> snapshot,
   ) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
+      return const _PlansLoadingBody(
+        title: 'Loading day reading',
+        subtitle: 'Preparing today\'s plan focus, prompts, and passage list.',
+      );
     }
 
     if (snapshot.hasError || !snapshot.hasData) {
@@ -415,6 +429,7 @@ class PlanDayReadScreen extends StatelessWidget {
         title: 'Day reading is unavailable',
         message:
             'This plan day could not be loaded from Supabase right now. Try again after the plans content tables are available.',
+        icon: Icons.cloud_off_rounded,
       );
     }
 
@@ -619,7 +634,10 @@ class PlansProgressScreen extends StatelessWidget {
     AsyncSnapshot<_PlansProgressScreenData> snapshot,
   ) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
+      return const _PlansLoadingBody(
+        title: 'Loading progress',
+        subtitle: 'Collecting your plan snapshots and overall reading progress.',
+      );
     }
 
     if (snapshot.hasError) {
@@ -627,6 +645,7 @@ class PlansProgressScreen extends StatelessWidget {
         title: 'Progress is unavailable',
         message:
             'Plan progress could not be loaded right now. Try again after the plans content and progress tables are available.',
+        icon: Icons.cloud_off_rounded,
       );
     }
 
@@ -880,10 +899,12 @@ class _PlansMessageBody extends StatelessWidget {
   const _PlansMessageBody({
     required this.title,
     required this.message,
+    this.icon = Icons.info_outline_rounded,
   });
 
   final String title;
   final String message;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -894,11 +915,53 @@ class _PlansMessageBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              Row(
+                children: <Widget>[
+                  Icon(icon, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.md),
-              Text(message, style: Theme.of(context).textTheme.bodyLarge),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlansLoadingBody extends StatelessWidget {
+  const _PlansLoadingBody({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      children: <Widget>[
+        AppLoadingCard(
+          title: title,
+          subtitle: subtitle,
+          icon: Icons.menu_book_outlined,
         ),
       ],
     );
