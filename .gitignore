@@ -49,4 +49,4 @@ app.*.map.json
 AGENTS.md
 supabase\generated
 eng-kjv.osis.xml
-supabase/generated/open_bibles_kjv_import.sql
+eng-web.usfx.xml
