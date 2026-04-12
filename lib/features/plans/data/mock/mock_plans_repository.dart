@@ -16,8 +16,12 @@ class MockPlansRepository {
             'This plan is built for days when the mind feels crowded, restless, or heavy. Each day keeps the reading simple and prayerful instead of overwhelming.',
         whyItHelps:
             'It gives the user a calm structure: a short passage focus, one main encouragement, and a reflection prompt that stays spiritually grounded rather than productivity-heavy.',
-        progressLabel: 'Day 3 of 7',
-        currentDayNumber: 3,
+        progress: ReadingPlanProgress(
+          currentDayNumber: 3,
+          completedDayCount: 2,
+          isStarted: true,
+          isCompleted: false,
+        ),
         days: <PlanDay>[
           PlanDay(
             dayNumber: 1,
@@ -123,8 +127,12 @@ class MockPlansRepository {
             'This plan is for people who feel emotionally or spiritually drained. It keeps the pace simple and lets scripture speak to fatigue with hope.',
         whyItHelps:
             'Instead of asking the user to perform harder, it points them toward the sustaining strength of God in weakness.',
-        progressLabel: 'Day 1 of 5',
-        currentDayNumber: 1,
+        progress: ReadingPlanProgress(
+          currentDayNumber: 1,
+          completedDayCount: 0,
+          isStarted: true,
+          isCompleted: false,
+        ),
         days: <PlanDay>[
           PlanDay(
             dayNumber: 1,
@@ -204,8 +212,12 @@ class MockPlansRepository {
             'This plan helps the reader think about calling in a grounded way. It is less about grand status and more about faithful daily walking with God.',
         whyItHelps:
             'It helps prevent calling from becoming anxious pressure. The tone stays practical, calm, and spiritually centered.',
-        progressLabel: 'Day 2 of 6',
-        currentDayNumber: 2,
+        progress: ReadingPlanProgress(
+          currentDayNumber: 2,
+          completedDayCount: 1,
+          isStarted: true,
+          isCompleted: false,
+        ),
         days: <PlanDay>[
           PlanDay(
             dayNumber: 1,
