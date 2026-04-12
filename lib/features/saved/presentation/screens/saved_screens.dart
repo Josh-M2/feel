@@ -23,15 +23,18 @@ class SavedBookmarksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_SavedBookmarksScreenData>(
-      future: _loadSavedBookmarksScreenData(),
-      builder: (context, snapshot) {
-        return _buildSavedScaffold(
-          context: context,
-          title: 'Saved',
-          subtitle: 'Bookmarks, highlights, notes, and history',
-          snapshot: snapshot,
-          dataBuilder: (context, data) => ListView(
+    return ValueListenableBuilder<int>(
+      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      builder: (BuildContext context, int _, Widget? child) {
+        return FutureBuilder<_SavedBookmarksScreenData>(
+          future: _loadSavedBookmarksScreenData(),
+          builder: (context, snapshot) {
+            return _buildSavedScaffold(
+              context: context,
+              title: 'Saved',
+              subtitle: 'Bookmarks, highlights, notes, and history',
+              snapshot: snapshot,
+              dataBuilder: (context, data) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               AppCard(
@@ -147,7 +150,9 @@ class SavedBookmarksScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -171,16 +176,19 @@ class SavedHighlightsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SavedHighlight>>(
-      future: _savedRepository.getHighlights(),
-      builder: (context, snapshot) {
-        return _buildSavedScaffold(
-          context: context,
-          title: 'Highlights',
-          subtitle: 'Saved',
-          showBackButton: true,
-          snapshot: snapshot,
-          dataBuilder: (context, highlights) => ListView(
+    return ValueListenableBuilder<int>(
+      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      builder: (BuildContext context, int _, Widget? child) {
+        return FutureBuilder<List<SavedHighlight>>(
+          future: _savedRepository.getHighlights(),
+          builder: (context, snapshot) {
+            return _buildSavedScaffold(
+              context: context,
+              title: 'Highlights',
+              subtitle: 'Saved',
+              showBackButton: true,
+              snapshot: snapshot,
+              dataBuilder: (context, highlights) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SavedInfoCard(
@@ -237,7 +245,9 @@ class SavedHighlightsScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -249,16 +259,19 @@ class SavedNotesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_SavedNotesScreenData>(
-      future: _loadSavedNotesScreenData(),
-      builder: (context, snapshot) {
-        return _buildSavedScaffold(
-          context: context,
-          title: 'Notes',
-          subtitle: 'Saved',
-          showBackButton: true,
-          snapshot: snapshot,
-          dataBuilder: (context, data) => ListView(
+    return ValueListenableBuilder<int>(
+      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      builder: (BuildContext context, int _, Widget? child) {
+        return FutureBuilder<_SavedNotesScreenData>(
+          future: _loadSavedNotesScreenData(),
+          builder: (context, snapshot) {
+            return _buildSavedScaffold(
+              context: context,
+              title: 'Notes',
+              subtitle: 'Saved',
+              showBackButton: true,
+              snapshot: snapshot,
+              dataBuilder: (context, data) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SavedInfoCard(
@@ -313,7 +326,9 @@ class SavedNotesScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -357,16 +372,19 @@ class SavedHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<SavedHistoryEntry>>(
-      future: _savedRepository.getHistory(),
-      builder: (context, snapshot) {
-        return _buildSavedScaffold(
-          context: context,
-          title: 'History',
-          subtitle: 'Saved',
-          showBackButton: true,
-          snapshot: snapshot,
-          dataBuilder: (context, entries) => ListView(
+    return ValueListenableBuilder<int>(
+      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      builder: (BuildContext context, int _, Widget? child) {
+        return FutureBuilder<List<SavedHistoryEntry>>(
+          future: _savedRepository.getHistory(),
+          builder: (context, snapshot) {
+            return _buildSavedScaffold(
+              context: context,
+              title: 'History',
+              subtitle: 'Saved',
+              showBackButton: true,
+              snapshot: snapshot,
+              dataBuilder: (context, entries) => ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SavedInfoCard(
@@ -421,7 +439,9 @@ class SavedHistoryScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+              ),
+            );
+          },
         );
       },
     );

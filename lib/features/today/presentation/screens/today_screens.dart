@@ -724,64 +724,21 @@ Future<void> _showTodayReflectionComposer(
   BuildContext context,
   TodayVerse verse,
 ) async {
-  final TextEditingController titleController = TextEditingController(
-    text: '${verse.reference} reflection',
-  );
-  final TextEditingController bodyController = TextEditingController();
-
-  final bool? submitted = await showDialog<bool>(
+  final _TodayReflectionDraft? draft = await showDialog<_TodayReflectionDraft>(
     context: context,
     builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: const Text('Add reflection'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'Today reflection',
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: bodyController,
-                minLines: 4,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Reflection',
-                  hintText: 'Write a private reflection connected to today\'s verse.',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Save reflection'),
-          ),
-        ],
+      return _TodayReflectionDialog(
+        initialTitle: '${verse.reference} reflection',
       );
     },
   );
 
-  if (submitted != true) {
-    titleController.dispose();
-    bodyController.dispose();
+  if (draft == null) {
     return;
   }
 
-  final String title = titleController.text.trim();
-  final String body = bodyController.text.trim();
-  titleController.dispose();
-  bodyController.dispose();
+  final String title = draft.title.trim();
+  final String body = draft.body.trim();
 
   if (body.isEmpty) {
     if (context.mounted) {
@@ -812,12 +769,12 @@ Future<void> _showTodayReflectionComposer(
 }
 
 SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
-  final String normalizedReference = _normalizeReferenceDelimiters(
+  final String normalizedReference = _normalizeSavedReferenceDelimiters(
     verse.reference,
   );
   final _ParsedReference parsed = _parseTodayReference(normalizedReference);
   return SavedReferenceAnchor(
-    versionCode: verse.translationLabel.toLowerCase().contains('web') ? 'web' : 'kjv',
+    versionCode: _todayVersionCodeFor(verse.translationLabel),
     bookId: parsed.bookId,
     bookName: parsed.bookName,
     chapterStart: parsed.chapterStart,
@@ -830,21 +787,19 @@ SavedReferenceAnchor _buildTodayAnchor(TodayVerse verse) {
 }
 
 _ParsedReference _parseTodayReference(String reference) {
-  final RegExp sameChapterExp = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:[–-](\d+))?$');
-  final Match? sameChapterMatch = sameChapterExp.firstMatch(reference.trim());
-  final String normalizedReference = _normalizeReferenceDelimiters(reference);
-  final Match? normalizedSameChapterMatch = RegExp(
+  final String normalizedReference = _normalizeSavedReferenceDelimiters(
+    reference,
+  );
+  final Match? sameChapterMatch = RegExp(
     r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$',
   ).firstMatch(normalizedReference);
-  final Match? effectiveSameChapterMatch =
-      normalizedSameChapterMatch ?? sameChapterMatch;
-  if (effectiveSameChapterMatch != null) {
-    final String bookName = effectiveSameChapterMatch.group(1)!.trim();
-    final int chapter = int.tryParse(effectiveSameChapterMatch.group(2)!) ?? 1;
+  if (sameChapterMatch != null) {
+    final String bookName = sameChapterMatch.group(1)!.trim();
+    final int chapter = int.tryParse(sameChapterMatch.group(2)!) ?? 1;
     final int verseStart =
-        int.tryParse(effectiveSameChapterMatch.group(3)!) ?? 1;
+        int.tryParse(sameChapterMatch.group(3)!) ?? 1;
     final int verseEnd =
-        int.tryParse(effectiveSameChapterMatch.group(4) ?? '') ?? verseStart;
+        int.tryParse(sameChapterMatch.group(4) ?? '') ?? verseStart;
     return _ParsedReference(
       bookName: bookName,
       bookId: _bookIdFromName(bookName),
@@ -882,7 +837,11 @@ _ParsedReference _parseTodayReference(String reference) {
   );
 }
 
-String _normalizeReferenceDelimiters(String value) {
+String _todayVersionCodeFor(String translationLabel) {
+  return translationLabel.toLowerCase().contains('web') ? 'web' : 'kjv';
+}
+
+String _normalizeSavedReferenceDelimiters(String value) {
   return value
       .trim()
       .replaceAll('\u2013', '-')
@@ -915,6 +874,90 @@ class _ParsedReference {
   final int verseStart;
   final int chapterEnd;
   final int verseEnd;
+}
+
+class _TodayReflectionDraft {
+  const _TodayReflectionDraft({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
+}
+
+class _TodayReflectionDialog extends StatefulWidget {
+  const _TodayReflectionDialog({required this.initialTitle});
+
+  final String initialTitle;
+
+  @override
+  State<_TodayReflectionDialog> createState() => _TodayReflectionDialogState();
+}
+
+class _TodayReflectionDialogState extends State<_TodayReflectionDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _bodyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.initialTitle);
+    _bodyController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add reflection'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: 'Title',
+                hintText: 'Today reflection',
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _bodyController,
+              minLines: 4,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                labelText: 'Reflection',
+                hintText: 'Write a private reflection connected to today\'s verse.',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            _TodayReflectionDraft(
+              title: _titleController.text,
+              body: _bodyController.text,
+            ),
+          ),
+          child: const Text('Save reflection'),
+        ),
+      ],
+    );
+  }
 }
 
 class _TodayVerseLoader extends StatelessWidget {

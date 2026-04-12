@@ -1,19 +1,21 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/models/saved_item.dart';
 import '../../domain/models/saved_library_local_snapshot.dart';
 import '../../domain/repositories/saved_library_repository.dart';
 import '../../domain/repositories/saved_local_store.dart';
-import '../mock/mock_saved_repository.dart';
 import 'shared_prefs_saved_local_store.dart';
 
 class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
   LocalFirstSavedLibraryRepository({
     SavedLocalStore? localStore,
-    MockSavedRepository? fallback,
-  }) : _localStore = localStore ?? SharedPrefsSavedLocalStore(),
-       _fallback = fallback ?? const MockSavedRepository();
+  }) : _localStore = localStore ?? SharedPrefsSavedLocalStore();
+
+  static final ValueNotifier<int> _libraryRevision = ValueNotifier<int>(0);
+
+  static ValueListenable<int> get libraryRevisionListenable => _libraryRevision;
 
   final SavedLocalStore _localStore;
-  final MockSavedRepository _fallback;
 
   @override
   Future<List<SavedBookmark>> getBookmarks() async {
@@ -36,7 +38,9 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
   @override
   Future<List<SavedNote>> getPinnedNotes() async {
     final List<SavedNote> notes = await getNotes();
-    return notes.where((SavedNote note) => note.isPinned).toList(growable: false);
+    return notes
+        .where((SavedNote note) => note.isPinned)
+        .toList(growable: false);
   }
 
   @override
@@ -55,7 +59,6 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     );
   }
 
-
   @override
   Future<SavedBookmark> saveBookmark({
     required SavedReferenceAnchor anchor,
@@ -63,35 +66,44 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     String? reflection,
   }) async {
     final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final SavedReferenceAnchor normalizedAnchor = _normalizeAnchor(anchor);
     final DateTime now = DateTime.now().toUtc();
     final int existingIndex = snapshot.bookmarks.indexWhere(
       (SavedBookmarkLocalRecord item) =>
-          item.anchor.referenceLabel == anchor.referenceLabel,
+          item.anchor.referenceLabel == normalizedAnchor.referenceLabel,
     );
 
     late final SavedBookmarkLocalRecord record;
-    final List<SavedBookmarkLocalRecord> nextBookmarks = List<SavedBookmarkLocalRecord>.from(
-      snapshot.bookmarks,
-    );
+    final List<SavedBookmarkLocalRecord> nextBookmarks =
+        List<SavedBookmarkLocalRecord>.from(snapshot.bookmarks);
 
     if (existingIndex >= 0) {
-      final SavedBookmarkLocalRecord existing = nextBookmarks.removeAt(existingIndex);
+      final SavedBookmarkLocalRecord existing =
+          nextBookmarks.removeAt(existingIndex);
       record = SavedBookmarkLocalRecord(
         id: existing.id,
-        anchor: anchor,
+        anchor: normalizedAnchor,
         categoryLabel: categoryLabel,
         savedAtIso: existing.savedAtIso,
-        reflection: (reflection ?? '').trim().isEmpty ? existing.reflection : reflection,
-        highlightCount: existing.highlightCount,
+        reflection: (reflection ?? '').trim().isEmpty
+            ? existing.reflection
+            : reflection,
+        highlightCount: _countHighlightsForReference(
+          snapshot.highlights,
+          normalizedAnchor.referenceLabel,
+        ),
       );
     } else {
       record = SavedBookmarkLocalRecord(
         id: _nextId('bookmark'),
-        anchor: anchor,
+        anchor: normalizedAnchor,
         categoryLabel: categoryLabel,
         savedAtIso: now.toIso8601String(),
         reflection: reflection,
-        highlightCount: 0,
+        highlightCount: _countHighlightsForReference(
+          snapshot.highlights,
+          normalizedAnchor.referenceLabel,
+        ),
       );
     }
 
@@ -105,12 +117,13 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
             id: _nextId('history'),
             kind: 'bookmark_saved',
             title: 'Bookmark saved',
-            subtitle: anchor.referenceLabel,
+            subtitle: normalizedAnchor.referenceLabel,
             occurredAtIso: now.toIso8601String(),
           ),
         ),
       ),
     );
+    _notifyLibraryChanged();
 
     return _mapBookmark(record);
   }
@@ -123,18 +136,20 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     String? notePreview,
   }) async {
     final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final SavedReferenceAnchor normalizedAnchor = _normalizeAnchor(anchor);
     final DateTime now = DateTime.now().toUtc();
-    final List<SavedHighlightLocalRecord> nextHighlights = List<SavedHighlightLocalRecord>.from(
-      snapshot.highlights,
-    )..removeWhere(
-        (SavedHighlightLocalRecord item) =>
-            item.anchor.referenceLabel == anchor.referenceLabel &&
-            item.selectedText == highlightedText,
-      );
+    final List<SavedHighlightLocalRecord> nextHighlights =
+        List<SavedHighlightLocalRecord>.from(snapshot.highlights)
+          ..removeWhere(
+            (SavedHighlightLocalRecord item) =>
+                item.anchor.referenceLabel ==
+                    normalizedAnchor.referenceLabel &&
+                item.selectedText == highlightedText,
+          );
 
     final SavedHighlightLocalRecord record = SavedHighlightLocalRecord(
       id: _nextId('highlight'),
-      anchor: anchor,
+      anchor: normalizedAnchor,
       selectedText: highlightedText,
       colorKey: colorKey,
       savedAtIso: now.toIso8601String(),
@@ -142,8 +157,30 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     );
 
     nextHighlights.insert(0, record);
+    final int highlightCount = _countHighlightsForReference(
+      nextHighlights,
+      normalizedAnchor.referenceLabel,
+    );
+    final List<SavedBookmarkLocalRecord> nextBookmarks = snapshot.bookmarks
+        .map((SavedBookmarkLocalRecord item) {
+          if (item.anchor.referenceLabel != normalizedAnchor.referenceLabel) {
+            return item;
+          }
+
+          return SavedBookmarkLocalRecord(
+            id: item.id,
+            anchor: _normalizeAnchor(item.anchor),
+            categoryLabel: item.categoryLabel,
+            savedAtIso: item.savedAtIso,
+            reflection: item.reflection,
+            highlightCount: highlightCount,
+          );
+        })
+        .toList(growable: false);
+
     await _localStore.save(
       snapshot.copyWith(
+        bookmarks: nextBookmarks,
         highlights: nextHighlights,
         history: _prependHistory(
           snapshot.history,
@@ -151,12 +188,13 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
             id: _nextId('history'),
             kind: 'highlight_saved',
             title: 'Highlight saved',
-            subtitle: anchor.referenceLabel,
+            subtitle: normalizedAnchor.referenceLabel,
             occurredAtIso: now.toIso8601String(),
           ),
         ),
       ),
     );
+    _notifyLibraryChanged();
 
     return _mapHighlight(record);
   }
@@ -169,10 +207,11 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     bool isPinned = false,
   }) async {
     final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
+    final SavedReferenceAnchor normalizedAnchor = _normalizeAnchor(anchor);
     final DateTime now = DateTime.now().toUtc();
     final SavedNoteLocalRecord record = SavedNoteLocalRecord(
-      id: _nextId('note'),
-      anchor: anchor,
+      id: _nextId('saved_note'),
+      anchor: normalizedAnchor,
       title: title,
       body: body,
       createdAtIso: now.toIso8601String(),
@@ -193,64 +232,25 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
             id: _nextId('history'),
             kind: 'note_written',
             title: 'Note added',
-            subtitle: anchor.referenceLabel,
+            subtitle: normalizedAnchor.referenceLabel,
             occurredAtIso: now.toIso8601String(),
           ),
         ),
       ),
     );
+    _notifyLibraryChanged();
 
     return _mapNote(record);
   }
 
   Future<SavedLibraryLocalSnapshot> _loadSnapshot() async {
     final SavedLibraryLocalSnapshot snapshot = await _localStore.load();
-    if (_hasContent(snapshot)) {
-      return snapshot;
+    final SavedLibraryLocalSnapshot cleaned = _stripLegacySeedRecords(snapshot);
+    if (_didSnapshotChange(snapshot, cleaned)) {
+      await _localStore.save(cleaned);
+      _notifyLibraryChanged();
     }
-
-    final SavedLibraryLocalSnapshot seeded = _buildSeedSnapshot();
-    await _localStore.save(seeded);
-    return seeded;
-  }
-
-  bool _hasContent(SavedLibraryLocalSnapshot snapshot) {
-    return snapshot.bookmarks.isNotEmpty ||
-        snapshot.highlights.isNotEmpty ||
-        snapshot.notes.isNotEmpty ||
-        snapshot.history.isNotEmpty;
-  }
-
-  SavedLibraryLocalSnapshot _buildSeedSnapshot() {
-    final DateTime now = DateTime.now();
-    final List<SavedBookmark> bookmarks = _fallback.getBookmarks();
-    final List<SavedHighlight> highlights = _fallback.getHighlights();
-    final List<SavedNote> notes = _fallback.getNotes();
-    final List<SavedHistoryEntry> history = _fallback.getHistory();
-
-    DateTime bookmarkTime(int index) => now.subtract(Duration(days: _bookmarkOffset(index)));
-    DateTime highlightTime(int index) => now.subtract(Duration(days: _highlightOffset(index)));
-    DateTime noteTime(int index) => now.subtract(Duration(days: _noteOffset(index)));
-    DateTime historyTime(int index) => now.subtract(Duration(days: _historyOffset(index)));
-
-    return SavedLibraryLocalSnapshot(
-      bookmarks: <SavedBookmarkLocalRecord>[
-        for (int index = 0; index < bookmarks.length; index++)
-          _bookmarkToLocal(bookmarks[index], bookmarkTime(index)),
-      ],
-      highlights: <SavedHighlightLocalRecord>[
-        for (int index = 0; index < highlights.length; index++)
-          _highlightToLocal(highlights[index], highlightTime(index)),
-      ],
-      notes: <SavedNoteLocalRecord>[
-        for (int index = 0; index < notes.length; index++)
-          _noteToLocal(notes[index], noteTime(index)),
-      ],
-      history: <SavedHistoryLocalRecord>[
-        for (int index = 0; index < history.length; index++)
-          _historyToLocal(history[index], historyTime(index)),
-      ],
-    );
+    return cleaned;
   }
 
   SavedBookmark _mapBookmark(SavedBookmarkLocalRecord record) {
@@ -310,107 +310,109 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     );
   }
 
-  SavedBookmarkLocalRecord _bookmarkToLocal(
-    SavedBookmark bookmark,
-    DateTime savedAt,
-  ) {
-    return SavedBookmarkLocalRecord(
-      id: bookmark.id,
-      anchor: _anchorFromReference(
-        reference: bookmark.reference,
-        verseText: bookmark.verseText,
-        translationLabel: bookmark.translationLabel,
-      ),
-      categoryLabel: bookmark.categoryLabel,
-      savedAtIso: savedAt.toUtc().toIso8601String(),
-      reflection: bookmark.reflectionPreview,
-      highlightCount: bookmark.highlightCount,
+  SavedReferenceAnchor _normalizeAnchor(SavedReferenceAnchor anchor) {
+    final String normalizedReference = _normalizeSavedReferenceDelimiters(
+      anchor.referenceLabel,
     );
-  }
+    final RegExp sameChapterExp = RegExp(r'^(.*?)\s+(\d+):(\d+)(?:-(\d+))?$');
+    final Match? sameChapterMatch = sameChapterExp.firstMatch(
+      normalizedReference,
+    );
 
-  SavedHighlightLocalRecord _highlightToLocal(
-    SavedHighlight highlight,
-    DateTime savedAt,
-  ) {
-    return SavedHighlightLocalRecord(
-      id: highlight.id,
-      anchor: _anchorFromReference(
-        reference: highlight.reference,
-        verseText: highlight.verseText,
-      ),
-      selectedText: highlight.highlightedText,
-      colorKey: _colorKeyFromLabel(highlight.colorLabel),
-      savedAtIso: savedAt.toUtc().toIso8601String(),
-      notePreview: highlight.notePreview,
-    );
-  }
+    String bookName = anchor.bookName.trim();
+    int chapterStart = anchor.chapterStart;
+    int verseStart = anchor.verseStart;
+    int chapterEnd = anchor.chapterEnd;
+    int verseEnd = anchor.verseEnd;
 
-  SavedNoteLocalRecord _noteToLocal(SavedNote note, DateTime updatedAt) {
-    final DateTime createdAt = updatedAt.subtract(const Duration(hours: 4));
-    return SavedNoteLocalRecord(
-      id: note.id,
-      anchor: _anchorFromReference(
-        reference: note.reference,
-        verseText: note.verseText,
-      ),
-      title: note.title,
-      body: note.body,
-      createdAtIso: createdAt.toUtc().toIso8601String(),
-      updatedAtIso: updatedAt.toUtc().toIso8601String(),
-      isPinned: note.isPinned,
-    );
-  }
-
-  SavedHistoryLocalRecord _historyToLocal(
-    SavedHistoryEntry entry,
-    DateTime occurredAt,
-  ) {
-    return SavedHistoryLocalRecord(
-      id: entry.id,
-      kind: _kindToString(entry.kind),
-      title: entry.title,
-      subtitle: entry.subtitle,
-      occurredAtIso: occurredAt.toUtc().toIso8601String(),
-    );
-  }
-
-  SavedReferenceAnchor _anchorFromReference({
-    required String reference,
-    required String verseText,
-    String translationLabel = 'KJV',
-  }) {
-    final RegExp matchExp = RegExp(
-      r'^(.*?)\s+(\d+):(\d+)(?:[–-](\d+))?$',
-    );
-    final Match? match = matchExp.firstMatch(
-      reference.replaceAll('—', '–').trim(),
-    );
-    final String normalizedReference = _normalizeReferenceDelimiters(reference);
-    final Match? normalizedMatch = RegExp(
-      r'^(.*?)\s+(\d+):(\d+)(?:-(\d+))?$',
-    ).firstMatch(normalizedReference);
-    final Match? effectiveMatch = normalizedMatch ?? match;
-    final String bookName =
-        effectiveMatch?.group(1)?.trim() ?? normalizedReference;
-    final int chapter = int.tryParse(effectiveMatch?.group(2) ?? '') ?? 1;
-    final int verseStart = int.tryParse(effectiveMatch?.group(3) ?? '') ?? 1;
-    final int verseEnd =
-        int.tryParse(effectiveMatch?.group(4) ?? '') ?? verseStart;
+    if (sameChapterMatch != null) {
+      bookName = sameChapterMatch.group(1)!.trim();
+      chapterStart = int.tryParse(sameChapterMatch.group(2)!) ?? chapterStart;
+      verseStart = int.tryParse(sameChapterMatch.group(3)!) ?? verseStart;
+      verseEnd = int.tryParse(sameChapterMatch.group(4) ?? '') ?? verseEnd;
+      chapterEnd = chapterStart;
+    }
 
     return SavedReferenceAnchor(
-      versionCode: translationLabel.toLowerCase(),
+      versionCode: _normalizeVersionCode(anchor.versionCode),
       bookId: _bookIdFromName(bookName),
       bookName: bookName,
-      chapterStart: chapter,
+      chapterStart: chapterStart,
       verseStart: verseStart,
-      chapterEnd: chapter,
+      chapterEnd: chapterEnd,
       verseEnd: verseEnd,
       referenceLabel: normalizedReference,
-      verseTextSnapshot: verseText,
+      verseTextSnapshot: anchor.verseTextSnapshot.trim(),
     );
   }
 
-  String _normalizeReferenceDelimiters(String value) {
+  String _normalizeVersionCode(String value) {
+    final String normalized = value.trim().toLowerCase();
+    if (normalized.contains('web')) {
+      return 'web';
+    }
+    return 'kjv';
+  }
+
+  SavedLibraryLocalSnapshot _stripLegacySeedRecords(
+    SavedLibraryLocalSnapshot snapshot,
+  ) {
+    return snapshot.copyWith(
+      bookmarks: snapshot.bookmarks
+          .where(
+            (SavedBookmarkLocalRecord item) => !_isLegacySeedId(
+              item.id,
+              prefix: 'bm_',
+            ),
+          )
+          .toList(growable: false),
+      highlights: snapshot.highlights
+          .where(
+            (SavedHighlightLocalRecord item) => !_isLegacySeedId(
+              item.id,
+              prefix: 'hl_',
+            ),
+          )
+          .toList(growable: false),
+      notes: snapshot.notes
+          .where(
+            (SavedNoteLocalRecord item) => !_isLegacySeedId(
+              item.id,
+              prefix: 'note_',
+            ),
+          )
+          .toList(growable: false),
+      history: snapshot.history
+          .where(
+            (SavedHistoryLocalRecord item) => !_isLegacySeedId(
+              item.id,
+              prefix: 'hist_',
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  bool _didSnapshotChange(
+    SavedLibraryLocalSnapshot original,
+    SavedLibraryLocalSnapshot next,
+  ) {
+    return original.bookmarks.length != next.bookmarks.length ||
+        original.highlights.length != next.highlights.length ||
+        original.notes.length != next.notes.length ||
+        original.history.length != next.history.length;
+  }
+
+  bool _isLegacySeedId(String value, {required String prefix}) {
+    if (!value.startsWith(prefix) || value.length <= prefix.length) {
+      return false;
+    }
+
+    final String suffix = value.substring(prefix.length);
+    return suffix.length <= 2 && int.tryParse(suffix) != null;
+  }
+
+  String _normalizeSavedReferenceDelimiters(String value) {
     return value
         .trim()
         .replaceAll('\u2013', '-')
@@ -424,6 +426,18 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  int _countHighlightsForReference(
+    List<SavedHighlightLocalRecord> highlights,
+    String referenceLabel,
+  ) {
+    return highlights
+        .where(
+          (SavedHighlightLocalRecord item) =>
+              item.anchor.referenceLabel == referenceLabel,
+        )
+        .length;
   }
 
   String _relativeLabel(DateTime? value, {String? prefix}) {
@@ -466,10 +480,6 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     }
   }
 
-  String _colorKeyFromLabel(String label) {
-    return label.toLowerCase().replaceAll(' ', '_');
-  }
-
   SavedHistoryKind _kindFromString(String kind) {
     switch (kind) {
       case 'chapter_read':
@@ -485,23 +495,6 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
       case 'verse_viewed':
       default:
         return SavedHistoryKind.verseViewed;
-    }
-  }
-
-  String _kindToString(SavedHistoryKind kind) {
-    switch (kind) {
-      case SavedHistoryKind.chapterRead:
-        return 'chapter_read';
-      case SavedHistoryKind.planOpened:
-        return 'plan_opened';
-      case SavedHistoryKind.bookmarkSaved:
-        return 'bookmark_saved';
-      case SavedHistoryKind.highlightSaved:
-        return 'highlight_saved';
-      case SavedHistoryKind.noteWritten:
-        return 'note_written';
-      case SavedHistoryKind.verseViewed:
-        return 'verse_viewed';
     }
   }
 
@@ -524,8 +517,7 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
   }
 
-  int _bookmarkOffset(int index) => const <int>[0, 1, 3, 7][index % 4];
-  int _highlightOffset(int index) => const <int>[0, 1, 4, 7][index % 4];
-  int _noteOffset(int index) => const <int>[0, 1, 3, 7][index % 4];
-  int _historyOffset(int index) => const <int>[0, 0, 1, 1, 3, 7][index % 6];
+  void _notifyLibraryChanged() {
+    _libraryRevision.value++;
+  }
 }
