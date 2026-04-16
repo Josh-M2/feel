@@ -27,8 +27,13 @@ class ProfileOverviewScreen extends StatelessWidget {
   }
 
   String _routeWithReturnTo(BuildContext context, String route) {
-    final String returnTo = GoRouterState.of(context).uri.toString();
-    return '$route?returnTo=${Uri.encodeComponent(returnTo)}';
+    final String? origin = _originRouteFromContext(context);
+    final String returnTo = origin ?? GoRouterState.of(context).uri.toString();
+    final Map<String, String> queryParameters = <String, String>{
+      'returnTo': returnTo,
+      if (origin != null) 'origin': origin,
+    };
+    return Uri(path: route, queryParameters: queryParameters).toString();
   }
 
   @override

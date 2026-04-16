@@ -769,7 +769,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     _SettingsSwitchRow(
                       title: 'Show date marker',
-                      subtitle: 'Display a small “today” marker in the widget.',
+                      subtitle: 'Display a small "today" marker in the widget.',
                       value: bootstrap.widgetShowDate,
                       onChanged: bootstrap.setWidgetShowDate,
                     ),

@@ -67,10 +67,11 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
   }) async {
     final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
     final SavedReferenceAnchor normalizedAnchor = _normalizeAnchor(anchor);
+    final String anchorKey = _anchorKey(normalizedAnchor);
     final DateTime now = DateTime.now().toUtc();
     final int existingIndex = snapshot.bookmarks.indexWhere(
       (SavedBookmarkLocalRecord item) =>
-          item.anchor.referenceLabel == normalizedAnchor.referenceLabel,
+          _anchorKey(item.anchor) == anchorKey,
     );
 
     late final SavedBookmarkLocalRecord record;
@@ -88,9 +89,9 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
         reflection: (reflection ?? '').trim().isEmpty
             ? existing.reflection
             : reflection,
-        highlightCount: _countHighlightsForReference(
+        highlightCount: _countHighlightsForAnchor(
           snapshot.highlights,
-          normalizedAnchor.referenceLabel,
+          anchorKey,
         ),
       );
     } else {
@@ -100,9 +101,9 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
         categoryLabel: categoryLabel,
         savedAtIso: now.toIso8601String(),
         reflection: reflection,
-        highlightCount: _countHighlightsForReference(
+        highlightCount: _countHighlightsForAnchor(
           snapshot.highlights,
-          normalizedAnchor.referenceLabel,
+          anchorKey,
         ),
       );
     }
@@ -137,13 +138,13 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
   }) async {
     final SavedLibraryLocalSnapshot snapshot = await _loadSnapshot();
     final SavedReferenceAnchor normalizedAnchor = _normalizeAnchor(anchor);
+    final String anchorKey = _anchorKey(normalizedAnchor);
     final DateTime now = DateTime.now().toUtc();
     final List<SavedHighlightLocalRecord> nextHighlights =
         List<SavedHighlightLocalRecord>.from(snapshot.highlights)
           ..removeWhere(
             (SavedHighlightLocalRecord item) =>
-                item.anchor.referenceLabel ==
-                    normalizedAnchor.referenceLabel &&
+                _anchorKey(item.anchor) == anchorKey &&
                 item.selectedText == highlightedText,
           );
 
@@ -157,13 +158,13 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
     );
 
     nextHighlights.insert(0, record);
-    final int highlightCount = _countHighlightsForReference(
+    final int highlightCount = _countHighlightsForAnchor(
       nextHighlights,
-      normalizedAnchor.referenceLabel,
+      anchorKey,
     );
     final List<SavedBookmarkLocalRecord> nextBookmarks = snapshot.bookmarks
         .map((SavedBookmarkLocalRecord item) {
-          if (item.anchor.referenceLabel != normalizedAnchor.referenceLabel) {
+          if (_anchorKey(item.anchor) != anchorKey) {
             return item;
           }
 
@@ -428,14 +429,18 @@ class LocalFirstSavedLibraryRepository implements SavedLibraryRepository {
         .replaceAll(RegExp(r'^_+|_+$'), '');
   }
 
-  int _countHighlightsForReference(
+  String _anchorKey(SavedReferenceAnchor anchor) {
+    return '${_normalizeVersionCode(anchor.versionCode)}|${anchor.referenceLabel}';
+  }
+
+  int _countHighlightsForAnchor(
     List<SavedHighlightLocalRecord> highlights,
-    String referenceLabel,
+    String anchorKey,
   ) {
     return highlights
         .where(
           (SavedHighlightLocalRecord item) =>
-              item.anchor.referenceLabel == referenceLabel,
+              _anchorKey(item.anchor) == anchorKey,
         )
         .length;
   }

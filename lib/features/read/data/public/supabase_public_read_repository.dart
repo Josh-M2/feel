@@ -680,6 +680,9 @@ class SupabasePublicReadRepository implements ReadRepository {
                   ((b['verse_number'] as num?)?.toInt() ?? 0),
                 ),
           );
+    final List<ReadVerseLine> chapterVerses = _toUniqueVerseLines(
+      normalizedVerses,
+    );
 
     final List<Map<String, dynamic>> normalizedSections =
         sectionRows
@@ -692,51 +695,13 @@ class SupabasePublicReadRepository implements ReadRepository {
                 ),
           );
 
-    final List<ReadPassageBlock> blocks = normalizedSections.isEmpty
-        ? <ReadPassageBlock>[
-            ReadPassageBlock(
-              heading: '$bookName $chapterNumber',
-              rangeLabel: '$bookName $chapterNumber',
-              verses: normalizedVerses
-                  .map(
-                    (Map<String, dynamic> verse) => ReadVerseLine(
-                      number: (verse['verse_number'] as num?)?.toInt() ?? 1,
-                      text: verse['verse_text']?.toString() ?? '',
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ]
-        : normalizedSections
-              .map((Map<String, dynamic> row) {
-                final int verseStart =
-                    (row['verse_start'] as num?)?.toInt() ?? 1;
-                final int verseEnd =
-                    (row['verse_end'] as num?)?.toInt() ?? verseStart;
-                final List<ReadVerseLine> verses = normalizedVerses
-                    .where((Map<String, dynamic> verse) {
-                      final int verseNumber =
-                          (verse['verse_number'] as num?)?.toInt() ?? 1;
-                      return verseNumber >= verseStart &&
-                          verseNumber <= verseEnd;
-                    })
-                    .map(
-                      (Map<String, dynamic> verse) => ReadVerseLine(
-                        number: (verse['verse_number'] as num?)?.toInt() ?? 1,
-                        text: verse['verse_text']?.toString() ?? '',
-                      ),
-                    )
-                    .toList(growable: false);
-
-                return ReadPassageBlock(
-                  heading:
-                      row['heading']?.toString() ?? '$bookName $chapterNumber',
-                  rangeLabel:
-                      '$bookName $chapterNumber:$verseStart${verseEnd == verseStart ? '' : '-$verseEnd'}',
-                  verses: verses,
-                );
-              })
-              .toList(growable: false);
+    final List<ReadPassageBlock> blocks = _buildPassageBlocks(
+      bookName: bookName,
+      chapterNumber: chapterNumber,
+      chapterVerses: chapterVerses,
+      sectionRows: normalizedSections,
+      translationCode: translationCode,
+    );
 
     return ReadChapter(
       number: chapterNumber,
@@ -749,4 +714,155 @@ class SupabasePublicReadRepository implements ReadRepository {
       isTranslationFallback: isTranslationFallback,
     );
   }
+
+  List<ReadVerseLine> _toUniqueVerseLines(List<Map<String, dynamic>> verseRows) {
+    final Set<int> seenVerseNumbers = <int>{};
+    final List<ReadVerseLine> verses = <ReadVerseLine>[];
+    for (final Map<String, dynamic> verse in verseRows) {
+      final int verseNumber = (verse['verse_number'] as num?)?.toInt() ?? 1;
+      if (!seenVerseNumbers.add(verseNumber)) {
+        continue;
+      }
+
+      verses.add(
+        ReadVerseLine(
+          number: verseNumber,
+          text: verse['verse_text']?.toString() ?? '',
+        ),
+      );
+    }
+    return verses;
+  }
+
+  List<ReadPassageBlock> _buildPassageBlocks({
+    required String bookName,
+    required int chapterNumber,
+    required List<ReadVerseLine> chapterVerses,
+    required List<Map<String, dynamic>> sectionRows,
+    required String translationCode,
+  }) {
+    if (chapterVerses.isEmpty) {
+      return const <ReadPassageBlock>[];
+    }
+
+    if (sectionRows.isEmpty) {
+      return <ReadPassageBlock>[
+        ReadPassageBlock(
+          heading: '$bookName $chapterNumber',
+          rangeLabel: '$bookName $chapterNumber',
+          verses: chapterVerses,
+        ),
+      ];
+    }
+
+    final Set<int> presentVerseNumbers = chapterVerses
+        .map((ReadVerseLine verse) => verse.number)
+        .toSet();
+    final Set<int> consumedVerseNumbers = <int>{};
+    final List<ReadPassageBlock> blocks = <ReadPassageBlock>[];
+
+    for (final Map<String, dynamic> row in sectionRows) {
+      final int verseStart = (row['verse_start'] as num?)?.toInt() ?? 1;
+      final int verseEnd = (row['verse_end'] as num?)?.toInt() ?? verseStart;
+      final List<ReadVerseLine> sectionVerses = chapterVerses
+          .where(
+            (ReadVerseLine verse) =>
+                verse.number >= verseStart &&
+                verse.number <= verseEnd &&
+                consumedVerseNumbers.add(verse.number),
+          )
+          .toList(growable: false);
+      final bool hasKnownWebOmission = _knownWebOmittedVersesForRange(
+        bookName: bookName,
+        chapterNumber: chapterNumber,
+        verseStart: verseStart,
+        verseEnd: verseEnd,
+        translationCode: translationCode,
+        presentVerseNumbers: presentVerseNumbers,
+      ).isNotEmpty;
+      if (sectionVerses.isEmpty && !hasKnownWebOmission) {
+        continue;
+      }
+
+      blocks.add(
+        ReadPassageBlock(
+          heading: row['heading']?.toString() ?? '$bookName $chapterNumber',
+          rangeLabel:
+              '$bookName $chapterNumber:$verseStart${verseEnd == verseStart ? '' : '-$verseEnd'}',
+          verses: sectionVerses,
+        ),
+      );
+    }
+
+    final List<ReadVerseLine> remainingVerses = chapterVerses
+        .where((ReadVerseLine verse) => !consumedVerseNumbers.contains(verse.number))
+        .toList(growable: false);
+    if (remainingVerses.isNotEmpty) {
+      final int start = remainingVerses.first.number;
+      final int end = remainingVerses.last.number;
+      blocks.add(
+        ReadPassageBlock(
+          heading: '$bookName $chapterNumber',
+          rangeLabel: '$bookName $chapterNumber:$start${end == start ? '' : '-$end'}',
+          verses: remainingVerses,
+        ),
+      );
+    }
+
+    if (blocks.isNotEmpty) {
+      return blocks;
+    }
+
+    return <ReadPassageBlock>[
+      ReadPassageBlock(
+        heading: '$bookName $chapterNumber',
+        rangeLabel: '$bookName $chapterNumber',
+        verses: chapterVerses,
+      ),
+    ];
+  }
+
+  List<int> _knownWebOmittedVersesForRange({
+    required String bookName,
+    required int chapterNumber,
+    required int verseStart,
+    required int verseEnd,
+    required String translationCode,
+    required Set<int> presentVerseNumbers,
+  }) {
+    if (_sanitizeVersionCode(translationCode) != 'web') {
+      return const <int>[];
+    }
+
+    const List<_KnownWebOmission> omissions = <_KnownWebOmission>[
+      _KnownWebOmission(bookName: 'acts', chapterNumber: 8, verseNumber: 37),
+      _KnownWebOmission(bookName: 'acts', chapterNumber: 15, verseNumber: 34),
+      _KnownWebOmission(bookName: 'acts', chapterNumber: 24, verseNumber: 7),
+      _KnownWebOmission(bookName: 'luke', chapterNumber: 17, verseNumber: 36),
+    ];
+    final String normalizedBookName = bookName.trim().toLowerCase();
+    return omissions
+        .where(
+          (_KnownWebOmission omission) =>
+              omission.bookName == normalizedBookName &&
+              omission.chapterNumber == chapterNumber &&
+              omission.verseNumber >= verseStart &&
+              omission.verseNumber <= verseEnd &&
+              !presentVerseNumbers.contains(omission.verseNumber),
+        )
+        .map((_KnownWebOmission omission) => omission.verseNumber)
+        .toList(growable: false);
+  }
+}
+
+class _KnownWebOmission {
+  const _KnownWebOmission({
+    required this.bookName,
+    required this.chapterNumber,
+    required this.verseNumber,
+  });
+
+  final String bookName;
+  final int chapterNumber;
+  final int verseNumber;
 }

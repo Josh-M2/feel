@@ -69,7 +69,7 @@ class TodayHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               TodayInfoCard(
-                title: 'Open today’s verse',
+                title: 'Open today\'s verse',
                 icon: Icons.auto_awesome_outlined,
                 child: Column(
                   children: <Widget>[
@@ -1004,7 +1004,7 @@ class _TodayVerseLoader extends StatelessWidget {
       builder: (BuildContext context, AsyncSnapshot<TodayVerse> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const AppPageLoader(
-            title: 'Loading today’s verse',
+            title: 'Loading today\'s verse',
             subtitle:
                 'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
             icon: Icons.wb_sunny_outlined,
@@ -1016,7 +1016,7 @@ class _TodayVerseLoader extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               TodayInfoCard(
-                title: 'Loading today’s verse',
+                title: 'Loading today\'s verse',
                 subtitle:
                     'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
                 icon: Icons.hourglass_top_rounded,
@@ -1050,7 +1050,7 @@ class _TodayVerseLoader extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               TodayInfoCard(
-                title: 'Unable to load today’s verse',
+                title: 'Unable to load today\'s verse',
                 subtitle:
                     'The assignment pipeline can fall back to local content, but this screen still needs a valid verse payload to continue.',
                 icon: Icons.error_outline_rounded,

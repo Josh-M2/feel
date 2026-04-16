@@ -407,13 +407,32 @@ class ChapterReadScreen extends StatefulWidget {
 }
 
 class _ChapterReadScreenState extends State<ChapterReadScreen> {
-  late final Future<_ChapterReadScreenData> _screenDataFuture;
+  late Future<_ChapterReadScreenData> _screenDataFuture;
   bool _recordedOpen = false;
   bool _saveBusy = false;
 
   @override
   void initState() {
     super.initState();
+    _refreshScreenData();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChapterReadScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final bool translationChanged =
+        widget.bootstrap.preferredTranslationCode !=
+        oldWidget.bootstrap.preferredTranslationCode;
+    final bool chapterChanged =
+        widget.bookId != oldWidget.bookId ||
+        widget.chapterNumber != oldWidget.chapterNumber;
+    if (translationChanged || chapterChanged) {
+      setState(_refreshScreenData);
+    }
+  }
+
+  void _refreshScreenData() {
+    _recordedOpen = false;
     _screenDataFuture = _loadChapterReadScreenData();
   }
 

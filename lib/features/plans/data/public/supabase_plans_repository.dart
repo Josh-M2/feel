@@ -94,10 +94,13 @@ class SupabasePlansRepository implements PlansRepository {
     }
 
     final List<ReadingPlan> startedPlans = plans
-        .where((ReadingPlan plan) => plan.isStarted)
+        .where((ReadingPlan plan) => plan.isStarted && !plan.isCompleted)
         .toList(growable: false);
     if (startedPlans.isEmpty) {
-      return plans.first;
+      return plans.firstWhere(
+        (ReadingPlan plan) => !plan.isCompleted,
+        orElse: () => plans.first,
+      );
     }
 
     final List<ReadingPlan> sorted = List<ReadingPlan>.from(startedPlans)
