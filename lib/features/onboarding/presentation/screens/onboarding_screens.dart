@@ -221,48 +221,38 @@ class NotificationPermissionScreen extends StatelessWidget {
       subtitle:
           'Skipping is allowed. We are only simulating the preference in this UI-first phase.',
       stepLabel: 'Step 3 of 4',
-      body: Column(
-        children: <Widget>[
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Enable daily verse reminders',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'This will later trigger the same daily assignment used in-app and in the widget.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      bootstrap.setNotificationsEnabled(true);
-                      context.push(AppRoutes.onboardingFinish);
-                    },
-                    child: const Text('Enable reminders'),
-                  ),
-                ),
-              ],
+      body: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Enable daily verse reminders',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                bootstrap.setNotificationsEnabled(false);
-                context.push(AppRoutes.onboardingFinish);
-              },
-              child: const Text('Skip for now'),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'This will later trigger the same daily assignment used in-app and in the widget.',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  bootstrap.setNotificationsEnabled(true);
+                  context.push(AppRoutes.onboardingFinish);
+                },
+                child: const Text('Enable reminders'),
+              ),
+            ),
+          ],
+        ),
       ),
+      primaryLabel: 'Skip for now',
+      onPrimaryPressed: () {
+        bootstrap.setNotificationsEnabled(false);
+        context.push(AppRoutes.onboardingFinish);
+      },
       secondaryLabel: 'Back',
       onSecondaryPressed: context.pop,
     );
@@ -362,6 +352,16 @@ class _OnboardingScaffold extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           children: <Widget>[
+            if (secondaryLabel != null && primaryLabel == null) ...<Widget>[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: onSecondaryPressed,
+                  child: Text(secondaryLabel!),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
             Text(
               stepLabel.toUpperCase(),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -390,7 +390,7 @@ class _OnboardingScaffold extends StatelessWidget {
                   child: Text(primaryLabel!),
                 ),
               ),
-            if (secondaryLabel != null) ...<Widget>[
+            if (secondaryLabel != null && primaryLabel != null) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
