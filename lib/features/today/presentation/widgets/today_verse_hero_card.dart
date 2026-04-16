@@ -20,7 +20,12 @@ class TodayVerseHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double verseFontSize = compact ? 22 : 28;
+    final double metaGap = compact ? AppSpacing.sm : AppSpacing.md;
+    final double referenceGap = compact ? AppSpacing.md : AppSpacing.lg;
+
     return AppCard(
+      variant: AppCardVariant.primary,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,21 +41,21 @@ class TodayVerseHeroCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: metaGap),
           Text(
             verse.verseText,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontSize: compact ? 26 : 30,
-              height: 1.25,
+              fontSize: verseFontSize,
+              height: compact ? 1.35 : 1.3,
+              fontWeight: FontWeight.w600,
             ),
-            maxLines: compact ? 5 : null,
-            overflow: compact ? TextOverflow.ellipsis : null,
+            softWrap: true,
           ),
-          const SizedBox(height: AppSpacing.lg),
+          SizedBox(height: referenceGap),
           Text(
             verse.reference,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.primary,
+              color: AppColors.accentStrong,
               fontWeight: FontWeight.w700,
             ),
           ),

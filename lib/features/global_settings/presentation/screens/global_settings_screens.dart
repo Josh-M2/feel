@@ -9,6 +9,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_loading_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../widgets/settings_info_card.dart';
 import '../widgets/settings_nav_tile.dart';
@@ -184,13 +185,14 @@ class SettingsHomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               AppCard(
+                variant: AppCardVariant.primary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       'Your preferences',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.accentStrong,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -910,6 +912,15 @@ class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard
     return FutureBuilder<WidgetShellStatus>(
       future: _statusFuture,
       builder: (BuildContext context, AsyncSnapshot<WidgetShellStatus> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const AppLoadingCard(
+            title: 'Checking widget shell status',
+            subtitle:
+                'Looking for widget support, pinning availability, and current shell readiness.',
+            icon: Icons.widgets_outlined,
+          );
+        }
+
         final WidgetShellStatus status = snapshot.data ?? const WidgetShellStatus(
           isSupported: false,
           isConfigured: false,

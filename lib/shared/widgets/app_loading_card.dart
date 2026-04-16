@@ -4,6 +4,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radii.dart';
 import '../../app/theme/app_spacing.dart';
 import 'app_card.dart';
+import 'app_skeleton.dart';
 
 class AppLoadingCard extends StatelessWidget {
   const AppLoadingCard({
@@ -20,6 +21,7 @@ class AppLoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
+      variant: AppCardVariant.outline,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -33,15 +35,10 @@ class AppLoadingCard extends StatelessWidget {
               width: 52,
               height: 52,
               child: Center(
-                child: SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
+                child: AppSkeletonBlock(
+                  width: 24,
+                  height: 24,
+                  radius: AppRadii.pill,
                 ),
               ),
             ),
@@ -55,16 +52,23 @@ class AppLoadingCard extends StatelessWidget {
                   children: <Widget>[
                     Icon(icon, size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+                    const Expanded(child: AppSkeletonBlock(height: 18)),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const AppSkeletonBlock(height: 12),
+                const SizedBox(height: AppSpacing.xs),
+                FractionallySizedBox(
+                  widthFactor: 0.76,
+                  child: const AppSkeletonBlock(height: 12),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.accentStrong,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(

@@ -7,6 +7,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_page_loader.dart';
+import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../saved/data/local/local_first_saved_library_repository.dart';
 import '../../../saved/domain/models/saved_library_local_snapshot.dart';
@@ -36,23 +38,33 @@ class TodayHomeScreen extends StatelessWidget {
         bootstrap: bootstrap,
         markAsOpened: true,
         builder: (BuildContext context, TodayVerse verse) {
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              TodayVerseHeroCard(
-                verse: verse,
-                compact: true,
-                onTap: () => context.push(AppRoutes.todayVerseDetail),
+          return AppReveal(
+            duration: const Duration(milliseconds: 320),
+            offsetY: 0.02,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: <Widget>[
+              AppReveal(
+                duration: const Duration(milliseconds: 360),
+                offsetY: 0.03,
+                child: TodayVerseHeroCard(
+                  verse: verse,
+                  compact: true,
+                  onTap: () => context.push(AppRoutes.todayVerseDetail),
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              TodayInfoCard(
-                title: 'A gentle focus for today',
-                subtitle:
-                    'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
-                icon: Icons.light_mode_outlined,
-                child: Text(
-                  verse.encouragementLine,
-                  style: Theme.of(context).textTheme.bodyLarge,
+              AppReveal(
+                delay: const Duration(milliseconds: 70),
+                child: TodayInfoCard(
+                  title: 'A gentle focus for today',
+                  subtitle:
+                      'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
+                  icon: Icons.light_mode_outlined,
+                  child: Text(
+                    verse.encouragementLine,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -161,7 +173,8 @@ class TodayHomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -989,6 +1002,15 @@ class _TodayVerseLoader extends StatelessWidget {
         );
       }(),
       builder: (BuildContext context, AsyncSnapshot<TodayVerse> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const AppPageLoader(
+            title: 'Loading today’s verse',
+            subtitle:
+                'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
+            icon: Icons.wb_sunny_outlined,
+          );
+        }
+
         if (snapshot.connectionState != ConnectionState.done) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),

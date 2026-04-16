@@ -24,22 +24,23 @@ class ProfileNavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: AppColors.surfaceSecondary,
         borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderStrong),
       ),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         leading: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
+            color: AppColors.surfaceInteractive,
             borderRadius: BorderRadius.circular(AppRadii.lg),
+            border: Border.all(color: AppColors.border),
           ),
           child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(icon, size: 20, color: AppColors.primary),
+            width: 44,
+            height: 44,
+            child: Icon(icon, size: 20, color: AppColors.accentStrong),
           ),
         ),
         title: Text(title, style: Theme.of(context).textTheme.titleMedium),
@@ -58,7 +59,7 @@ class ProfileNavTile extends StatelessWidget {
                   Text(
                     trailingLabel!,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.accentStrong,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

@@ -21,14 +21,26 @@ class ProfileInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
+      variant: AppCardVariant.support,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
               if (icon != null) ...<Widget>[
-                Icon(icon, size: 20, color: AppColors.primary),
-                const SizedBox(width: 10),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceSecondary,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(icon, size: 18, color: AppColors.accentStrong),
+                  ),
+                ),
+                const SizedBox(width: 12),
               ],
               Expanded(
                 child: Text(

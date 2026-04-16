@@ -8,6 +8,8 @@ import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_loading_card.dart';
+import '../../../../shared/widgets/app_page_loader.dart';
+import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../saved/data/local/local_first_saved_library_repository.dart';
 import '../../../saved/domain/models/saved_library_local_snapshot.dart';
@@ -53,13 +55,14 @@ class ReadBooksScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: <Widget>[
                 AppCard(
+                  variant: AppCardVariant.primary,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
                         'Continue reading',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
+                          color: AppColors.accentStrong,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -76,7 +79,9 @@ class ReadBooksScreen extends StatelessWidget {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           continueSubtitle,
-                          style: Theme.of(context).textTheme.titleMedium,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                       const SizedBox(height: AppSpacing.md),
@@ -103,46 +108,46 @@ class ReadBooksScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'How to use Read',
-                subtitle:
-                    'Browse books, jump to a chapter, or return to where you left off.',
-                icon: Icons.menu_book_outlined,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _ReadBullet(
-                      text: 'Browse books in a calm, library-style flow.',
-                    ),
-                    _ReadBullet(
-                      text: 'Open a book before moving into chapter reading.',
-                    ),
-                    _ReadBullet(
-                      text:
-                          'Use reference search when you already know where you want to go.',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Books', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.md),
-              ...data.books.map(
-                (ReadBook book) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: ReadBookListCard(
-                    book: book,
-                    onTap: () {
-                      context.push(
-                        AppRoutes.readBookDetail,
-                        extra: ReadBookRouteArgs(bookId: book.id),
-                      );
-                    },
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'How to use Read',
+                  subtitle:
+                      'Browse books, jump to a chapter, or return to where you left off.',
+                  icon: Icons.menu_book_outlined,
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _ReadBullet(
+                        text: 'Browse books in a calm, library-style flow.',
+                      ),
+                      _ReadBullet(
+                        text: 'Open a book before moving into chapter reading.',
+                      ),
+                      _ReadBullet(
+                        text:
+                            'Use reference search when you already know where you want to go.',
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.lg),
+                Text('Books', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.md),
+                ...data.books.map(
+                  (ReadBook book) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ReadBookListCard(
+                      book: book,
+                      onTap: () {
+                        context.push(
+                          AppRoutes.readBookDetail,
+                          extra: ReadBookRouteArgs(bookId: book.id),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -229,7 +234,9 @@ class ReadBookDetailScreen extends StatelessWidget {
                           Chip(label: Text(book.testament)),
                           Chip(label: Text('${book.chapterCount} chapters')),
                           const Chip(label: Text('Reading')),
-                          Chip(label: Text(bootstrap.preferredTranslationLabel)),
+                          Chip(
+                            label: Text(bootstrap.preferredTranslationLabel),
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -285,95 +292,95 @@ class ReadBookDetailScreen extends StatelessWidget {
                   ),
                 ),
                 if (showOverview) ...<Widget>[
+                  const SizedBox(height: AppSpacing.lg),
+                  ReadInfoCard(
+                    title: 'Overview',
+                    subtitle: 'A short introduction before you begin reading.',
+                    icon: Icons.description_outlined,
+                    child: Text(
+                      book.overview,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 ReadInfoCard(
-                  title: 'Overview',
-                  subtitle: 'A short introduction before you begin reading.',
-                  icon: Icons.description_outlined,
+                  title: 'Why read this book',
+                  icon: Icons.lightbulb_outline_rounded,
                   child: Text(
-                    book.overview,
+                    book.whyRead,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'Why read this book',
-                icon: Icons.lightbulb_outline_rounded,
-                child: Text(
-                  book.whyRead,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Key themes',
+                  icon: Icons.local_offer_outlined,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: book.keyThemes
+                        .map((String theme) => Chip(label: Text(theme)))
+                        .toList(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'Key themes',
-                icon: Icons.local_offer_outlined,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: book.keyThemes
-                      .map((String theme) => Chip(label: Text(theme)))
-                      .toList(),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'Chapters',
-                subtitle: 'Choose a chapter to begin or return to.',
-                icon: Icons.view_list_outlined,
-                child: Column(
-                  children: book.mockChapters
-                      .map(
-                        (ReadChapter chapter) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _ChapterTile(
-                            chapter: chapter,
-                            onTap: () {
-                              context.push(
-                                AppRoutes.readChapterRead,
-                                extra: ChapterReadRouteArgs(
-                                  bookId: book.id,
-                                  chapterNumber: chapter.number,
-                                ),
-                              );
-                            },
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Chapters',
+                  subtitle: 'Choose a chapter to begin or return to.',
+                  icon: Icons.view_list_outlined,
+                  child: Column(
+                    children: book.mockChapters
+                        .map(
+                          (ReadChapter chapter) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _ChapterTile(
+                              chapter: chapter,
+                              onTap: () {
+                                context.push(
+                                  AppRoutes.readChapterRead,
+                                  extra: ChapterReadRouteArgs(
+                                    bookId: book.id,
+                                    chapterNumber: chapter.number,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
+                        )
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'More ways to continue',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.readReferenceSearch),
+                          child: const Text('Search by reference'),
                         ),
-                      )
-                      .toList(),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'More ways to continue',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.readReferenceSearch),
-                        child: const Text('Search by reference'),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.readContinueReading),
-                        child: const Text('Continue reading'),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.readContinueReading),
+                          child: const Text('Continue reading'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               ],
             );
           },
@@ -471,11 +478,8 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'The requested translation was not available for this chapter yet, so the reading surface fell back to the seeded KJV scaffold.',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ],
@@ -503,137 +507,140 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                     ),
                   ),
                 ),
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'Save from this chapter',
-                subtitle:
-                    'Bookmark it, save a key highlight, or add a private note.',
-                icon: Icons.bookmark_outline_rounded,
-                child: Column(
-                  children: <Widget>[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _saveBusy ? null : () => _saveBookmark(data),
-                        icon: const Icon(Icons.bookmark_add_outlined),
-                        label: const Text('Save bookmark'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _saveBusy
-                            ? null
-                            : () => _saveHighlight(data),
-                        icon: const Icon(Icons.highlight_alt_outlined),
-                        label: const Text('Save highlight'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _saveBusy
-                            ? null
-                            : () => _showNoteComposer(data),
-                        icon: const Icon(Icons.edit_note_outlined),
-                        label: const Text('Add note'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ReadInfoCard(
-                title: 'Keep reading',
-                icon: Icons.auto_awesome_outlined,
-                child: Column(
-                  children: <Widget>[
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          context.push(
-                            AppRoutes.readBookDetail,
-                            extra: ReadBookRouteArgs(bookId: data.book.id),
-                          );
-                        },
-                        child: const Text('Back to book detail'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: data.previousChapter == null
-                                ? null
-                                : () {
-                                    context.push(
-                                      AppRoutes.readChapterRead,
-                                      extra: ChapterReadRouteArgs(
-                                        bookId: data.book.id,
-                                        chapterNumber:
-                                            data.previousChapter!.number,
-                                      ),
-                                    );
-                                  },
-                            child: const Text('Previous'),
-                          ),
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Save from this chapter',
+                  subtitle:
+                      'Bookmark it, save a key highlight, or add a private note.',
+                  icon: Icons.bookmark_outline_rounded,
+                  child: Column(
+                    children: <Widget>[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _saveBusy
+                              ? null
+                              : () => _saveBookmark(data),
+                          icon: const Icon(Icons.bookmark_add_outlined),
+                          label: const Text('Save bookmark'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: data.nextChapter == null
-                                ? null
-                                : () {
-                                    context.push(
-                                      AppRoutes.readChapterRead,
-                                      extra: ChapterReadRouteArgs(
-                                        bookId: data.book.id,
-                                        chapterNumber: data.nextChapter!.number,
-                                      ),
-                                    );
-                                  },
-                            child: const Text('Next'),
-                          ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _saveBusy
+                              ? null
+                              : () => _saveHighlight(data),
+                          icon: const Icon(Icons.highlight_alt_outlined),
+                          label: const Text('Save highlight'),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'More ways to move through scripture',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.readReferenceSearch),
-                        child: const Text('Search by reference'),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.readContinueReading),
-                        child: const Text('Continue reading'),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _saveBusy
+                              ? null
+                              : () => _showNoteComposer(data),
+                          icon: const Icon(Icons.edit_note_outlined),
+                          label: const Text('Add note'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: AppSpacing.lg),
+                ReadInfoCard(
+                  title: 'Keep reading',
+                  icon: Icons.auto_awesome_outlined,
+                  child: Column(
+                    children: <Widget>[
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            context.push(
+                              AppRoutes.readBookDetail,
+                              extra: ReadBookRouteArgs(bookId: data.book.id),
+                            );
+                          },
+                          child: const Text('Back to book detail'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: data.previousChapter == null
+                                  ? null
+                                  : () {
+                                      context.push(
+                                        AppRoutes.readChapterRead,
+                                        extra: ChapterReadRouteArgs(
+                                          bookId: data.book.id,
+                                          chapterNumber:
+                                              data.previousChapter!.number,
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Previous'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: data.nextChapter == null
+                                  ? null
+                                  : () {
+                                      context.push(
+                                        AppRoutes.readChapterRead,
+                                        extra: ChapterReadRouteArgs(
+                                          bookId: data.book.id,
+                                          chapterNumber:
+                                              data.nextChapter!.number,
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Next'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'More ways to move through scripture',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.readReferenceSearch),
+                          child: const Text('Search by reference'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.readContinueReading),
+                          child: const Text('Continue reading'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -805,10 +812,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
 }
 
 class _ReadNoteDraft {
-  const _ReadNoteDraft({
-    required this.title,
-    required this.body,
-  });
+  const _ReadNoteDraft({required this.title, required this.body});
 
   final String title;
   final String body;
@@ -1290,7 +1294,7 @@ Widget _buildReadScaffold<T>({
           return const _ReadEmptyBody();
         }
 
-        return dataBuilder(context, data);
+        return AppReveal(child: dataBuilder(context, data));
       },
     ),
   );
@@ -1301,16 +1305,10 @@ class _ReadLoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: const <Widget>[
-        AppLoadingCard(
-          title: 'Loading reading content',
-          subtitle:
-              'Preparing books, chapters, and your recent reading state.',
-          icon: Icons.menu_book_outlined,
-        ),
-      ],
+    return const AppPageLoader(
+      title: 'Loading reading content',
+      subtitle: 'Preparing books, chapters, and your recent reading state.',
+      icon: Icons.menu_book_outlined,
     );
   }
 }
@@ -1627,10 +1625,7 @@ String _normalizedSectionText(String value) {
   return value.trim();
 }
 
-String _displayChapterTitle({
-  required ReadChapter chapter,
-  String? bookName,
-}) {
+String _displayChapterTitle({required ReadChapter chapter, String? bookName}) {
   final String normalizedTitle = _normalizedSectionText(chapter.title);
   if (normalizedTitle.isEmpty) {
     return '';

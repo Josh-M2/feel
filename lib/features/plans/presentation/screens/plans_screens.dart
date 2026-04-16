@@ -6,7 +6,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/app_loading_card.dart';
+import '../../../../shared/widgets/app_page_loader.dart';
+import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../data/public/supabase_plans_repository.dart';
 import '../../domain/models/reading_plan.dart';
@@ -83,17 +84,19 @@ class PlansListScreen extends StatelessWidget {
     final ReadingPlan continuePlan = data.continuePlan ?? data.plans.first;
     final PlanDay continueDay = data.currentDay ?? continuePlan.resolvedCurrentDay;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: <Widget>[
+    return AppReveal(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
         AppCard(
+          variant: AppCardVariant.primary,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
                 'Continue your plan',
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.accentStrong,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -106,7 +109,7 @@ class PlansListScreen extends StatelessWidget {
               Text(
                 continuePlan.progressLabel,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.accentStrong,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -172,7 +175,8 @@ class PlansListScreen extends StatelessWidget {
             ),
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -244,9 +248,10 @@ class PlanDetailScreen extends StatelessWidget {
     final ReadingPlan plan = data.plan;
     final PlanDay currentDay = data.currentDay;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: <Widget>[
+    return AppReveal(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,7 +386,8 @@ class PlanDetailScreen extends StatelessWidget {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -439,9 +445,10 @@ class PlanDayReadScreen extends StatelessWidget {
     final PlanDay? previousDay = data.previousDay;
     final PlanDay? nextDay = data.nextDay;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: <Widget>[
+    return AppReveal(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +580,8 @@ class PlanDayReadScreen extends StatelessWidget {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -652,9 +660,10 @@ class PlansProgressScreen extends StatelessWidget {
     final _PlansProgressScreenData data =
         snapshot.data ?? const _PlansProgressScreenData.empty();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: <Widget>[
+    return AppReveal(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        children: <Widget>[
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -738,7 +747,8 @@ class PlansProgressScreen extends StatelessWidget {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -955,15 +965,10 @@ class _PlansLoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: <Widget>[
-        AppLoadingCard(
-          title: title,
-          subtitle: subtitle,
-          icon: Icons.menu_book_outlined,
-        ),
-      ],
+    return AppPageLoader(
+      title: title,
+      subtitle: subtitle,
+      icon: Icons.menu_book_outlined,
     );
   }
 }

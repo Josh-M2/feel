@@ -6,6 +6,8 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_page_loader.dart';
+import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../data/local/local_first_saved_library_repository.dart';
 import '../../domain/models/saved_item.dart';
@@ -38,13 +40,14 @@ class SavedBookmarksScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               AppCard(
+                variant: AppCardVariant.primary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       'Your saved library',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.accentStrong,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -479,7 +482,7 @@ Widget _buildSavedScaffold<T>({
           return const _SavedEmptyBody();
         }
 
-        return dataBuilder(context, data);
+        return AppReveal(child: dataBuilder(context, data));
       },
     ),
   );
@@ -490,20 +493,10 @@ class _SavedLoadingBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      children: const <Widget>[
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              CircularProgressIndicator(),
-              SizedBox(height: AppSpacing.lg),
-              Text('Loading saved library...'),
-            ],
-          ),
-        ),
-      ],
+    return const AppPageLoader(
+      title: 'Loading saved library',
+      subtitle: 'Preparing bookmarks, highlights, notes, and recent history.',
+      icon: Icons.bookmark_outline_rounded,
     );
   }
 }

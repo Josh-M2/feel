@@ -44,13 +44,14 @@ class ProfileOverviewScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               AppCard(
+                variant: AppCardVariant.primary,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       'Current mode',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.accentStrong,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

@@ -22,15 +22,29 @@ class AppActionIconButton extends StatelessWidget {
     return Tooltip(
       message: tooltip ?? '',
       child: Material(
-        color: AppColors.surfaceMuted,
+        color: AppColors.surfaceInteractive,
         borderRadius: borderRadius,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: onPressed,
-          child: SizedBox(
-            width: 42,
-            height: 42,
-            child: Icon(icon, color: AppColors.textPrimary, size: 20),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceInteractive,
+            borderRadius: borderRadius,
+            border: Border.all(color: AppColors.border),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x0D2B486D),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: InkWell(
+            borderRadius: borderRadius,
+            onTap: onPressed,
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Icon(icon, color: AppColors.accentStrong, size: 20),
+            ),
           ),
         ),
       ),
