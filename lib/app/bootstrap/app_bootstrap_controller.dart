@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/local_storage/guest_local_store.dart';
 import '../../core/preferences/app_preference_snapshot.dart';
+import '../../core/preferences/app_preference_sync_models.dart';
 import '../../core/session/app_session_snapshot.dart';
 import '../../features/auth/domain/models/auth_action_result.dart';
 import '../../features/auth/domain/models/user_profile_record.dart';
@@ -19,7 +20,7 @@ import '../../features/today/domain/repositories/today_repository.dart';
 import '../../features/today/domain/repositories/widget_data_bridge.dart';
 import '../router/app_routes.dart';
 
-class AppBootstrapController extends ChangeNotifier {
+class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver {
   AppBootstrapController({
     required GuestLocalStore guestLocalStore,
     required SessionRepository sessionRepository,
@@ -46,9 +47,11 @@ class AppBootstrapController extends ChangeNotifier {
   final WidgetPluginBridge _widgetPluginBridge;
 
   AppPreferenceSnapshot _preferences = AppPreferenceSnapshot.defaults();
+  AppPreferenceLocalState _preferenceState = AppPreferenceLocalState.defaults();
   AppSessionSnapshot _session = AppSessionSnapshot.guest();
   UserProfileRecord? _profile;
   StreamSubscription<AppSessionSnapshot>? _sessionSubscription;
+  Timer? _pendingPreferenceSyncTimer;
 
   bool _isInitializing = false;
   String? _initializationError;
@@ -56,6 +59,8 @@ class AppBootstrapController extends ChangeNotifier {
   String? _authFeedbackMessage;
   String? _pendingAuthRedirect;
   String? _hydratedAccountUserId;
+  bool _reconcilingPreferences = false;
+  bool _widgetObserverRegistered = false;
 
   bool get isInitializing => _isInitializing;
   String? get initializationError => _initializationError;
@@ -102,9 +107,17 @@ class AppBootstrapController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _preferences = await _guestLocalStore.load();
+      if (!_widgetObserverRegistered) {
+        WidgetsBinding.instance.addObserver(this);
+        _widgetObserverRegistered = true;
+      }
+
+      _preferenceState = await _guestLocalStore.load();
+      _preferences = _preferenceState.snapshot;
       _session = await _sessionRepository.getCurrentSession();
-      await _loadActiveProfileAndPreferences();
+
+      await _loadActiveProfile();
+      await _reconcileSignedInPreferences(reason: 'bootstrap');
       await _hydrateAccountBackedData();
       await _sessionSubscription?.cancel();
       _sessionSubscription = _sessionRepository.watchSessionChanges().listen(
@@ -112,6 +125,7 @@ class AppBootstrapController extends ChangeNotifier {
           unawaited(_handleSessionSnapshot(snapshot));
         },
       );
+      _configurePendingPreferenceSyncRetry();
       await _syncWidgetPayload();
     } catch (error) {
       _initializationError =
@@ -120,6 +134,13 @@ class AppBootstrapController extends ChangeNotifier {
 
     _isInitializing = false;
     notifyListeners();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_reconcileSignedInPreferences(reason: 'app-resumed'));
+    }
   }
 
   Future<void> _handleSessionSnapshot(AppSessionSnapshot snapshot) async {
@@ -145,30 +166,36 @@ class AppBootstrapController extends ChangeNotifier {
         break;
     }
 
-    await _loadActiveProfileAndPreferences();
-    await _hydrateAccountBackedData(force: snapshot.event == AppAuthEvent.signedIn);
+    if (_session.isAuthenticated) {
+      await _loadActiveProfile();
+      await _reconcileSignedInPreferences(
+        reason: 'session-${snapshot.event.name}',
+      );
+      await _hydrateAccountBackedData(force: snapshot.event == AppAuthEvent.signedIn);
+    } else {
+      _profile = null;
+      _hydratedAccountUserId = null;
+      _preferenceState = await _guestLocalStore.load();
+      _preferences = _preferenceState.snapshot;
+    }
+
+    _configurePendingPreferenceSyncRetry();
     await _syncWidgetPayload();
     notifyListeners();
   }
 
-  Future<void> _loadActiveProfileAndPreferences() async {
+  Future<void> _loadActiveProfile() async {
     if (_session.isAuthenticated && _session.userId != null) {
-      final String userId = _session.userId!;
-      _profile = await _profileRepository.getProfile(userId);
-      final AppPreferenceSnapshot? remoteSnapshot =
-          await _preferencesRepository.getSnapshot(userId);
-      if (remoteSnapshot != null) {
-        _preferences = remoteSnapshot.copyWith(
-          supportState: _preferences.supportState,
-        );
-        await _guestLocalStore.save(_preferences);
+      try {
+        _profile = await _profileRepository.getProfile(_session.userId!);
+      } catch (_) {
+        _profile = null;
       }
       return;
     }
 
     _profile = null;
     _hydratedAccountUserId = null;
-    _preferences = await _guestLocalStore.load();
   }
 
   Future<void> _hydrateAccountBackedData({bool force = false}) async {
@@ -216,67 +243,81 @@ class AppBootstrapController extends ChangeNotifier {
       next.add(category);
     }
 
-    _preferences = _preferences.copyWith(selectedCategories: next);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(selectedCategories: next),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.content},
+    );
   }
 
   void setDailyNotificationTime(TimeOfDay value) {
-    _preferences = _preferences.copyWith(dailyNotificationTime: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(dailyNotificationTime: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.notifications},
+    );
   }
 
   void setNotificationsEnabled(bool value) {
-    _preferences = _preferences.copyWith(notificationsEnabled: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(notificationsEnabled: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.notifications},
+    );
   }
 
   void setPreferredTranslationCode(String value) {
-    _preferences = _preferences.copyWith(
-      preferredTranslationCode: AppConstants.sanitizeTranslationCode(value),
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(
+        preferredTranslationCode: AppConstants.sanitizeTranslationCode(value),
+      ),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.content},
     );
-    notifyListeners();
-    unawaited(_persistPreferences());
   }
 
   void setWidgetPreviewStyle(WidgetPreviewStyle value) {
-    _preferences = _preferences.copyWith(widgetPreviewStyle: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(widgetPreviewStyle: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
+    );
   }
 
   void setWidgetShowReference(bool value) {
-    _preferences = _preferences.copyWith(widgetShowReference: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(widgetShowReference: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
+    );
   }
 
   void setWidgetShowCategory(bool value) {
-    _preferences = _preferences.copyWith(widgetShowCategory: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(widgetShowCategory: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
+    );
   }
 
   void setWidgetShowDate(bool value) {
-    _preferences = _preferences.copyWith(widgetShowDate: value);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(widgetShowDate: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
+    );
   }
 
   void completeOnboarding() {
-    _preferences = _preferences.copyWith(onboardingCompleted: true);
-    notifyListeners();
-    unawaited(_persistPreferences());
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(onboardingCompleted: true),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.content},
+    );
   }
 
   void resetOnboarding() {
-    _preferences = AppPreferenceSnapshot.defaults().copyWith(
-      supportState: _preferences.supportState,
+    _applyPreferenceMutation(
+      nextPreferences: AppPreferenceSnapshot.defaults().copyWith(
+        supportState: _preferences.supportState,
+      ),
+      domains: const <AppPreferenceDomain>{
+        AppPreferenceDomain.content,
+        AppPreferenceDomain.notifications,
+        AppPreferenceDomain.widget,
+      },
     );
-    notifyListeners();
-    unawaited(_persistPreferences());
   }
 
   void toggleSupportState() {
@@ -285,8 +326,9 @@ class AppBootstrapController extends ChangeNotifier {
           ? SupportState.closed
           : SupportState.open,
     );
+    _preferenceState = _preferenceState.copyWith(snapshot: _preferences);
     notifyListeners();
-    unawaited(_guestLocalStore.save(_preferences));
+    unawaited(_persistLocalPreferenceState());
   }
 
   Future<AuthActionResult> signInWithEmail({
@@ -341,14 +383,183 @@ class AppBootstrapController extends ChangeNotifier {
     }
   }
 
-  Future<void> _persistPreferences() async {
-    await _guestLocalStore.save(_preferences);
+  void _applyPreferenceMutation({
+    required AppPreferenceSnapshot nextPreferences,
+    required Set<AppPreferenceDomain> domains,
+  }) {
+    final DateTime timestamp = DateTime.now().toUtc();
+    _preferences = nextPreferences;
 
-    if (_session.isAuthenticated && _session.userId != null) {
-      await _preferencesRepository.saveSnapshot(_session.userId!, _preferences);
+    AppPreferenceLocalState nextState = _preferenceState.copyWith(
+      snapshot: nextPreferences,
+    );
+    for (final AppPreferenceDomain domain in domains) {
+      nextState = nextState.markLocalChange(
+        domain: domain,
+        timestamp: timestamp,
+        pendingUserId: _session.isAuthenticated ? _session.userId : null,
+        snapshot: nextPreferences,
+      );
     }
 
+    _preferenceState = nextState;
+    notifyListeners();
+    unawaited(_persistPreferences(domains: domains));
+  }
+
+  Future<void> _persistPreferences({
+    required Set<AppPreferenceDomain> domains,
+  }) async {
+    await _persistLocalPreferenceState();
+    if (_session.isAuthenticated && _session.userId != null) {
+      await _reconcileSignedInPreferences(
+        reason: 'local-${domains.map((AppPreferenceDomain item) => item.name).join('-')}',
+      );
+    } else {
+      _configurePendingPreferenceSyncRetry();
+    }
     await _syncWidgetPayload();
+  }
+
+  Future<void> _persistLocalPreferenceState() async {
+    await _guestLocalStore.save(_preferenceState.copyWith(snapshot: _preferences));
+  }
+
+  Future<void> _reconcileSignedInPreferences({
+    required String reason,
+  }) async {
+    final String? userId = _session.userId;
+    if (!_session.isAuthenticated || userId == null || _reconcilingPreferences) {
+      return;
+    }
+
+    _reconcilingPreferences = true;
+    try {
+      AccountPreferenceSyncSnapshot? remoteSnapshot;
+      try {
+        remoteSnapshot = await _preferencesRepository.getSyncSnapshot(userId);
+      } catch (_) {
+        remoteSnapshot = null;
+      }
+
+      AppPreferenceSnapshot mergedPreferences = _preferences;
+      AppPreferenceLocalState mergedState = _preferenceState.copyWith(
+        snapshot: _preferences,
+      );
+      final Set<AppPreferenceDomain> domainsToPush = <AppPreferenceDomain>{};
+
+      if (remoteSnapshot != null) {
+        for (final AppPreferenceDomain domain in AppPreferenceDomain.values) {
+          final AppPreferenceDomainSyncState localDomainState = mergedState.stateFor(
+            domain,
+          );
+          final DateTime? remoteUpdatedAt = remoteSnapshot.updatedAtFor(domain);
+          final bool localPending = localDomainState.hasPendingSyncForUser(userId);
+
+          if (remoteUpdatedAt == null) {
+            if (localPending) {
+              domainsToPush.add(domain);
+            }
+            continue;
+          }
+
+          if (localPending && localDomainState.updatedAt.isAfter(remoteUpdatedAt)) {
+            domainsToPush.add(domain);
+            continue;
+          }
+
+          mergedPreferences = mergedPreferences.copyDomainFrom(
+            other: remoteSnapshot.snapshot,
+            domain: domain,
+          );
+          mergedState = mergedState.markSynced(
+            domain: domain,
+            timestamp: remoteUpdatedAt,
+            userId: userId,
+            snapshot: mergedPreferences,
+          );
+        }
+      } else {
+        for (final AppPreferenceDomain domain in AppPreferenceDomain.values) {
+          if (mergedState.stateFor(domain).hasPendingSyncForUser(userId)) {
+            domainsToPush.add(domain);
+          }
+        }
+      }
+
+      _preferences = mergedPreferences;
+      _preferenceState = mergedState.copyWith(snapshot: mergedPreferences);
+      await _persistLocalPreferenceState();
+
+      if (domainsToPush.isNotEmpty) {
+        final AccountPreferenceSyncSnapshot? savedSnapshot =
+            await _preferencesRepository.saveSnapshot(
+              userId: userId,
+              snapshot: _preferences,
+              domains: domainsToPush,
+            );
+        if (savedSnapshot != null) {
+          _applyRemotePreferenceSnapshot(savedSnapshot, userId: userId);
+          await _persistLocalPreferenceState();
+        }
+      }
+    } catch (_) {
+      // Signed-in offline mode should keep the local cache usable without surfacing sync failures.
+    } finally {
+      _reconcilingPreferences = false;
+      _configurePendingPreferenceSyncRetry();
+      notifyListeners();
+    }
+  }
+
+  void _applyRemotePreferenceSnapshot(
+    AccountPreferenceSyncSnapshot remoteSnapshot, {
+    required String userId,
+  }) {
+    AppPreferenceSnapshot nextPreferences = _preferences;
+    AppPreferenceLocalState nextState = _preferenceState.copyWith(
+      snapshot: _preferences,
+    );
+
+    for (final AppPreferenceDomain domain in AppPreferenceDomain.values) {
+      final DateTime? remoteUpdatedAt = remoteSnapshot.updatedAtFor(domain);
+      if (remoteUpdatedAt == null) {
+        continue;
+      }
+
+      nextPreferences = nextPreferences.copyDomainFrom(
+        other: remoteSnapshot.snapshot,
+        domain: domain,
+      );
+      nextState = nextState.markSynced(
+        domain: domain,
+        timestamp: remoteUpdatedAt,
+        userId: userId,
+        snapshot: nextPreferences,
+      );
+    }
+
+    _preferences = nextPreferences;
+    _preferenceState = nextState.copyWith(snapshot: nextPreferences);
+  }
+
+  void _configurePendingPreferenceSyncRetry() {
+    _pendingPreferenceSyncTimer?.cancel();
+    _pendingPreferenceSyncTimer = null;
+
+    if (!_preferenceState.hasPendingSyncForUser(_session.userId)) {
+      return;
+    }
+
+    _pendingPreferenceSyncTimer = Timer.periodic(
+      const Duration(seconds: 45),
+      (_) {
+        if (_reconcilingPreferences) {
+          return;
+        }
+        unawaited(_reconcileSignedInPreferences(reason: 'retry'));
+      },
+    );
   }
 
   Future<void> _syncWidgetPayload() async {
@@ -364,6 +575,10 @@ class AppBootstrapController extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_widgetObserverRegistered) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
+    _pendingPreferenceSyncTimer?.cancel();
     unawaited(_sessionSubscription?.cancel());
     super.dispose();
   }

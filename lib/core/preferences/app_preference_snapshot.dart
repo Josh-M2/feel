@@ -6,6 +6,8 @@ enum SupportState { open, closed }
 
 enum WidgetPreviewStyle { cozy, minimal }
 
+enum AppPreferenceDomain { content, notifications, widget }
+
 class AppPreferenceSnapshot {
   const AppPreferenceSnapshot({
     required this.onboardingCompleted,
@@ -181,6 +183,32 @@ class AppPreferenceSnapshot {
       widgetShowCategory: resolvedWidgetRow['widget_show_category'] != false,
       widgetShowDate: resolvedWidgetRow['widget_show_date'] != false,
     );
+  }
+
+  AppPreferenceSnapshot copyDomainFrom({
+    required AppPreferenceSnapshot other,
+    required AppPreferenceDomain domain,
+  }) {
+    switch (domain) {
+      case AppPreferenceDomain.content:
+        return copyWith(
+          onboardingCompleted: other.onboardingCompleted,
+          selectedCategories: other.selectedCategories,
+          preferredTranslationCode: other.preferredTranslationCode,
+        );
+      case AppPreferenceDomain.notifications:
+        return copyWith(
+          notificationsEnabled: other.notificationsEnabled,
+          dailyNotificationTime: other.dailyNotificationTime,
+        );
+      case AppPreferenceDomain.widget:
+        return copyWith(
+          widgetPreviewStyle: other.widgetPreviewStyle,
+          widgetShowReference: other.widgetShowReference,
+          widgetShowCategory: other.widgetShowCategory,
+          widgetShowDate: other.widgetShowDate,
+        );
+    }
   }
 
   static TimeOfDay _timeOfDayFromRemote(String? value) {
