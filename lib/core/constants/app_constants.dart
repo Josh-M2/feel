@@ -51,6 +51,35 @@ class AppConstants {
 
   static const String defaultTranslationCode = 'kjv';
 
+  static const Map<String, String> _categoryKeyByLabel = <String, String>{
+    'Guidance': 'guidance',
+    'Hope': 'hope',
+    'Strength': 'strength',
+    'Peace Over Anxiety': 'peace_over_anxiety',
+    'Comfort and Healing': 'comfort_and_healing',
+    'Faith in Doubt': 'faith_in_doubt',
+    'Obedience': 'obedience',
+    'Forgiveness': 'forgiveness',
+    'Purpose and Calling': 'purpose_and_calling',
+    'Love and Relationships': 'love_and_relationships',
+    'Gratitude and Joy': 'gratitude_and_joy',
+  };
+
+  static String categoryKeyForLabel(String? label) {
+    final String normalized = (label ?? '').trim();
+    return _categoryKeyByLabel[normalized] ?? 'guidance';
+  }
+
+  static String categoryLabelForKey(String? key) {
+    final String normalized = (key ?? '').trim().toLowerCase();
+    for (final MapEntry<String, String> entry in _categoryKeyByLabel.entries) {
+      if (entry.value == normalized) {
+        return entry.key;
+      }
+    }
+    return v1Categories.first;
+  }
+
   static String sanitizeTranslationCode(String? raw) {
     final String normalized = (raw ?? '').trim().toLowerCase();
     for (final BibleTranslationOption option in supportedTranslations) {

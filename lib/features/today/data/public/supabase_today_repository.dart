@@ -499,32 +499,46 @@ class SupabaseTodayRepository implements TodayRepository {
       );
     }
 
-    final List<DailyVersePoolEntry> pool = await _loadPool(
+    final List<DailyVersePoolEntry> editorialOverrides = await _loadPool(
+      preferredTranslationCode: effectiveTranslationCode,
+    );
+    final String preferredCategory = _preferredCategoryForDate(
+      selectedCategories: effectiveCategories,
+      dateKey: dateKey,
+    );
+    final List<_DailyVerseCandidate> mappedCandidates =
+        await _loadCategoryMappedCandidates(
+          selectedCategories: effectiveCategories,
+          preferredTranslationCode: effectiveTranslationCode,
+        );
+    final List<_DailyVerseCandidate> catalogCandidates = await _loadVerseCatalog(
       preferredTranslationCode: effectiveTranslationCode,
     );
     final List<String> recentReferences = await _loadRecentReferences(
       localSnapshot: localSnapshot,
       userId: userId,
     );
-    final DailyVersePoolEntry entry = _choosePoolEntry(
-      pool: pool,
-      selectedCategories: effectiveCategories,
-      dateKey: dateKey,
+    final _DailyVerseCandidate candidate = _chooseCandidate(
+      mappedCandidates: mappedCandidates,
+      catalogCandidates: catalogCandidates,
+      preferredCategory: preferredCategory,
       recentReferences: recentReferences,
+      dateKey: dateKey,
     );
-    final _ResolvedVerseSnapshot? resolvedVerse = entry.hasNormalizedReference
-        ? await _resolveScriptureFromCoordinates(
-            bookId: entry.bookId,
-            chapterNumber: entry.chapterNumber,
-            verseStart: entry.verseStart,
-            verseEnd: entry.verseEnd,
-            referenceLabel: entry.reference,
-            preferredTranslationCode: effectiveTranslationCode,
-          )
-        : await _resolveScriptureFromSupabase(
-            reference: entry.reference,
-            preferredTranslationCode: effectiveTranslationCode,
-          );
+    final DailyVersePoolEntry entry = _buildEntryForCandidate(
+      candidate: candidate,
+      assignedCategory: preferredCategory,
+      editorialOverrides: editorialOverrides,
+    );
+    final _ResolvedVerseSnapshot? resolvedVerse =
+        await _resolveScriptureFromCoordinates(
+          bookId: entry.bookId,
+          chapterNumber: entry.chapterNumber,
+          verseStart: entry.verseStart,
+          verseEnd: entry.verseEnd,
+          referenceLabel: entry.reference,
+          preferredTranslationCode: effectiveTranslationCode,
+        );
 
     final TodayAssignmentLocalRecord record = TodayAssignmentLocalRecord(
       dateKey: dateKey,
@@ -1075,60 +1089,272 @@ class SupabaseTodayRepository implements TodayRepository {
     return references.toList(growable: false);
   }
 
-  DailyVersePoolEntry _choosePoolEntry({
-    required List<DailyVersePoolEntry> pool,
+  String _preferredCategoryForDate({
     required List<String> selectedCategories,
     required String dateKey,
-    required List<String> recentReferences,
   }) {
-    final List<DailyVersePoolEntry> activePool = pool.isEmpty
-        ? _fallbackPool
-        : pool;
-    final List<DailyVersePoolEntry> categoryMatches = activePool
-        .where(
-          (DailyVersePoolEntry item) =>
-              selectedCategories.contains(item.category),
-        )
-        .toList(growable: false);
-    final List<DailyVersePoolEntry> scopedPool = categoryMatches.isEmpty
-        ? activePool
-        : categoryMatches;
-
     final int categoryIndex = _stableHash(dateKey) % selectedCategories.length;
-    final String preferredCategory = selectedCategories[categoryIndex];
+    return selectedCategories[categoryIndex];
+  }
 
-    List<DailyVersePoolEntry> ranked = scopedPool
-        .where((DailyVersePoolEntry item) => item.category == preferredCategory)
+  Future<List<_DailyVerseCandidate>> _loadCategoryMappedCandidates({
+    required List<String> selectedCategories,
+    required String preferredTranslationCode,
+  }) async {
+    if (!_isConfigured) {
+      return const <_DailyVerseCandidate>[];
+    }
+
+    final List<String> categoryKeys = selectedCategories
+        .map(AppConstants.categoryKeyForLabel)
         .toList(growable: false);
-    ranked = _withoutRecentReferences(ranked, recentReferences);
+    if (categoryKeys.isEmpty) {
+      return const <_DailyVerseCandidate>[];
+    }
+
+    final String translationCode = AppConstants.sanitizeTranslationCode(
+      preferredTranslationCode,
+    );
+
+    try {
+      List<dynamic> rows = await _client!
+          .from('content_verse_category_mappings')
+          .select(
+            'category_key, translation_code, book_id, chapter_number, verse_start, verse_end, reference_label, weight',
+          )
+          .eq('is_active', true)
+          .eq('translation_code', translationCode)
+          .inFilter('category_key', categoryKeys);
+
+      if (rows.isEmpty && translationCode != 'kjv') {
+        rows = await _client!
+            .from('content_verse_category_mappings')
+            .select(
+              'category_key, translation_code, book_id, chapter_number, verse_start, verse_end, reference_label, weight',
+            )
+            .eq('is_active', true)
+            .eq('translation_code', 'kjv')
+            .inFilter('category_key', categoryKeys);
+      }
+
+      return rows
+          .map(
+            (dynamic item) => _DailyVerseCandidate.fromCategoryMappingRow(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <_DailyVerseCandidate>[];
+    }
+  }
+
+  Future<List<_DailyVerseCandidate>> _loadVerseCatalog({
+    required String preferredTranslationCode,
+  }) async {
+    if (!_isConfigured) {
+      return _fallbackPool
+          .map(
+            (DailyVersePoolEntry item) => _DailyVerseCandidate(
+              category: item.category,
+              translationCode: item.translationCode,
+              bookId: item.bookId,
+              chapterNumber: item.chapterNumber,
+              verseStart: item.verseStart,
+              verseEnd: item.verseEnd,
+              reference: item.reference,
+              weight: 1,
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    final String translationCode = AppConstants.sanitizeTranslationCode(
+      preferredTranslationCode,
+    );
+
+    try {
+      List<dynamic> rows = await _client!
+          .from('content_daily_verse_catalog')
+          .select(
+            'translation_code, book_id, chapter_number, verse_number, reference_label',
+          )
+          .eq('is_active', true)
+          .eq('translation_code', translationCode)
+          .order('book_id', ascending: true)
+          .order('chapter_number', ascending: true)
+          .order('verse_number', ascending: true);
+
+      if (rows.isEmpty && translationCode != 'kjv') {
+        rows = await _client!
+            .from('content_daily_verse_catalog')
+            .select(
+              'translation_code, book_id, chapter_number, verse_number, reference_label',
+            )
+            .eq('is_active', true)
+            .eq('translation_code', 'kjv')
+            .order('book_id', ascending: true)
+            .order('chapter_number', ascending: true)
+            .order('verse_number', ascending: true);
+      }
+
+      return rows
+          .map(
+            (dynamic item) => _DailyVerseCandidate.fromCatalogRow(
+              Map<String, dynamic>.from(item as Map),
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return _fallbackPool
+          .map(
+            (DailyVersePoolEntry item) => _DailyVerseCandidate(
+              category: item.category,
+              translationCode: item.translationCode,
+              bookId: item.bookId,
+              chapterNumber: item.chapterNumber,
+              verseStart: item.verseStart,
+              verseEnd: item.verseEnd,
+              reference: item.reference,
+              weight: 1,
+            ),
+          )
+          .toList(growable: false);
+    }
+  }
+
+  _DailyVerseCandidate _chooseCandidate({
+    required List<_DailyVerseCandidate> mappedCandidates,
+    required List<_DailyVerseCandidate> catalogCandidates,
+    required String preferredCategory,
+    required List<String> recentReferences,
+    required String dateKey,
+  }) {
+    const int minimumRobustMappedPool = 30;
+
+    if (catalogCandidates.isNotEmpty &&
+        mappedCandidates.length < minimumRobustMappedPool) {
+      final List<_DailyVerseCandidate> rankedCatalog =
+          _withoutRecentCandidateReferences(catalogCandidates, recentReferences);
+      final List<_DailyVerseCandidate> catalogSource = rankedCatalog.isNotEmpty
+          ? rankedCatalog
+          : catalogCandidates;
+      return catalogSource[_stableHash('$dateKey-catalog-$preferredCategory') %
+          catalogSource.length];
+    }
+
+    List<_DailyVerseCandidate> ranked = mappedCandidates
+        .where((item) => item.category == preferredCategory)
+        .toList(growable: false);
+    ranked = _withoutRecentCandidateReferences(ranked, recentReferences);
     if (ranked.isNotEmpty) {
       return ranked[_stableHash('$dateKey-$preferredCategory') % ranked.length];
     }
 
-    ranked = _withoutRecentReferences(scopedPool, recentReferences);
+    ranked = _withoutRecentCandidateReferences(mappedCandidates, recentReferences);
     if (ranked.isNotEmpty) {
       return ranked[_stableHash(dateKey) % ranked.length];
     }
 
-    final List<DailyVersePoolEntry> fallbackCategory = scopedPool
-        .where((DailyVersePoolEntry item) => item.category == preferredCategory)
-        .toList(growable: false);
-    if (fallbackCategory.isNotEmpty) {
-      return fallbackCategory[_stableHash(dateKey) % fallbackCategory.length];
+    if (catalogCandidates.isNotEmpty) {
+      final List<_DailyVerseCandidate> rankedCatalog =
+          _withoutRecentCandidateReferences(catalogCandidates, recentReferences);
+      final List<_DailyVerseCandidate> catalogSource = rankedCatalog.isNotEmpty
+          ? rankedCatalog
+          : catalogCandidates;
+      return catalogSource[_stableHash('$dateKey-catalog-$preferredCategory') %
+          catalogSource.length];
     }
 
-    return scopedPool[_stableHash(dateKey) % scopedPool.length];
+    if (mappedCandidates.isNotEmpty) {
+      return mappedCandidates[_stableHash(dateKey) % mappedCandidates.length];
+    }
+
+    final DailyVersePoolEntry fallback =
+        _fallbackPool[_stableHash(dateKey) % _fallbackPool.length];
+    return _DailyVerseCandidate(
+      category: fallback.category,
+      translationCode: fallback.translationCode,
+      bookId: fallback.bookId,
+      chapterNumber: fallback.chapterNumber,
+      verseStart: fallback.verseStart,
+      verseEnd: fallback.verseEnd,
+      reference: fallback.reference,
+      weight: 1,
+    );
   }
 
-  List<DailyVersePoolEntry> _withoutRecentReferences(
-    List<DailyVersePoolEntry> pool,
+  List<_DailyVerseCandidate> _withoutRecentCandidateReferences(
+    List<_DailyVerseCandidate> candidates,
     List<String> recentReferences,
   ) {
     final Set<String> recent = recentReferences.toSet();
-    final List<DailyVersePoolEntry> filtered = pool
-        .where((DailyVersePoolEntry item) => !recent.contains(item.reference))
+    final List<_DailyVerseCandidate> filtered = candidates
+        .where((_DailyVerseCandidate item) => !recent.contains(item.reference))
         .toList(growable: false);
-    return filtered.isEmpty ? pool : filtered;
+    return filtered.isEmpty ? candidates : filtered;
+  }
+
+  DailyVersePoolEntry _buildEntryForCandidate({
+    required _DailyVerseCandidate candidate,
+    required String assignedCategory,
+    required List<DailyVersePoolEntry> editorialOverrides,
+  }) {
+    final String category =
+        candidate.category.isNotEmpty ? candidate.category : assignedCategory;
+    final DailyVersePoolEntry? override = _findEditorialOverride(
+      candidate: candidate,
+      category: category,
+      editorialOverrides: editorialOverrides,
+    );
+    if (override != null) {
+      return override;
+    }
+
+    final DailyVersePoolEntry template = _templateForCategory(category);
+    return DailyVersePoolEntry(
+      id:
+          '${AppConstants.categoryKeyForLabel(category)}-${candidate.bookId}-${candidate.chapterNumber}-${candidate.verseStart}-${candidate.verseEnd}-${candidate.translationCode}',
+      category: category,
+      reference: candidate.reference,
+      translationCode: candidate.translationCode,
+      bookId: candidate.bookId,
+      chapterNumber: candidate.chapterNumber,
+      verseStart: candidate.verseStart,
+      verseEnd: candidate.verseEnd,
+      reflectionPrompt: template.reflectionPrompt,
+      encouragementLine: template.encouragementLine,
+      contextSummary: template.contextSummary,
+      contextSections: template.contextSections,
+      relatedPassages: template.relatedPassages,
+      keyInsights: template.keyInsights,
+      prayer: template.prayer,
+      sortOrder: template.sortOrder,
+    );
+  }
+
+  DailyVersePoolEntry _templateForCategory(String category) {
+    return _fallbackPool.firstWhere(
+      (DailyVersePoolEntry item) => item.category == category,
+      orElse: () => _fallbackPool.first,
+    );
+  }
+
+  DailyVersePoolEntry? _findEditorialOverride({
+    required _DailyVerseCandidate candidate,
+    required String category,
+    required List<DailyVersePoolEntry> editorialOverrides,
+  }) {
+    for (final DailyVersePoolEntry item in editorialOverrides) {
+      if (item.category != category) continue;
+      if (item.translationCode != candidate.translationCode) continue;
+      if (item.bookId != candidate.bookId) continue;
+      if (item.chapterNumber != candidate.chapterNumber) continue;
+      if (item.verseStart != candidate.verseStart) continue;
+      if (item.verseEnd != candidate.verseEnd) continue;
+      return item;
+    }
+    return null;
   }
 
   TodayAssignmentLocalRecord _recordFromRemoteRow(Map<String, dynamic> row) {
@@ -1224,6 +1450,61 @@ class _ReferenceParts {
   final int chapterNumber;
   final int verseStart;
   final int verseEnd;
+}
+
+class _DailyVerseCandidate {
+  const _DailyVerseCandidate({
+    required this.category,
+    required this.translationCode,
+    required this.bookId,
+    required this.chapterNumber,
+    required this.verseStart,
+    required this.verseEnd,
+    required this.reference,
+    required this.weight,
+  });
+
+  final String category;
+  final String translationCode;
+  final String bookId;
+  final int chapterNumber;
+  final int verseStart;
+  final int verseEnd;
+  final String reference;
+  final int weight;
+
+  factory _DailyVerseCandidate.fromCategoryMappingRow(
+    Map<String, dynamic> row,
+  ) {
+    final int verseStart = (row['verse_start'] as num?)?.toInt() ?? 0;
+    final int verseEnd = (row['verse_end'] as num?)?.toInt() ?? verseStart;
+    return _DailyVerseCandidate(
+      category: AppConstants.categoryLabelForKey(
+        row['category_key']?.toString() ?? '',
+      ),
+      translationCode: row['translation_code']?.toString() ?? 'kjv',
+      bookId: row['book_id']?.toString() ?? '',
+      chapterNumber: (row['chapter_number'] as num?)?.toInt() ?? 0,
+      verseStart: verseStart,
+      verseEnd: verseEnd,
+      reference: row['reference_label']?.toString() ?? '',
+      weight: (row['weight'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  factory _DailyVerseCandidate.fromCatalogRow(Map<String, dynamic> row) {
+    final int verseNumber = (row['verse_number'] as num?)?.toInt() ?? 0;
+    return _DailyVerseCandidate(
+      category: '',
+      translationCode: row['translation_code']?.toString() ?? 'kjv',
+      bookId: row['book_id']?.toString() ?? '',
+      chapterNumber: (row['chapter_number'] as num?)?.toInt() ?? 0,
+      verseStart: verseNumber,
+      verseEnd: verseNumber,
+      reference: row['reference_label']?.toString() ?? '',
+      weight: 1,
+    );
+  }
 }
 
 class _ResolvedVerseSnapshot {

@@ -1,0 +1,157 @@
+warning: in the working copy of 'lib/core/constants/app_constants.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/features/today/data/public/supabase_today_repository.dart', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/lib/core/constants/app_constants.dart b/lib/core/constants/app_constants.dart[m
+[1mindex 21e5452..26d1568 100644[m
+[1m--- a/lib/core/constants/app_constants.dart[m
+[1m+++ b/lib/core/constants/app_constants.dart[m
+[36m@@ -51,6 +51,35 @@[m [mclass AppConstants {[m
+ [m
+   static const String defaultTranslationCode = 'kjv';[m
+ [m
+[32m+[m[32m  static const Map<String, String> _categoryKeyByLabel = <String, String>{[m
+[32m+[m[32m    'Guidance': 'guidance',[m
+[32m+[m[32m    'Hope': 'hope',[m
+[32m+[m[32m    'Strength': 'strength',[m
+[32m+[m[32m    'Peace Over Anxiety': 'peace_over_anxiety',[m
+[32m+[m[32m    'Comfort and Healing': 'comfort_and_healing',[m
+[32m+[m[32m    'Faith in Doubt': 'faith_in_doubt',[m
+[32m+[m[32m    'Obedience': 'obedience',[m
+[32m+[m[32m    'Forgiveness': 'forgiveness',[m
+[32m+[m[32m    'Purpose and Calling': 'purpose_and_calling',[m
+[32m+[m[32m    'Love and Relationships': 'love_and_relationships',[m
+[32m+[m[32m    'Gratitude and Joy': 'gratitude_and_joy',[m
+[32m+[m[32m  };[m
+[32m+[m
+[32m+[m[32m  static String categoryKeyForLabel(String? label) {[m
+[32m+[m[32m    final String normalized = (label ?? '').trim();[m
+[32m+[m[32m    return _categoryKeyByLabel[normalized] ?? 'guidance';[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  static String categoryLabelForKey(String? key) {[m
+[32m+[m[32m    final String normalized = (key ?? '').trim().toLowerCase();[m
+[32m+[m[32m    for (final MapEntry<String, String> entry in _categoryKeyByLabel.entries) {[m
+[32m+[m[32m      if (entry.value == normalized) {[m
+[32m+[m[32m        return entry.key;[m
+[32m+[m[32m      }[m
+[32m+[m[32m    }[m
+[32m+[m[32m    return v1Categories.first;[m
+[32m+[m[32m  }[m
+[32m+[m
+   static String sanitizeTranslationCode(String? raw) {[m
+     final String normalized = (raw ?? '').trim().toLowerCase();[m
+     for (final BibleTranslationOption option in supportedTranslations) {[m
+[1mdiff --git a/lib/features/today/data/public/supabase_today_repository.dart b/lib/features/today/data/public/supabase_today_repository.dart[m
+[1mindex a1c1eff..b3aef08 100644[m
+[1m--- a/lib/features/today/data/public/supabase_today_repository.dart[m
+[1m+++ b/lib/features/today/data/public/supabase_today_repository.dart[m
+[36m@@ -499,32 +499,46 @@[m [mclass SupabaseTodayRepository implements TodayRepository {[m
+       );[m
+     }[m
+ [m
+[31m-    final List<DailyVersePoolEntry> pool = await _loadPool([m
+[32m+[m[32m    final List<DailyVersePoolEntry> editorialOverrides = await _loadPool([m
+[32m+[m[32m      preferredTranslationCode: effectiveTranslationCode,[m
+[32m+[m[32m    );[m
+[32m+[m[32m    final String preferredCategory = _preferredCategoryForDate([m
+[32m+[m[32m      selectedCategories: effectiveCategories,[m
+[32m+[m[32m      dateKey: dateKey,[m
+[32m+[m[32m    );[m
+[32m+[m[32m    final List<_DailyVerseCandidate> mappedCandidates =[m
+[32m+[m[32m        await _loadCategoryMappedCandidates([m
+[32m+[m[32m          selectedCategories: effectiveCategories,[m
+[32m+[m[32m          preferredTranslationCode: effectiveTranslationCode,[m
+[32m+[m[32m        );[m
+[32m+[m[32m    final List<_DailyVerseCandidate> catalogCandidates = await _loadVerseCatalog([m
+       preferredTranslationCode: effectiveTranslationCode,[m
+     );[m
+     final List<String> recentReferences = await _loadRecentReferences([m
+       localSnapshot: localSnapshot,[m
+       userId: userId,[m
+     );[m
+[31m-    final DailyVersePoolEntry entry = _choosePoolEntry([m
+[31m-      pool: pool,[m
+[31m-      selectedCategories: effectiveCategories,[m
+[31m-      dateKey: dateKey,[m
+[32m+[m[32m    final _DailyVerseCandidate candidate = _chooseCandidate([m
+[32m+[m[32m      mappedCandidates: mappedCandidates,[m
+[32m+[m[32m      catalogCandidates: catalogCandidates,[m
+[32m+[m[32m      preferredCategory: preferredCategory,[m
+       recentReferences: recentReferences,[m
+[32m+[m[32m      dateKey: dateKey,[m
+     );[m
+[31m-    final _ResolvedVerseSnapshot? resolvedVerse = entry.hasNormalizedReference[m
+[31m-        ? await _resolveScriptureFromCoordinates([m
+[31m-            bookId: entry.bookId,[m
+[31m-            chapterNumber: entry.chapterNumber,[m
+[31m-            verseStart: entry.verseStart,[m
+[31m-            verseEnd: entry.verseEnd,[m
+[31m-            referenceLabel: entry.reference,[m
+[31m-            preferredTranslationCode: effectiveTranslationCode,[m
+[31m-          )[m
+[31m-        : await _resolveScriptureFromSupabase([m
+[31m-            reference: entry.reference,[m
+[31m-            preferredTranslationCode: effectiveTranslationCode,[m
+[31m-          );[m
+[32m+[m[32m    final DailyVersePoolEntry entry = _buildEntryForCandidate([m
+[32m+[m[32m      candidate: candidate,[m
+[32m+[m[32m      assignedCategory: preferredCategory,[m
+[32m+[m[32m      editorialOverrides: editorialOverrides,[m
+[32m+[m[32m    );[m
+[32m+[m[32m    final _ResolvedVerseSnapshot? resolvedVerse =[m
+[32m+[m[32m        await _resolveScriptureFromCoordinates([m
+[32m+[m[32m          bookId: entry.bookId,[m
+[32m+[m[32m          chapterNumber: entry.chapterNumber,[m
+[32m+[m[32m          verseStart: entry.verseStart,[m
+[32m+[m[32m          verseEnd: entry.verseEnd,[m
+[32m+[m[32m          referenceLabel: entry.reference,[m
+[32m+[m[32m          preferredTranslationCode: effectiveTranslationCode,[m
+[32m+[m[32m        );[m
+ [m
+     final TodayAssignmentLocalRecord record = TodayAssignmentLocalRecord([m
+       dateKey: dateKey,[m
+[36m@@ -1075,60 +1089,272 @@[m [mclass SupabaseTodayRepository implements TodayRepository {[m
+     return references.toList(growable: false);[m
+   }[m
+ [m
+[31m-  DailyVersePoolEntry _choosePoolEntry({[m
+[31m-    required List<DailyVersePoolEntry> pool,[m
+[32m+[m[32m  String _preferredCategoryForDate({[m
+     required List<String> selectedCategories,[m
+     required String dateKey,[m
+[31m-    required List<String> recentReferences,[m
+   }) {[m
+[31m-    final List<DailyVersePoolEntry> activePool = pool.isEmpty[m
+[31m-        ? _fallbackPool[m
+[31m-        : pool;[m
+[31m-    final List<DailyVersePoolEntry> categoryMatches = activePool[m
+[31m-        .where([m
+[31m-          (DailyVersePoolEntry item) =>[m
+[31m-              selectedCategories.contains(item.category),[m
+[31m-        )[m
+[32m+[m[32m    final int categoryIndex = _stableHash(dateKey) % selectedCategories.length;[m
+[32m+[m[32m    return selectedCategories[categoryIndex];[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  Future<List<_DailyVerseCandidate>> _loadCategoryMappedCandidates({[m
+[32m+[m[32m    required List<String> selectedCategories,[m
+[32m+[m[32m    required String preferredTranslationCode,[m
+[32m+[m[32m  }) async {[m
+[32m+[m[32m    if (!_isConfigured) {[m
+[32m+[m[32m      return const <_DailyVerseCandidate>[];[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    final List<String> categoryKeys = selectedCategories[m
+[32m+[m[32m        .map(AppConstants.categoryKeyForLabel)[m
+         .toList(growable: false);[m
+[31m-    final List<DailyVersePoolEntry> scopedPool = categoryMatches.isEmpty[m
+[31m-        ? activePool[m
+[31m-        : categoryMatches;[m
+[32m+[m[32m    if (categoryKeys.isEmpty) {[m
+[32m+[m[32m      return const <_DailyVerseCandidate>[];[m
+[32m+[m[32m    }[m
+ [m
+[31m-    final int categoryIndex = _stableHash(dateKey) % selectedCategories.length;[m
+[31m-    final String preferredCategory = selectedCategories[categoryIndex];[m
+[32m+[m[32m    final String translationCode = AppConstants.sanitizeTranslationCode([m
+[32m+[m[32m      preferredTranslationCode,[m
+[32m+[m[32m    );
