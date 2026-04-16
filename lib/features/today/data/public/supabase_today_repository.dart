@@ -972,7 +972,7 @@ class SupabaseTodayRepository implements TodayRepository {
       final List<dynamic> rows = await _client!
           .from('user_daily_assignments')
           .select(
-            'local_date, category_label, reference_label, translation_code, translation_label, verse_text_snapshot, reflection_prompt, encouragement_line, context_summary, prayer, details_json, assigned_at, opened_at',
+            'local_date, category_key, category_label, book_id, chapter_number, verse_start, verse_end, reference_label, translation_code, translation_label, verse_text_snapshot, reflection_prompt, encouragement_line, context_summary, prayer, details_json, assigned_at, opened_at',
           )
           .eq('user_id', userId)
           .eq('local_date', dateKey)
@@ -990,12 +990,20 @@ class SupabaseTodayRepository implements TodayRepository {
     required TodayAssignmentLocalRecord record,
   }) async {
     if (!_isConfigured) return;
+    final _NormalizedReference? normalizedReference = _normalizedReferenceForRecord(
+      record,
+    );
     try {
       await _client!.from('user_daily_assignments').upsert(<String, dynamic>{
         'user_id': userId,
         'local_date': record.dateKey,
         'timezone_name': DateTime.now().timeZoneName,
+        'category_key': AppConstants.categoryKeyForLabel(record.category),
         'category_label': record.category,
+        'book_id': normalizedReference?.bookId,
+        'chapter_number': normalizedReference?.chapterNumber,
+        'verse_start': normalizedReference?.verseStart,
+        'verse_end': normalizedReference?.verseEnd,
         'reference_label': record.reference,
         'translation_code': record.translationCode,
         'translation_label': record.translationLabel,
@@ -1364,8 +1372,20 @@ class SupabaseTodayRepository implements TodayRepository {
 
     return TodayAssignmentLocalRecord(
       dateKey: row['local_date']?.toString() ?? '',
-      category: row['category_label']?.toString() ?? 'Guidance',
-      reference: row['reference_label']?.toString() ?? '',
+      category:
+          row['category_label']?.toString() ??
+          AppConstants.categoryLabelForKey(row['category_key']?.toString()),
+      reference:
+          row['reference_label']?.toString() ??
+          _buildReferenceLabel(
+            bookId: row['book_id']?.toString() ?? '',
+            chapterNumber: (row['chapter_number'] as num?)?.toInt() ?? 0,
+            verseStart: (row['verse_start'] as num?)?.toInt() ?? 0,
+            verseEnd:
+                (row['verse_end'] as num?)?.toInt() ??
+                (row['verse_start'] as num?)?.toInt() ??
+                0,
+          ),
       translationCode: row['translation_code']?.toString() ?? 'kjv',
       translationLabel: row['translation_label']?.toString() ?? 'KJV',
       verseText: row['verse_text_snapshot']?.toString() ?? '',
@@ -1436,6 +1456,34 @@ class SupabaseTodayRepository implements TodayRepository {
     }
     return hash;
   }
+
+  _NormalizedReference? _normalizedReferenceForRecord(
+    TodayAssignmentLocalRecord record,
+  ) {
+    final _ReferenceParts? parsed = _parseReference(record.reference);
+    if (parsed == null) {
+      return null;
+    }
+
+    return _NormalizedReference(
+      bookId: _normalizeBookId(parsed.bookLabel),
+      chapterNumber: parsed.chapterNumber,
+      verseStart: parsed.verseStart,
+      verseEnd: parsed.verseEnd,
+    );
+  }
+
+  String _normalizeBookId(String bookLabel) {
+    final String normalized = bookLabel.trim().toLowerCase().replaceAll(' ', '-');
+    switch (normalized) {
+      case 'psalm':
+        return 'psalms';
+      case 'song-of-solomon':
+        return 'song-of-songs';
+      default:
+        return normalized;
+    }
+  }
 }
 
 class _ReferenceParts {
@@ -1447,6 +1495,20 @@ class _ReferenceParts {
   });
 
   final String bookLabel;
+  final int chapterNumber;
+  final int verseStart;
+  final int verseEnd;
+}
+
+class _NormalizedReference {
+  const _NormalizedReference({
+    required this.bookId,
+    required this.chapterNumber,
+    required this.verseStart,
+    required this.verseEnd,
+  });
+
+  final String bookId;
   final int chapterNumber;
   final int verseStart;
   final int verseEnd;

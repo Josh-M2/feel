@@ -468,11 +468,14 @@ class SupabasePublicReadRepository implements ReadRepository {
         'user_id': userId,
         'book_id': bookId,
         'chapter_number': chapterNumber,
-        'book_name': resolvedBookName,
-        'chapter_title': resolvedChapterTitle,
-        'focus_line': resolvedFocusLine,
         'version_code': entry.versionCode,
         'version_label': entry.versionLabel,
+        'snapshot_json': <String, dynamic>{
+          'book_name': resolvedBookName,
+          'chapter_title': resolvedChapterTitle,
+          'focus_line': resolvedFocusLine,
+          'version_label': entry.versionLabel,
+        },
         'last_opened_at': DateTime.now().toUtc().toIso8601String(),
       }, onConflict: 'user_id,book_id,chapter_number');
     } catch (_) {
@@ -485,7 +488,7 @@ class SupabasePublicReadRepository implements ReadRepository {
       final List<dynamic> rows = await _client!
           .from('user_read_progress')
           .select(
-            'book_id, chapter_number, book_name, chapter_title, focus_line, version_code, version_label, last_opened_at',
+            'book_id, chapter_number, book_name, chapter_title, focus_line, version_code, version_label, snapshot_json, last_opened_at',
           )
           .eq('user_id', userId)
           .order('last_opened_at', ascending: false)
@@ -500,19 +503,31 @@ class SupabasePublicReadRepository implements ReadRepository {
             );
             final int chapterNumber =
                 (row['chapter_number'] as num?)?.toInt() ?? 1;
+            final Map<String, dynamic> snapshot = Map<String, dynamic>.from(
+              row['snapshot_json'] as Map? ?? const <String, dynamic>{},
+            );
             return ReadContinuePoint(
               bookId: row['book_id']?.toString() ?? '',
               bookName:
+                  snapshot['book_name']?.toString() ??
                   row['book_name']?.toString() ??
                   row['book_id']?.toString() ??
                   '',
               chapterNumber: chapterNumber,
               chapterTitle:
-                  row['chapter_title']?.toString() ?? 'Chapter $chapterNumber',
+                  snapshot['chapter_title']?.toString() ??
+                  row['chapter_title']?.toString() ??
+                  'Chapter $chapterNumber',
               label: entry.key == 0 ? 'Most recent' : 'Recent reading',
-              focusLine: row['focus_line']?.toString() ?? '',
+              focusLine:
+                  snapshot['focus_line']?.toString() ??
+                  row['focus_line']?.toString() ??
+                  '',
               versionCode: row['version_code']?.toString() ?? 'kjv',
-              versionLabel: row['version_label']?.toString() ?? 'KJV',
+              versionLabel:
+                  snapshot['version_label']?.toString() ??
+                  row['version_label']?.toString() ??
+                  'KJV',
             );
           })
           .toList(growable: false);

@@ -120,14 +120,28 @@ class AppPreferenceSnapshot {
     );
   }
 
-  Map<String, dynamic> toUserPreferencesRow({required String userId}) {
+  Map<String, dynamic> toUserContentPreferencesRow({required String userId}) {
     return <String, dynamic>{
       'user_id': userId,
       'onboarding_completed': onboardingCompleted,
+      'preferred_translation_code': preferredTranslationCode,
+    };
+  }
+
+  Map<String, dynamic> toUserNotificationPreferencesRow({
+    required String userId,
+  }) {
+    return <String, dynamic>{
+      'user_id': userId,
       'notifications_enabled': notificationsEnabled,
       'notification_time_local':
           '${dailyNotificationTime.hour.toString().padLeft(2, '0')}:${dailyNotificationTime.minute.toString().padLeft(2, '0')}:00',
-      'preferred_translation_code': preferredTranslationCode,
+    };
+  }
+
+  Map<String, dynamic> toUserWidgetPreferencesRow({required String userId}) {
+    return <String, dynamic>{
+      'user_id': userId,
       'widget_preview_style': widgetPreviewStyle.name,
       'widget_show_reference': widgetShowReference,
       'widget_show_category': widgetShowCategory,
@@ -136,27 +150,36 @@ class AppPreferenceSnapshot {
   }
 
   factory AppPreferenceSnapshot.fromRemote({
-    required Map<String, dynamic> row,
+    Map<String, dynamic>? contentRow,
+    Map<String, dynamic>? notificationRow,
+    Map<String, dynamic>? widgetRow,
     required List<String> categories,
     SupportState supportState = SupportState.open,
   }) {
+    final Map<String, dynamic> resolvedContentRow =
+        contentRow ?? const <String, dynamic>{};
+    final Map<String, dynamic> resolvedNotificationRow =
+        notificationRow ?? const <String, dynamic>{};
+    final Map<String, dynamic> resolvedWidgetRow =
+        widgetRow ?? const <String, dynamic>{};
     return AppPreferenceSnapshot(
-      onboardingCompleted: row['onboarding_completed'] == true,
-      notificationsEnabled: row['notifications_enabled'] == true,
+      onboardingCompleted: resolvedContentRow['onboarding_completed'] == true,
+      notificationsEnabled:
+          resolvedNotificationRow['notifications_enabled'] == true,
       dailyNotificationTime: _timeOfDayFromRemote(
-        row['notification_time_local']?.toString(),
+        resolvedNotificationRow['notification_time_local']?.toString(),
       ),
       selectedCategories: _sanitizeCategories(categories),
       preferredTranslationCode: AppConstants.sanitizeTranslationCode(
-        row['preferred_translation_code']?.toString(),
+        resolvedContentRow['preferred_translation_code']?.toString(),
       ),
       supportState: supportState,
       widgetPreviewStyle: _widgetPreviewStyleFromName(
-        row['widget_preview_style']?.toString(),
+        resolvedWidgetRow['widget_preview_style']?.toString(),
       ),
-      widgetShowReference: row['widget_show_reference'] != false,
-      widgetShowCategory: row['widget_show_category'] != false,
-      widgetShowDate: row['widget_show_date'] != false,
+      widgetShowReference: resolvedWidgetRow['widget_show_reference'] != false,
+      widgetShowCategory: resolvedWidgetRow['widget_show_category'] != false,
+      widgetShowDate: resolvedWidgetRow['widget_show_date'] != false,
     );
   }
 

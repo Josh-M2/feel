@@ -15,16 +15,25 @@ class SupabaseUserPreferencesRepository implements UserPreferencesRepository {
       return null;
     }
 
-    final dynamic row = await _client
-        !
-        .from('user_preferences')
+    final dynamic contentRow = await _client!
+        .from('user_content_preferences')
+        .select('user_id, onboarding_completed, preferred_translation_code')
+        .eq('user_id', userId)
+        .maybeSingle();
+    final dynamic notificationRow = await _client!
+        .from('user_notification_preferences')
+        .select('user_id, notifications_enabled, notification_time_local')
+        .eq('user_id', userId)
+        .maybeSingle();
+    final dynamic widgetRow = await _client!
+        .from('user_widget_preferences')
         .select(
-          'user_id, onboarding_completed, notifications_enabled, notification_time_local, preferred_translation_code, widget_preview_style, widget_show_reference, widget_show_category, widget_show_date',
+          'user_id, widget_preview_style, widget_show_reference, widget_show_category, widget_show_date',
         )
         .eq('user_id', userId)
         .maybeSingle();
 
-    if (row == null) {
+    if (contentRow == null && notificationRow == null && widgetRow == null) {
       return null;
     }
 
@@ -41,7 +50,14 @@ class SupabaseUserPreferencesRepository implements UserPreferencesRepository {
         .toList();
 
     return AppPreferenceSnapshot.fromRemote(
-      row: Map<String, dynamic>.from(row as Map),
+      contentRow:
+          contentRow == null ? null : Map<String, dynamic>.from(contentRow as Map),
+      notificationRow:
+          notificationRow == null
+              ? null
+              : Map<String, dynamic>.from(notificationRow as Map),
+      widgetRow:
+          widgetRow == null ? null : Map<String, dynamic>.from(widgetRow as Map),
       categories: categories,
     );
   }
@@ -52,9 +68,20 @@ class SupabaseUserPreferencesRepository implements UserPreferencesRepository {
       return;
     }
 
-    await _client!
-        .from('user_preferences')
-        .upsert(snapshot.toUserPreferencesRow(userId: userId), onConflict: 'user_id');
+    await _client!.from('user_content_preferences').upsert(
+      snapshot.toUserContentPreferencesRow(userId: userId),
+      onConflict: 'user_id',
+    );
+
+    await _client!.from('user_notification_preferences').upsert(
+      snapshot.toUserNotificationPreferencesRow(userId: userId),
+      onConflict: 'user_id',
+    );
+
+    await _client!.from('user_widget_preferences').upsert(
+      snapshot.toUserWidgetPreferencesRow(userId: userId),
+      onConflict: 'user_id',
+    );
 
     await _client!
         .from('user_category_preferences')

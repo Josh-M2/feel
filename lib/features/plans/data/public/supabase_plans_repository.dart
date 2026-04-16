@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../domain/models/reading_plan.dart';
 import '../../domain/repositories/plans_repository.dart';
 import '../local/plan_progress_local_snapshot.dart';
@@ -152,7 +153,7 @@ class SupabasePlansRepository implements PlansRepository {
     final List<dynamic> planRows = await _client!
         .from('content_reading_plans')
         .select(
-          'id, title, subtitle, category_label, duration_days, description, why_it_helps, sort_order',
+          'id, title, subtitle, category_key, category_label, duration_days, description, why_it_helps, sort_order',
         )
         .eq('is_active', true)
         .order('sort_order', ascending: true);
@@ -229,7 +230,14 @@ class SupabasePlansRepository implements PlansRepository {
             id: planId,
             title: row['title']?.toString() ?? '',
             subtitle: row['subtitle']?.toString() ?? '',
-            categoryLabel: row['category_label']?.toString() ?? '',
+            categoryLabel: (() {
+              final String categoryKey =
+                  row['category_key']?.toString().trim() ?? '';
+              if (categoryKey.isNotEmpty) {
+                return AppConstants.categoryLabelForKey(categoryKey);
+              }
+              return row['category_label']?.toString() ?? '';
+            })(),
             durationDays: (row['duration_days'] as num?)?.toInt() ?? days.length,
             description: row['description']?.toString() ?? '',
             whyItHelps: row['why_it_helps']?.toString() ?? '',
