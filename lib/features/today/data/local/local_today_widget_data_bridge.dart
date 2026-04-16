@@ -43,6 +43,7 @@ class LocalTodayWidgetDataBridge implements WidgetDataBridge {
       refreshHour: preferences.dailyNotificationTime.hour,
       refreshMinute: preferences.dailyNotificationTime.minute,
       previewStyle: preferences.widgetPreviewStyle.name,
+      accentTone: preferences.widgetAccentTone.name,
       showReference: preferences.widgetShowReference,
       showCategory: preferences.widgetShowCategory,
       showDate: preferences.widgetShowDate,

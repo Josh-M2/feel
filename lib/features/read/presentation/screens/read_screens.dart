@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_compose_sheet.dart';
 import '../../../../shared/widgets/app_loading_card.dart';
 import '../../../../shared/widgets/app_page_loader.dart';
 import '../../../../shared/widgets/app_reveal.dart';
@@ -735,13 +736,22 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
   }
 
   Future<void> _showNoteComposer(_ChapterReadScreenData data) async {
-    final _ReadNoteDraft? draft = await showDialog<_ReadNoteDraft>(
-      context: context,
-      builder: (dialogContext) {
-        return _ReadNoteDialog(
-          initialTitle: '${data.book.name} ${data.chapter.number}',
-        );
-      },
+    final AppComposeSheetResult? draft = await showAppComposeSheet(
+      context,
+      config: AppComposeSheetConfig(
+        title: 'Add note',
+        subtitle:
+            'Capture a private note for this chapter in a calmer, more focused composer.',
+        leadingIcon: Icons.note_alt_outlined,
+        initialTitle: '${data.book.name} ${data.chapter.number}',
+        titleHint: 'Chapter note title',
+        bodyLabel: 'Note',
+        bodyHint:
+            'Write a private note about what stood out in this chapter and what you want to remember.',
+        submitLabel: 'Save note',
+        helperText:
+            'Notes stay local-first and are saved into the same Saved flow you already use.',
+      ),
     );
 
     if (draft == null) {
@@ -827,87 +837,6 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-class _ReadNoteDraft {
-  const _ReadNoteDraft({required this.title, required this.body});
-
-  final String title;
-  final String body;
-}
-
-class _ReadNoteDialog extends StatefulWidget {
-  const _ReadNoteDialog({required this.initialTitle});
-
-  final String initialTitle;
-
-  @override
-  State<_ReadNoteDialog> createState() => _ReadNoteDialogState();
-}
-
-class _ReadNoteDialogState extends State<_ReadNoteDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _bodyController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
-    _bodyController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add note'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'Chapter note title',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _bodyController,
-              minLines: 4,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Note',
-                hintText: 'Write a private reflection for this chapter.',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(
-            _ReadNoteDraft(
-              title: _titleController.text,
-              body: _bodyController.text,
-            ),
-          ),
-          child: const Text('Save note'),
-        ),
-      ],
-    );
   }
 }
 

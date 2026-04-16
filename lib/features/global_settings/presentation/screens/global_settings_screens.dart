@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/bootstrap/app_bootstrap_controller.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/notifications/local_notification_scheduler.dart';
+import '../../../../core/notifications/daily_notification_copy_bank.dart';
 import '../../../../core/preferences/app_preference_snapshot.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -11,6 +14,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_loading_card.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
+import '../../../../shared/widgets/app_time_picker_sheet.dart';
 import '../widgets/settings_info_card.dart';
 import '../widgets/settings_nav_tile.dart';
 import '../widgets/support_progress_card.dart';
@@ -26,6 +30,8 @@ import '../../domain/repositories/widget_plugin_bridge.dart';
 
 final WidgetDataBridge _widgetDataBridge = LocalTodayWidgetDataBridge();
 final WidgetPluginBridge _widgetPluginBridge = MethodChannelWidgetPluginBridge();
+final LocalNotificationScheduler _debugNotificationScheduler =
+    LocalNotificationScheduler();
 
 String _routeWithOrigin(BuildContext context, String route) {
   final String? origin = _originRouteFromContext(context);
@@ -63,19 +69,17 @@ bool _isSafeOriginPath(String path) {
       !path.startsWith('/global_settings/');
 }
 
-String _widgetStyleLabel(WidgetPreviewStyle style) {
-  switch (style) {
-    case WidgetPreviewStyle.cozy:
-      return 'Cozy';
-    case WidgetPreviewStyle.minimal:
-      return 'Minimal';
-  }
-}
-
 String _primaryWidgetCategory(AppBootstrapController bootstrap) {
   final List<String> categories = bootstrap.selectedCategories;
   if (categories.isEmpty) return 'Guidance';
   return categories.first;
+}
+
+DailyNotificationCopy _notificationPreview(AppBootstrapController bootstrap) {
+  return DailyNotificationCopyBank.resolve(
+    selectedCategories: bootstrap.selectedCategories,
+    date: DateTime.now(),
+  );
 }
 
 
@@ -93,6 +97,7 @@ class _TodayAlignedWidgetPreview extends StatelessWidget {
           dailyNotificationTime: bootstrap.dailyNotificationTime,
           preferredTranslationCode: bootstrap.preferredTranslationCode,
           widgetPreviewStyle: bootstrap.widgetPreviewStyle,
+          widgetAccentTone: bootstrap.widgetAccentTone,
           widgetShowReference: bootstrap.widgetShowReference,
           widgetShowCategory: bootstrap.widgetShowCategory,
           widgetShowDate: bootstrap.widgetShowDate,
@@ -106,6 +111,8 @@ class _TodayAlignedWidgetPreview extends StatelessWidget {
             ? WidgetPreviewSample(
                 verseText: payload.verseText,
                 reference: payload.reference,
+                translationLabel: payload.translationLabel,
+                effectiveDateKey: payload.effectiveDateKey,
               )
             : buildWidgetPreviewSample(categoryLabel);
 
@@ -114,6 +121,7 @@ class _TodayAlignedWidgetPreview extends StatelessWidget {
           categoryLabel: categoryLabel,
           updateTimeLabel: payload?.updateTimeLabel ?? bootstrap.dailyNotificationLabel,
           style: bootstrap.widgetPreviewStyle,
+          accentTone: bootstrap.widgetAccentTone,
           showReference: bootstrap.widgetShowReference,
           showCategory: bootstrap.widgetShowCategory,
           showDate: bootstrap.widgetShowDate,
@@ -205,7 +213,7 @@ class SettingsHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Adjust reading themes, reminders, widget style, and support information in one place.',
+                      'Adjust reading themes, reminders, widget appearance, and support information in one place.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -271,10 +279,10 @@ class SettingsHomeScreen extends StatelessWidget {
                       title: 'Widget preferences',
                       subtitle:
                           'Choose how the daily verse looks on the widget.',
-                      icon: Icons.widgets_outlined,
-                      trailingLabel: _widgetStyleLabel(
-                        bootstrap.widgetPreviewStyle,
-                      ),
+                        icon: Icons.widgets_outlined,
+                        trailingLabel: styleLabel(
+                          bootstrap.widgetPreviewStyle,
+                        ),
                       onTap: () => context.push(
                         _routeWithOrigin(
                           context,
@@ -376,10 +384,10 @@ class ContentPreferencesScreen extends StatelessWidget {
           title: 'Content preferences',
           subtitle: 'Category choices and reading focus',
           originRoute: _originRouteFromContext(context),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              SettingsInfoCard(
+            body: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              children: <Widget>[
+                SettingsInfoCard(
                 title: 'Verse categories',
                 subtitle:
                     'Choose the themes you would like to see more often in daily reading.',
@@ -551,13 +559,64 @@ class NotificationsSettingsScreen extends StatelessWidget {
   final AppBootstrapController bootstrap;
 
   Future<void> _pickTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
+    final TimeOfDay? picked = await showAppTimePickerSheet(
+      context,
       initialTime: bootstrap.dailyNotificationTime,
+      title: 'Set your reminder time',
+      subtitle:
+          'Choose one clear daily time for the same verse rhythm used by Today and the widget.',
     );
 
     if (picked != null) {
       bootstrap.setDailyNotificationTime(picked);
+    }
+  }
+
+  Future<void> _sendTestNotificationNow(BuildContext context) async {
+    await _debugNotificationScheduler.initialize(
+      onRouteSelected: (String route) {
+        if (context.mounted) {
+          context.go(route);
+        }
+      },
+    );
+    await _debugNotificationScheduler.requestPermissions();
+    final DailyNotificationCopy preview = _notificationPreview(bootstrap);
+    await _debugNotificationScheduler.showTestNotificationNow(
+      selectedCategories: bootstrap.selectedCategories,
+      lockedCategory: preview.category,
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Debug notification sent now.')),
+        );
+    }
+  }
+
+  Future<void> _scheduleTestNotification(BuildContext context) async {
+    await _debugNotificationScheduler.initialize(
+      onRouteSelected: (String route) {
+        if (context.mounted) {
+          context.go(route);
+        }
+      },
+    );
+    await _debugNotificationScheduler.requestPermissions();
+    final DailyNotificationCopy preview = _notificationPreview(bootstrap);
+    await _debugNotificationScheduler.scheduleTestNotificationInTenSeconds(
+      selectedCategories: bootstrap.selectedCategories,
+      lockedCategory: preview.category,
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Debug notification scheduled for 10 seconds from now.'),
+          ),
+        );
     }
   }
 
@@ -567,6 +626,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
       animation: bootstrap,
       builder: (context, _) {
         final bool enabled = bootstrap.notificationsEnabled;
+        final DailyNotificationCopy preview = _notificationPreview(bootstrap);
 
         return GlobalScreenScaffold(
           title: 'Notifications',
@@ -575,109 +635,190 @@ class NotificationsSettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
-              SettingsInfoCard(
-                title: 'Daily reminders',
-                subtitle:
-                    'Choose whether daily reminders are part of your reading rhythm.',
-                icon: Icons.notifications_active_outlined,
-                child: Column(
-                  children: <Widget>[
-                    _SettingsSwitchRow(
-                      title: 'Enable daily verse reminders',
-                      subtitle: enabled
-                          ? 'Daily reminders are currently on.'
-                          : 'Daily reminders are currently off.',
-                      value: enabled,
-                      onChanged: bootstrap.setNotificationsEnabled,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SettingsInfoCard(
-                title: 'Reminder time',
-                subtitle:
-                    'Choose the time that best fits your usual reading rhythm.',
-                icon: Icons.schedule_rounded,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceSoft,
-                        borderRadius: BorderRadius.circular(AppRadii.xl),
-                        border: Border.all(color: AppColors.border),
+                SettingsInfoCard(
+                  title: 'Daily reminders',
+                  subtitle:
+                      'Keep reminders simple, calm, and aligned with your daily verse.',
+                  icon: Icons.notifications_active_outlined,
+                  child: Column(
+                    children: <Widget>[
+                      _SettingsSwitchRow(
+                        title: 'Enable daily verse reminders',
+                        subtitle: enabled
+                            ? 'A real daily reminder is scheduled on this device.'
+                            : 'Turn reminders on whenever you want a daily prompt back into Today.',
+                        value: enabled,
+                        onChanged: (bool value) {
+                          bootstrap.setNotificationsEnabled(value);
+                        },
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    'Selected time',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: AppSpacing.sm),
-                                  Text(
-                                    bootstrap.dailyNotificationLabel,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(
-                                          fontSize: 30,
-                                          color: AppColors.primary,
-                                        ),
-                                  ),
-                                ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SettingsInfoCard(
+                  title: 'Reminder time',
+                  subtitle:
+                      'A single daily time keeps the reminder clear and predictable.',
+                  icon: Icons.schedule_rounded,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          border: Border.all(color: AppColors.borderStrong),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      'Selected time',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    Text(
+                                      bootstrap.dailyNotificationLabel,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(
+                                            fontSize: 30,
+                                            color: AppColors.primary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton(
+                                onPressed: () => _pickTime(context),
+                                child: const Text('Adjust'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        enabled
+                            ? 'This device will use ${bootstrap.dailyNotificationLabel} for the daily reminder.'
+                            : 'You can set the rhythm now and turn reminders on later without losing your preferred time.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                  SettingsInfoCard(
+                    title: 'Reminder preview',
+                    subtitle:
+                        'Copy rotates by category so the daily prompt does not feel identical every day.',
+                  icon: Icons.mark_chat_read_outlined,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSoft,
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                preview.title,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                preview.body,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Chip(label: Text(preview.category)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'The reminder body rotates across 12 curated phrases for each category, and tapping it opens Today.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (kDebugMode) ...<Widget>[
+                    SettingsInfoCard(
+                      title: 'Debug notification testing',
+                      subtitle:
+                          'Visible only in debug builds so reminder delivery can be checked without waiting for the real schedule.',
+                      icon: Icons.bug_report_outlined,
+                      child: Column(
+                        children: <Widget>[
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.tonalIcon(
+                              onPressed: () => _sendTestNotificationNow(context),
+                              icon: const Icon(Icons.notification_important_outlined),
+                              label: const Text('Send test notification now'),
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _scheduleTestNotification(context),
+                              icon: const Icon(Icons.timer_outlined),
+                              label: const Text(
+                                'Schedule test notification in 10 seconds',
                               ),
                             ),
-                            OutlinedButton(
-                              onPressed: () => _pickTime(context),
-                              child: const Text('Change'),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      enabled
-                          ? 'This time will be used for your daily reminder.'
-                          : 'You can still choose a time now and turn reminders on whenever you are ready.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
                   ],
+                  SettingsInfoCard(
+                    title: 'How reminders fit in',
+                    subtitle:
+                      'A gentle reminder flow works best when it supports reading rather than interrupting it.',
+                  icon: Icons.info_outline_rounded,
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _SettingsBullet(
+                        text:
+                            'Reminders should make it easier to return to scripture, not create pressure.',
+                      ),
+                      _SettingsBullet(
+                        text:
+                            'Category-based reminder wording changes with your content preferences without silently replacing today\'s assigned verse.',
+                      ),
+                      _SettingsBullet(
+                        text:
+                            'The daily verse, reminder time, and widget cadence are designed to stay aligned.',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SettingsInfoCard(
-                title: 'How reminders fit in',
-                subtitle:
-                    'A gentle reminder flow works best when it supports reading rather than interrupting it.',
-                icon: Icons.info_outline_rounded,
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _SettingsBullet(
-                      text:
-                          'Reminders should make it easier to return to scripture, not create pressure.',
-                    ),
-                    _SettingsBullet(
-                      text:
-                          'Daily timing works best when it matches your natural reading rhythm.',
-                    ),
-                    _SettingsBullet(
-                      text:
-                          'The daily verse and the reminder time are designed to stay aligned.',
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         );
@@ -696,10 +837,9 @@ class WidgetPreferencesScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: bootstrap,
       builder: (context, _) {
-
         return GlobalScreenScaffold(
           title: 'Widget preferences',
-          subtitle: 'Style and display choices',
+          subtitle: 'Appearance and display choices',
           originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -721,27 +861,117 @@ class WidgetPreferencesScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Display style',
-                subtitle: 'Choose the look that feels most readable to you.',
+                title: 'Appearance',
+                subtitle:
+                    'These options affect the widget surface only, not the app theme.',
                 icon: Icons.palette_outlined,
-                child: SegmentedButton<WidgetPreviewStyle>(
-                  showSelectedIcon: false,
-                  segments: const <ButtonSegment<WidgetPreviewStyle>>[
-                    ButtonSegment<WidgetPreviewStyle>(
-                      value: WidgetPreviewStyle.cozy,
-                      icon: Icon(Icons.wb_incandescent_outlined),
-                      label: Text('Cozy'),
-                    ),
-                    ButtonSegment<WidgetPreviewStyle>(
-                      value: WidgetPreviewStyle.minimal,
-                      icon: Icon(Icons.crop_square_rounded),
-                      label: Text('Minimal'),
-                    ),
-                  ],
-                  selected: <WidgetPreviewStyle>{bootstrap.widgetPreviewStyle},
-                  onSelectionChanged: (Set<WidgetPreviewStyle> selection) {
-                    bootstrap.setWidgetPreviewStyle(selection.first);
-                  },
+                child: Column(
+                  children: WidgetPreviewStyle.values
+                      .map((WidgetPreviewStyle style) {
+                        final bool selected =
+                            bootstrap.widgetPreviewStyle == style;
+                        IconData icon = Icons.wb_incandescent_outlined;
+                        if (style == WidgetPreviewStyle.minimal) {
+                          icon = Icons.crop_square_rounded;
+                        } else if (style == WidgetPreviewStyle.softMist) {
+                          icon = Icons.blur_on_rounded;
+                        } else if (style == WidgetPreviewStyle.transparent) {
+                          icon = Icons.flip_to_front_rounded;
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _AppearanceOptionTile(
+                            title: styleLabel(style),
+                            subtitle: styleDescription(style),
+                            icon: icon,
+                            selected: selected,
+                            onTap: () => bootstrap.setWidgetPreviewStyle(style),
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Accent tone',
+                subtitle:
+                    'Add a little color personality without changing your verse, reference, or timing.',
+                icon: Icons.color_lens_outlined,
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: WidgetAccentTone.values
+                      .map((WidgetAccentTone tone) {
+                        final WidgetPreviewPalette palette = widgetPreviewPalette(
+                          style: bootstrap.widgetPreviewStyle,
+                          accentTone: tone,
+                        );
+                        final bool selected =
+                            bootstrap.widgetAccentTone == tone;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          onTap: () => bootstrap.setWidgetAccentTone(tone),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: palette.badge,
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                              border: Border.all(
+                                color: selected
+                                    ? palette.accent
+                                    : palette.border,
+                                width: selected ? 2 : 1,
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: BoxDecoration(
+                                          color: palette.accent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        accentToneLabel(tone),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge
+                                            ?.copyWith(
+                                              color: palette.primaryText,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 168),
+                                    child: Text(
+                                      accentToneDescription(tone),
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: palette.secondaryText,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -848,6 +1078,85 @@ class WidgetPreferencesScreen extends StatelessWidget {
   }
 }
 
+class _AppearanceOptionTile extends StatelessWidget {
+  const _AppearanceOptionTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadii.xl),
+      onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? AppColors.surfaceMuted : AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(AppRadii.xl),
+          border: Border.all(
+            color: selected ? AppColors.borderStrong : AppColors.border,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(icon, color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.accentStrong,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: selected ? AppColors.primary : AppColors.textTertiary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _WidgetIntegrationShellCard extends StatefulWidget {
   const _WidgetIntegrationShellCard({required this.bootstrap});
@@ -879,17 +1188,18 @@ class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final WidgetDailyVersePayload payload = await _widgetDataBridge.getPayload(
-        preferences: AppPreferenceSnapshot.defaults().copyWith(
-          selectedCategories: widget.bootstrap.selectedCategories,
-          dailyNotificationTime: widget.bootstrap.dailyNotificationTime,
-          preferredTranslationCode: widget.bootstrap.preferredTranslationCode,
-          widgetPreviewStyle: widget.bootstrap.widgetPreviewStyle,
-          widgetShowReference: widget.bootstrap.widgetShowReference,
-          widgetShowCategory: widget.bootstrap.widgetShowCategory,
-          widgetShowDate: widget.bootstrap.widgetShowDate,
-          notificationsEnabled: widget.bootstrap.notificationsEnabled,
-        ),
+        final WidgetDailyVersePayload payload = await _widgetDataBridge.getPayload(
+          preferences: AppPreferenceSnapshot.defaults().copyWith(
+            selectedCategories: widget.bootstrap.selectedCategories,
+            dailyNotificationTime: widget.bootstrap.dailyNotificationTime,
+            preferredTranslationCode: widget.bootstrap.preferredTranslationCode,
+            widgetPreviewStyle: widget.bootstrap.widgetPreviewStyle,
+            widgetAccentTone: widget.bootstrap.widgetAccentTone,
+            widgetShowReference: widget.bootstrap.widgetShowReference,
+            widgetShowCategory: widget.bootstrap.widgetShowCategory,
+            widgetShowDate: widget.bootstrap.widgetShowDate,
+            notificationsEnabled: widget.bootstrap.notificationsEnabled,
+          ),
       );
       final WidgetShellSyncResult result = await _widgetPluginBridge.syncDailyVersePayload(
         payload: payload,

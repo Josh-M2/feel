@@ -4,7 +4,9 @@ import '../constants/app_constants.dart';
 
 enum SupportState { open, closed }
 
-enum WidgetPreviewStyle { cozy, minimal }
+enum WidgetPreviewStyle { cozy, minimal, softMist, transparent }
+
+enum WidgetAccentTone { sky, sage, rose, sand, white, black }
 
 enum AppPreferenceDomain { content, notifications, widget }
 
@@ -17,6 +19,7 @@ class AppPreferenceSnapshot {
     required this.preferredTranslationCode,
     required this.supportState,
     required this.widgetPreviewStyle,
+    required this.widgetAccentTone,
     required this.widgetShowReference,
     required this.widgetShowCategory,
     required this.widgetShowDate,
@@ -24,11 +27,13 @@ class AppPreferenceSnapshot {
 
   final bool onboardingCompleted;
   final bool notificationsEnabled;
+  // Stored as a local device wall-clock time, not a UTC timestamp.
   final TimeOfDay dailyNotificationTime;
   final List<String> selectedCategories;
   final String preferredTranslationCode;
   final SupportState supportState;
   final WidgetPreviewStyle widgetPreviewStyle;
+  final WidgetAccentTone widgetAccentTone;
   final bool widgetShowReference;
   final bool widgetShowCategory;
   final bool widgetShowDate;
@@ -42,6 +47,7 @@ class AppPreferenceSnapshot {
       preferredTranslationCode: AppConstants.defaultTranslationCode,
       supportState: SupportState.open,
       widgetPreviewStyle: WidgetPreviewStyle.cozy,
+      widgetAccentTone: WidgetAccentTone.sky,
       widgetShowReference: true,
       widgetShowCategory: true,
       widgetShowDate: true,
@@ -56,6 +62,7 @@ class AppPreferenceSnapshot {
     String? preferredTranslationCode,
     SupportState? supportState,
     WidgetPreviewStyle? widgetPreviewStyle,
+    WidgetAccentTone? widgetAccentTone,
     bool? widgetShowReference,
     bool? widgetShowCategory,
     bool? widgetShowDate,
@@ -72,6 +79,7 @@ class AppPreferenceSnapshot {
       ),
       supportState: supportState ?? this.supportState,
       widgetPreviewStyle: widgetPreviewStyle ?? this.widgetPreviewStyle,
+      widgetAccentTone: widgetAccentTone ?? this.widgetAccentTone,
       widgetShowReference: widgetShowReference ?? this.widgetShowReference,
       widgetShowCategory: widgetShowCategory ?? this.widgetShowCategory,
       widgetShowDate: widgetShowDate ?? this.widgetShowDate,
@@ -82,12 +90,13 @@ class AppPreferenceSnapshot {
     return <String, dynamic>{
       'onboardingCompleted': onboardingCompleted,
       'notificationsEnabled': notificationsEnabled,
-      'dailyNotificationHour': dailyNotificationTime.hour,
-      'dailyNotificationMinute': dailyNotificationTime.minute,
+      'dailyNotificationHour': dailyNotificationHour,
+      'dailyNotificationMinute': dailyNotificationMinute,
       'selectedCategories': selectedCategories,
       'preferredTranslationCode': preferredTranslationCode,
       'supportState': supportState.name,
       'widgetPreviewStyle': widgetPreviewStyle.name,
+      'widgetAccentTone': widgetAccentTone.name,
       'widgetShowReference': widgetShowReference,
       'widgetShowCategory': widgetShowCategory,
       'widgetShowDate': widgetShowDate,
@@ -116,6 +125,9 @@ class AppPreferenceSnapshot {
       widgetPreviewStyle: _widgetPreviewStyleFromName(
         json['widgetPreviewStyle']?.toString(),
       ),
+      widgetAccentTone: _widgetAccentToneFromName(
+        json['widgetAccentTone']?.toString(),
+      ),
       widgetShowReference: json['widgetShowReference'] != false,
       widgetShowCategory: json['widgetShowCategory'] != false,
       widgetShowDate: json['widgetShowDate'] != false,
@@ -136,8 +148,7 @@ class AppPreferenceSnapshot {
     return <String, dynamic>{
       'user_id': userId,
       'notifications_enabled': notificationsEnabled,
-      'notification_time_local':
-          '${dailyNotificationTime.hour.toString().padLeft(2, '0')}:${dailyNotificationTime.minute.toString().padLeft(2, '0')}:00',
+      'notification_time_local': localNotificationTimeValue,
     };
   }
 
@@ -179,6 +190,7 @@ class AppPreferenceSnapshot {
       widgetPreviewStyle: _widgetPreviewStyleFromName(
         resolvedWidgetRow['widget_preview_style']?.toString(),
       ),
+      widgetAccentTone: WidgetAccentTone.sky,
       widgetShowReference: resolvedWidgetRow['widget_show_reference'] != false,
       widgetShowCategory: resolvedWidgetRow['widget_show_category'] != false,
       widgetShowDate: resolvedWidgetRow['widget_show_date'] != false,
@@ -204,6 +216,7 @@ class AppPreferenceSnapshot {
       case AppPreferenceDomain.widget:
         return copyWith(
           widgetPreviewStyle: other.widgetPreviewStyle,
+          widgetAccentTone: widgetAccentTone,
           widgetShowReference: other.widgetShowReference,
           widgetShowCategory: other.widgetShowCategory,
           widgetShowDate: other.widgetShowDate,
@@ -249,4 +262,18 @@ class AppPreferenceSnapshot {
       orElse: () => WidgetPreviewStyle.cozy,
     );
   }
+
+  static WidgetAccentTone _widgetAccentToneFromName(String? name) {
+    return WidgetAccentTone.values.firstWhere(
+      (WidgetAccentTone value) => value.name == name,
+      orElse: () => WidgetAccentTone.sky,
+    );
+  }
+
+  int get dailyNotificationHour => dailyNotificationTime.hour;
+
+  int get dailyNotificationMinute => dailyNotificationTime.minute;
+
+  String get localNotificationTimeValue =>
+      '${dailyNotificationHour.toString().padLeft(2, '0')}:${dailyNotificationMinute.toString().padLeft(2, '0')}:00';
 }

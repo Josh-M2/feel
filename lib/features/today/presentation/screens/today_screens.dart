@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_compose_sheet.dart';
 import '../../../../shared/widgets/app_page_loader.dart';
 import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
@@ -737,13 +738,22 @@ Future<void> _showTodayReflectionComposer(
   BuildContext context,
   TodayVerse verse,
 ) async {
-  final _TodayReflectionDraft? draft = await showDialog<_TodayReflectionDraft>(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return _TodayReflectionDialog(
-        initialTitle: '${verse.reference} reflection',
-      );
-    },
+  final AppComposeSheetResult? draft = await showAppComposeSheet(
+    context,
+    config: AppComposeSheetConfig(
+      title: 'Add reflection',
+      subtitle:
+          'Keep a private note connected to today\'s verse without leaving the reading flow.',
+      leadingIcon: Icons.auto_stories_rounded,
+      initialTitle: '${verse.reference} reflection',
+      titleHint: 'Today reflection',
+      bodyLabel: 'Reflection',
+      bodyHint:
+          'Write a private reflection connected to today\'s verse and what it is stirring in you.',
+      submitLabel: 'Save reflection',
+      helperText:
+          'This saves to your local-first Saved space and stays tied to today\'s verse reference.',
+    ),
   );
 
   if (draft == null) {
@@ -887,90 +897,6 @@ class _ParsedReference {
   final int verseStart;
   final int chapterEnd;
   final int verseEnd;
-}
-
-class _TodayReflectionDraft {
-  const _TodayReflectionDraft({
-    required this.title,
-    required this.body,
-  });
-
-  final String title;
-  final String body;
-}
-
-class _TodayReflectionDialog extends StatefulWidget {
-  const _TodayReflectionDialog({required this.initialTitle});
-
-  final String initialTitle;
-
-  @override
-  State<_TodayReflectionDialog> createState() => _TodayReflectionDialogState();
-}
-
-class _TodayReflectionDialogState extends State<_TodayReflectionDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _bodyController;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController(text: widget.initialTitle);
-    _bodyController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add reflection'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'Today reflection',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: _bodyController,
-              minLines: 4,
-              maxLines: 6,
-              decoration: const InputDecoration(
-                labelText: 'Reflection',
-                hintText: 'Write a private reflection connected to today\'s verse.',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(
-            _TodayReflectionDraft(
-              title: _titleController.text,
-              body: _bodyController.text,
-            ),
-          ),
-          child: const Text('Save reflection'),
-        ),
-      ],
-    );
-  }
 }
 
 class _TodayVerseLoader extends StatelessWidget {

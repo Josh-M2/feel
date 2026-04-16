@@ -10,6 +10,7 @@ struct TodayWidgetPayload {
   let refreshHour: Int
   let refreshMinute: Int
   let previewStyle: String
+  let accentTone: String
   let showReference: Bool
   let showCategory: Bool
   let showDate: Bool
@@ -24,6 +25,7 @@ struct TodayWidgetPayload {
     refreshHour: 7,
     refreshMinute: 0,
     previewStyle: "cozy",
+    accentTone: "sky",
     showReference: true,
     showCategory: true,
     showDate: true
@@ -39,6 +41,7 @@ struct TodayWidgetPayload {
     refreshHour = dictionary["refreshHour"] as? Int ?? 7
     refreshMinute = dictionary["refreshMinute"] as? Int ?? 0
     previewStyle = dictionary["previewStyle"] as? String ?? "cozy"
+    accentTone = dictionary["accentTone"] as? String ?? "sky"
     showReference = dictionary["showReference"] as? Bool ?? true
     showCategory = dictionary["showCategory"] as? Bool ?? true
     showDate = dictionary["showDate"] as? Bool ?? true

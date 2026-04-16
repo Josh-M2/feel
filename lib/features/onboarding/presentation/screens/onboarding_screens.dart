@@ -6,6 +6,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_time_picker_sheet.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.bootstrap});
@@ -155,9 +156,12 @@ class DailyNotificationTimeScreen extends StatelessWidget {
   final AppBootstrapController bootstrap;
 
   Future<void> _pickTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
+    final TimeOfDay? picked = await showAppTimePickerSheet(
+      context,
       initialTime: bootstrap.dailyNotificationTime,
+      title: 'Choose your daily rhythm',
+      subtitle:
+          'Pick one clear time for your daily verse, reminders, and future widget alignment.',
     );
 
     if (picked != null) {
@@ -173,7 +177,7 @@ class DailyNotificationTimeScreen extends StatelessWidget {
         return _OnboardingScaffold(
           title: 'Choose your daily verse reminder time',
           subtitle:
-              'This is also the time the future widget will align with for the daily assignment.',
+              'This is also the time reminders and the future widget will align with for the daily assignment.',
           stepLabel: 'Step 2 of 4',
           body: AppCard(
             child: Column(
@@ -191,9 +195,9 @@ class DailyNotificationTimeScreen extends StatelessWidget {
                   ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                OutlinedButton(
+                FilledButton.tonal(
                   onPressed: () => _pickTime(context),
-                  child: const Text('Choose time'),
+                  child: const Text('Adjust time'),
                 ),
               ],
             ),
@@ -219,7 +223,7 @@ class NotificationPermissionScreen extends StatelessWidget {
     return _OnboardingScaffold(
       title: 'Notifications are optional',
       subtitle:
-          'Skipping is allowed. We are only simulating the preference in this UI-first phase.',
+          'Skipping is allowed. If you enable them, this device will schedule a real daily reminder.',
       stepLabel: 'Step 3 of 4',
       body: AppCard(
         child: Column(
@@ -238,9 +242,11 @@ class NotificationPermissionScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () {
-                  bootstrap.setNotificationsEnabled(true);
-                  context.push(AppRoutes.onboardingFinish);
+                onPressed: () async {
+                  await bootstrap.setNotificationsEnabled(true);
+                  if (context.mounted) {
+                    context.push(AppRoutes.onboardingFinish);
+                  }
                 },
                 child: const Text('Enable reminders'),
               ),

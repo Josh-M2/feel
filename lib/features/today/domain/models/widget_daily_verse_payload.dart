@@ -9,6 +9,7 @@ class WidgetDailyVersePayload {
     required this.refreshHour,
     required this.refreshMinute,
     required this.previewStyle,
+    required this.accentTone,
     required this.showReference,
     required this.showCategory,
     required this.showDate,
@@ -23,6 +24,7 @@ class WidgetDailyVersePayload {
   final int refreshHour;
   final int refreshMinute;
   final String previewStyle;
+  final String accentTone;
   final bool showReference;
   final bool showCategory;
   final bool showDate;
@@ -38,6 +40,7 @@ class WidgetDailyVersePayload {
       'refreshHour': refreshHour,
       'refreshMinute': refreshMinute,
       'previewStyle': previewStyle,
+      'accentTone': accentTone,
       'showReference': showReference,
       'showCategory': showCategory,
       'showDate': showDate,

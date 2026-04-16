@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/notifications/local_notification_scheduler.dart';
 import '../../core/local_storage/guest_local_store.dart';
 import '../../core/preferences/app_preference_snapshot.dart';
 import '../../core/preferences/app_preference_sync_models.dart';
@@ -29,12 +30,15 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
     TodayRepository? todayRepository,
     WidgetDataBridge? widgetDataBridge,
     WidgetPluginBridge? widgetPluginBridge,
+    LocalNotificationScheduler? notificationScheduler,
   }) : _guestLocalStore = guestLocalStore,
        _sessionRepository = sessionRepository,
        _profileRepository = profileRepository,
        _preferencesRepository = preferencesRepository,
        _todayRepository = todayRepository ?? SupabaseTodayRepository(),
        _widgetDataBridge = widgetDataBridge ?? LocalTodayWidgetDataBridge(),
+       _notificationScheduler =
+           notificationScheduler ?? LocalNotificationScheduler(),
        _widgetPluginBridge =
            widgetPluginBridge ?? MethodChannelWidgetPluginBridge();
 
@@ -44,6 +48,7 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
   final UserPreferencesRepository _preferencesRepository;
   final TodayRepository _todayRepository;
   final WidgetDataBridge _widgetDataBridge;
+  final LocalNotificationScheduler _notificationScheduler;
   final WidgetPluginBridge _widgetPluginBridge;
 
   AppPreferenceSnapshot _preferences = AppPreferenceSnapshot.defaults();
@@ -52,6 +57,8 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
   UserProfileRecord? _profile;
   StreamSubscription<AppSessionSnapshot>? _sessionSubscription;
   Timer? _pendingPreferenceSyncTimer;
+  final StreamController<String> _navigationRequests =
+      StreamController<String>.broadcast();
 
   bool _isInitializing = false;
   String? _initializationError;
@@ -61,6 +68,7 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
   String? _hydratedAccountUserId;
   bool _reconcilingPreferences = false;
   bool _widgetObserverRegistered = false;
+  String? _queuedNavigationRoute;
 
   bool get isInitializing => _isInitializing;
   String? get initializationError => _initializationError;
@@ -84,9 +92,11 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
       AppConstants.translationOptionFor(_preferences.preferredTranslationCode).label;
   SupportState get supportState => _preferences.supportState;
   WidgetPreviewStyle get widgetPreviewStyle => _preferences.widgetPreviewStyle;
+  WidgetAccentTone get widgetAccentTone => _preferences.widgetAccentTone;
   bool get widgetShowReference => _preferences.widgetShowReference;
   bool get widgetShowCategory => _preferences.widgetShowCategory;
   bool get widgetShowDate => _preferences.widgetShowDate;
+  Stream<String> get navigationRequests => _navigationRequests.stream;
 
   String get dailyNotificationLabel {
     final int hour = _preferences.dailyNotificationTime.hourOfPeriod == 0
@@ -112,6 +122,10 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
         _widgetObserverRegistered = true;
       }
 
+      await _notificationScheduler.initialize(
+        onRouteSelected: _queueNavigationRoute,
+      );
+
       _preferenceState = await _guestLocalStore.load();
       _preferences = _preferenceState.snapshot;
       _session = await _sessionRepository.getCurrentSession();
@@ -127,6 +141,7 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
       );
       _configurePendingPreferenceSyncRetry();
       await _syncWidgetPayload();
+      await _syncDailyNotifications();
     } catch (error) {
       _initializationError =
           'Backend foundation bootstrap failed: ${error.toString()}';
@@ -140,6 +155,9 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_reconcileSignedInPreferences(reason: 'app-resumed'));
+      // Rebuild local reminders when the app returns so device-local time and
+      // timezone changes are reflected without needing a backend round trip.
+      unawaited(_syncDailyNotifications());
     }
   }
 
@@ -181,6 +199,7 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
 
     _configurePendingPreferenceSyncRetry();
     await _syncWidgetPayload();
+    await _syncDailyNotifications();
     notifyListeners();
   }
 
@@ -256,7 +275,17 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
     );
   }
 
-  void setNotificationsEnabled(bool value) {
+  Future<void> setNotificationsEnabled(bool value) async {
+    if (value) {
+      final bool granted = await _notificationScheduler.requestPermissions();
+      if (!granted) {
+        _authFeedbackMessage =
+            'Notification permission is still off on this device, so reminders could not be enabled yet.';
+        notifyListeners();
+        return;
+      }
+    }
+
     _applyPreferenceMutation(
       nextPreferences: _preferences.copyWith(notificationsEnabled: value),
       domains: const <AppPreferenceDomain>{AppPreferenceDomain.notifications},
@@ -275,6 +304,13 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
   void setWidgetPreviewStyle(WidgetPreviewStyle value) {
     _applyPreferenceMutation(
       nextPreferences: _preferences.copyWith(widgetPreviewStyle: value),
+      domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
+    );
+  }
+
+  void setWidgetAccentTone(WidgetAccentTone value) {
+    _applyPreferenceMutation(
+      nextPreferences: _preferences.copyWith(widgetAccentTone: value),
       domains: const <AppPreferenceDomain>{AppPreferenceDomain.widget},
     );
   }
@@ -419,6 +455,7 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
       _configurePendingPreferenceSyncRetry();
     }
     await _syncWidgetPayload();
+    await _syncDailyNotifications();
   }
 
   Future<void> _persistLocalPreferenceState() async {
@@ -573,12 +610,55 @@ class AppBootstrapController extends ChangeNotifier with WidgetsBindingObserver 
     }
   }
 
+  Future<void> _syncDailyNotifications() async {
+    try {
+      String? lockedTodayCategory;
+      if (_preferences.notificationsEnabled) {
+        final todayVerse = await _todayRepository.getTodayVerse(
+          selectedCategories: _preferences.selectedCategories,
+          dailyRefreshTime: _preferences.dailyNotificationTime,
+          preferredTranslationCode: _preferences.preferredTranslationCode,
+        );
+        lockedTodayCategory = todayVerse.category;
+      }
+
+      await _notificationScheduler.syncDailyReminders(
+        DailyReminderScheduleRequest(
+          enabled: _preferences.notificationsEnabled,
+          localTime: _preferences.dailyNotificationTime,
+          selectedCategories: _preferences.selectedCategories,
+          lockedTodayCategory: lockedTodayCategory,
+        ),
+      );
+    } catch (_) {
+      // Reminder scheduling should not block app use if permissions or platform APIs fail.
+    }
+  }
+
+  void _queueNavigationRoute(String route) {
+    final String normalized = route.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    _queuedNavigationRoute = normalized;
+    if (!_navigationRequests.isClosed) {
+      _navigationRequests.add(normalized);
+    }
+  }
+
+  String? consumeQueuedNavigationRoute() {
+    final String? route = _queuedNavigationRoute;
+    _queuedNavigationRoute = null;
+    return route;
+  }
+
   @override
   void dispose() {
     if (_widgetObserverRegistered) {
       WidgetsBinding.instance.removeObserver(this);
     }
     _pendingPreferenceSyncTimer?.cancel();
+    unawaited(_navigationRequests.close());
     unawaited(_sessionSubscription?.cancel());
     super.dispose();
   }
