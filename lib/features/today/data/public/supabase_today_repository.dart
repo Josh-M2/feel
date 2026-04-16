@@ -25,6 +25,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Guidance',
       reference: 'Proverbs 3:5-6',
       translationCode: 'kjv',
+      bookId: 'proverbs',
+      chapterNumber: 3,
+      verseStart: 5,
+      verseEnd: 6,
       verseTextFallback:
           'Trust in the Lord with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.',
       reflectionPrompt:
@@ -64,6 +68,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Hope',
       reference: 'Jeremiah 29:11',
       translationCode: 'kjv',
+      bookId: 'jeremiah',
+      chapterNumber: 29,
+      verseStart: 11,
+      verseEnd: 11,
       verseTextFallback:
           'For I know the thoughts that I think toward you, saith the Lord, thoughts of peace, and not of evil, to give you an expected end.',
       reflectionPrompt:
@@ -97,6 +105,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Strength',
       reference: 'Isaiah 40:31',
       translationCode: 'kjv',
+      bookId: 'isaiah',
+      chapterNumber: 40,
+      verseStart: 31,
+      verseEnd: 31,
       verseTextFallback:
           'But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
       reflectionPrompt:
@@ -128,6 +140,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Peace Over Anxiety',
       reference: 'Philippians 4:6-7',
       translationCode: 'kjv',
+      bookId: 'philippians',
+      chapterNumber: 4,
+      verseStart: 6,
+      verseEnd: 7,
       verseTextFallback:
           'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God. And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.',
       reflectionPrompt:
@@ -162,6 +178,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Comfort and Healing',
       reference: 'Psalm 34:18',
       translationCode: 'kjv',
+      bookId: 'psalms',
+      chapterNumber: 34,
+      verseStart: 18,
+      verseEnd: 18,
       verseTextFallback:
           'The Lord is nigh unto them that are of a broken heart; and saveth such as be of a contrite spirit.',
       reflectionPrompt:
@@ -193,6 +213,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Faith in Doubt',
       reference: 'Mark 9:24',
       translationCode: 'kjv',
+      bookId: 'mark',
+      chapterNumber: 9,
+      verseStart: 24,
+      verseEnd: 24,
       verseTextFallback: 'Lord, I believe; help thou mine unbelief.',
       reflectionPrompt:
           'What doubt do you need to bring to Jesus honestly instead of hiding it?',
@@ -224,6 +248,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Obedience',
       reference: 'James 1:22',
       translationCode: 'kjv',
+      bookId: 'james',
+      chapterNumber: 1,
+      verseStart: 22,
+      verseEnd: 22,
       verseTextFallback:
           'But be ye doers of the word, and not hearers only, deceiving your own selves.',
       reflectionPrompt:
@@ -257,6 +285,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Forgiveness',
       reference: '1 John 1:9',
       translationCode: 'kjv',
+      bookId: '1-john',
+      chapterNumber: 1,
+      verseStart: 9,
+      verseEnd: 9,
       verseTextFallback:
           'If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.',
       reflectionPrompt:
@@ -288,6 +320,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Purpose and Calling',
       reference: 'Ephesians 2:10',
       translationCode: 'kjv',
+      bookId: 'ephesians',
+      chapterNumber: 2,
+      verseStart: 10,
+      verseEnd: 10,
       verseTextFallback:
           'For we are his workmanship, created in Christ Jesus unto good works, which God hath before ordained that we should walk in them.',
       reflectionPrompt:
@@ -319,6 +355,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Love and Relationships',
       reference: '1 Corinthians 13:4-7',
       translationCode: 'kjv',
+      bookId: '1-corinthians',
+      chapterNumber: 13,
+      verseStart: 4,
+      verseEnd: 7,
       verseTextFallback:
           'Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up... beareth all things, believeth all things, hopeth all things, endureth all things.',
       reflectionPrompt:
@@ -350,6 +390,10 @@ class SupabaseTodayRepository implements TodayRepository {
       category: 'Gratitude and Joy',
       reference: '1 Thessalonians 5:16-18',
       translationCode: 'kjv',
+      bookId: '1-thessalonians',
+      chapterNumber: 5,
+      verseStart: 16,
+      verseEnd: 18,
       verseTextFallback:
           'Rejoice evermore. Pray without ceasing. In every thing give thanks: for this is the will of God in Christ Jesus concerning you.',
       reflectionPrompt:
@@ -455,7 +499,9 @@ class SupabaseTodayRepository implements TodayRepository {
       );
     }
 
-    final List<DailyVersePoolEntry> pool = await _loadPool();
+    final List<DailyVersePoolEntry> pool = await _loadPool(
+      preferredTranslationCode: effectiveTranslationCode,
+    );
     final List<String> recentReferences = await _loadRecentReferences(
       localSnapshot: localSnapshot,
       userId: userId,
@@ -466,11 +512,19 @@ class SupabaseTodayRepository implements TodayRepository {
       dateKey: dateKey,
       recentReferences: recentReferences,
     );
-    final _ResolvedVerseSnapshot? resolvedVerse =
-        await _resolveScriptureFromSupabase(
-          reference: entry.reference,
-          preferredTranslationCode: effectiveTranslationCode,
-        );
+    final _ResolvedVerseSnapshot? resolvedVerse = entry.hasNormalizedReference
+        ? await _resolveScriptureFromCoordinates(
+            bookId: entry.bookId,
+            chapterNumber: entry.chapterNumber,
+            verseStart: entry.verseStart,
+            verseEnd: entry.verseEnd,
+            referenceLabel: entry.reference,
+            preferredTranslationCode: effectiveTranslationCode,
+          )
+        : await _resolveScriptureFromSupabase(
+            reference: entry.reference,
+            preferredTranslationCode: effectiveTranslationCode,
+          );
 
     final TodayAssignmentLocalRecord record = TodayAssignmentLocalRecord(
       dateKey: dateKey,
@@ -691,6 +745,70 @@ class SupabaseTodayRepository implements TodayRepository {
     );
   }
 
+  Future<_ResolvedVerseSnapshot?> _resolveScriptureFromCoordinates({
+    required String bookId,
+    required int chapterNumber,
+    required int verseStart,
+    required int verseEnd,
+    required String referenceLabel,
+    required String preferredTranslationCode,
+  }) async {
+    if (!_isConfigured) {
+      return null;
+    }
+
+    final String requestedTranslationCode =
+        AppConstants.sanitizeTranslationCode(preferredTranslationCode);
+    List<Map<String, dynamic>> verseRows = await _loadPassageVerseRows(
+      bookId: bookId,
+      chapterNumber: chapterNumber,
+      versionCode: requestedTranslationCode,
+      verseStart: verseStart,
+      verseEnd: verseEnd,
+    );
+
+    String appliedTranslationCode = requestedTranslationCode;
+    if (verseRows.isEmpty && requestedTranslationCode != 'kjv') {
+      verseRows = await _loadPassageVerseRows(
+        bookId: bookId,
+        chapterNumber: chapterNumber,
+        versionCode: 'kjv',
+        verseStart: verseStart,
+        verseEnd: verseEnd,
+      );
+      appliedTranslationCode = 'kjv';
+    }
+
+    if (verseRows.isEmpty) {
+      return null;
+    }
+
+    final String translationLabel =
+        appliedTranslationCode == requestedTranslationCode
+        ? AppConstants.translationOptionFor(appliedTranslationCode).label
+        : '${AppConstants.translationOptionFor(requestedTranslationCode).label} requested - KJV fallback';
+
+    return _ResolvedVerseSnapshot(
+      reference:
+          referenceLabel.isNotEmpty
+              ? referenceLabel
+              : _buildReferenceLabel(
+                  bookId: bookId,
+                  chapterNumber: chapterNumber,
+                  verseStart: verseStart,
+                  verseEnd: verseEnd,
+                ),
+      translationCode: appliedTranslationCode,
+      translationLabel: translationLabel,
+      verseText: verseRows
+          .map(
+            (Map<String, dynamic> row) => row['verse_text']?.toString() ?? '',
+          )
+          .where((String text) => text.trim().isNotEmpty)
+          .join(' '),
+    );
+  }
+
   _ReferenceParts? _parseReference(String reference) {
     final RegExp matchExp = RegExp(r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$');
     final RegExpMatch? match = matchExp.firstMatch(reference.trim());
@@ -795,6 +913,26 @@ class SupabaseTodayRepository implements TodayRepository {
     return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
+  String _buildReferenceLabel({
+    required String bookId,
+    required int chapterNumber,
+    required int verseStart,
+    required int verseEnd,
+  }) {
+    final String bookLabel = bookId
+        .split('-')
+        .map(
+          (String segment) =>
+              segment.isEmpty
+                  ? segment
+                  : '${segment[0].toUpperCase()}${segment.substring(1)}',
+        )
+        .join(' ');
+    final String verseLabel =
+        verseStart == verseEnd ? '$verseStart' : '$verseStart-$verseEnd';
+    return '$bookLabel $chapterNumber:$verseLabel';
+  }
+
   String _timeLabel(TimeOfDay time) {
     final int hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final String minute = time.minute.toString().padLeft(2, '0');
@@ -867,16 +1005,32 @@ class SupabaseTodayRepository implements TodayRepository {
     } catch (_) {}
   }
 
-  Future<List<DailyVersePoolEntry>> _loadPool() async {
+  Future<List<DailyVersePoolEntry>> _loadPool({
+    required String preferredTranslationCode,
+  }) async {
     if (!_isConfigured) return _fallbackPool;
     try {
-      final List<dynamic> rows = await _client!
+      List<dynamic> rows = await _client!
           .from('content_daily_verse_pool')
           .select(
-            'id, category_label, reference_label, translation_code, verse_text_fallback, reflection_prompt, encouragement_line, context_summary, context_sections, related_passages, key_insights, prayer, sort_order',
+            'id, category_label, reference_label, translation_code, book_id, chapter_number, verse_start, verse_end, verse_text_fallback, reflection_prompt, encouragement_line, context_summary, context_sections, related_passages, key_insights, prayer, sort_order',
           )
           .eq('is_active', true)
+          .eq(
+            'translation_code',
+            AppConstants.sanitizeTranslationCode(preferredTranslationCode),
+          )
           .order('sort_order', ascending: true);
+      if (rows.isEmpty && preferredTranslationCode != 'kjv') {
+        rows = await _client!
+            .from('content_daily_verse_pool')
+            .select(
+              'id, category_label, reference_label, translation_code, book_id, chapter_number, verse_start, verse_end, verse_text_fallback, reflection_prompt, encouragement_line, context_summary, context_sections, related_passages, key_insights, prayer, sort_order',
+            )
+            .eq('is_active', true)
+            .eq('translation_code', 'kjv')
+            .order('sort_order', ascending: true);
+      }
       if (rows.isEmpty) return _fallbackPool;
       return rows
           .map(
