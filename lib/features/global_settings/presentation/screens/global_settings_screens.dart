@@ -847,7 +847,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Widget preview',
                 subtitle:
-                    'See how the daily verse can look with your current widget settings.',
+                    'See the compact default widget look. On Android it starts at 3x1 and can be resized taller, while iOS maps this to its small and medium widget families.',
                 icon: Icons.widgets_outlined,
                 child: _TodayAlignedWidgetPreview(bootstrap: bootstrap),
               ),
@@ -855,7 +855,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Widget integration shell',
                 subtitle:
-                    'Prepare the native widget bridge and push the latest daily assignment payload into it.',
+                    'Prepare the native widget bridge and push the latest daily assignment payload into the compact or expanded homescreen widget shell.',
                 icon: Icons.developer_mode_rounded,
                 child: _WidgetIntegrationShellCard(bootstrap: bootstrap),
               ),
@@ -926,44 +926,27 @@ class WidgetPreferencesScreen extends StatelessWidget {
                             ),
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                              child: Column(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: palette.accent,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        accentToneLabel(tone),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelLarge
-                                            ?.copyWith(
-                                              color: palette.primaryText,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 168),
-                                    child: Text(
-                                      accentToneDescription(tone),
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: palette.secondaryText,
-                                        height: 1.3,
-                                      ),
+                                  Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: palette.accent,
+                                      shape: BoxShape.circle,
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    accentToneLabel(tone),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                          color: palette.primaryText,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -998,8 +981,8 @@ class WidgetPreferencesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _SettingsSwitchRow(
-                      title: 'Show date marker',
-                      subtitle: 'Display a small "today" marker in the widget.',
+                      title: 'Show version label',
+                      subtitle: 'Display the Bible version at the top of the widget.',
                       value: bootstrap.widgetShowDate,
                       onChanged: bootstrap.setWidgetShowDate,
                     ),
@@ -1010,7 +993,7 @@ class WidgetPreferencesScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Daily timing',
                 subtitle:
-                    'The widget follows the same daily reading rhythm used by the rest of the app.',
+                    'The compact and expanded widget sizes follow the same daily reading rhythm used by the rest of the app.',
                 icon: Icons.schedule_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

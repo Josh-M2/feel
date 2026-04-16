@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_compose_sheet.dart';
 import '../../../../shared/widgets/app_page_loader.dart';
 import '../../../../shared/widgets/app_reveal.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
+import '../../../global_settings/presentation/widgets/widget_preview_card.dart';
 import '../../../saved/data/local/local_first_saved_library_repository.dart';
 import '../../../saved/domain/models/saved_library_local_snapshot.dart';
 import '../../../saved/domain/repositories/saved_library_repository.dart';
@@ -45,135 +46,141 @@ class TodayHomeScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
               children: <Widget>[
-              AppReveal(
-                duration: const Duration(milliseconds: 360),
-                offsetY: 0.03,
-                child: TodayVerseHeroCard(
-                  verse: verse,
-                  compact: true,
-                  onTap: () => context.push(AppRoutes.todayVerseDetail),
+                AppReveal(
+                  duration: const Duration(milliseconds: 360),
+                  offsetY: 0.03,
+                  child: TodayVerseHeroCard(
+                    verse: verse,
+                    compact: true,
+                    onTap: () => context.push(AppRoutes.todayVerseDetail),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppReveal(
-                delay: const Duration(milliseconds: 70),
-                child: TodayInfoCard(
-                  title: 'A gentle focus for today',
+                const SizedBox(height: AppSpacing.lg),
+                AppReveal(
+                  delay: const Duration(milliseconds: 70),
+                  child: TodayInfoCard(
+                    title: 'A gentle focus for today',
+                    subtitle:
+                        'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
+                    icon: Icons.light_mode_outlined,
+                    child: Text(
+                      verse.encouragementLine,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                TodayInfoCard(
+                  title: 'Open today\'s verse',
+                  icon: Icons.auto_awesome_outlined,
+                  child: Column(
+                    children: <Widget>[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.todayVerseDetail),
+                          child: const Text('Open verse detail'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              context.push(AppRoutes.todayVerseContext),
+                          child: const Text('Read verse context'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  context.push(AppRoutes.todayVerseAiExplain),
+                              child: const Text('AI explain'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  context.push(AppRoutes.todaySharePreview),
+                              child: const Text('Share preview'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                TodayInfoCard(
+                  title: 'Reflection prompt',
                   subtitle:
-                      'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
-                  icon: Icons.light_mode_outlined,
+                      'A calm question to carry into prayer or journaling.',
+                  icon: Icons.edit_note_rounded,
                   child: Text(
-                    verse.encouragementLine,
+                    verse.reflectionPrompt,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TodayInfoCard(
-                title: 'Open today\'s verse',
-                icon: Icons.auto_awesome_outlined,
-                child: Column(
-                  children: <Widget>[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
-                        child: const Text('Open verse detail'),
+                const SizedBox(height: AppSpacing.lg),
+                TodayInfoCard(
+                  title: 'Context preview',
+                  subtitle:
+                      'Your daily assignment keeps the verse anchored in its wider message instead of treating it like an isolated quote.',
+                  icon: Icons.menu_book_outlined,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        verse.contextSummary,
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseContext),
-                        child: const Text('Read verse context'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
-                            child: const Text('AI explain'),
-                          ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              context.push(AppRoutes.todayVerseContext),
+                          icon: const Icon(Icons.arrow_forward_rounded),
+                          label: const Text('Read context'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => context.push(AppRoutes.todaySharePreview),
-                            child: const Text('Share preview'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TodayInfoCard(
-                title: 'Reflection prompt',
-                subtitle: 'A calm question to carry into prayer or journaling.',
-                icon: Icons.edit_note_rounded,
-                child: Text(
-                  verse.reflectionPrompt,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TodayInfoCard(
-                title: 'Context preview',
-                subtitle:
-                    'Your daily assignment keeps the verse anchored in its wider message instead of treating it like an isolated quote.',
-                icon: Icons.menu_book_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      verse.contextSummary,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.push(AppRoutes.todayVerseContext),
-                        icon: const Icon(Icons.arrow_forward_rounded),
-                        label: const Text('Read context'),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              TodayInfoCard(
-                title: 'A simple rhythm for today',
-                icon: Icons.self_improvement_outlined,
-                child: const Column(
-                  children: <Widget>[
-                    _TodayStepRow(
-                      index: '1',
-                      title: 'Read slowly',
-                      description:
-                          'Sit with the verse before rushing into explanation.',
-                    ),
-                    SizedBox(height: 12),
-                    _TodayStepRow(
-                      index: '2',
-                      title: 'Pray honestly',
-                      description:
-                          'Bring the real burden of the day to God in plain words.',
-                    ),
-                    SizedBox(height: 12),
-                    _TodayStepRow(
-                      index: '3',
-                      title: 'Carry one thought',
-                      description:
-                          'Take one line from the verse into the rest of the day.',
-                    ),
-                  ],
+                const SizedBox(height: AppSpacing.lg),
+                TodayInfoCard(
+                  title: 'A simple rhythm for today',
+                  icon: Icons.self_improvement_outlined,
+                  child: const Column(
+                    children: <Widget>[
+                      _TodayStepRow(
+                        index: '1',
+                        title: 'Read slowly',
+                        description:
+                            'Sit with the verse before rushing into explanation.',
+                      ),
+                      SizedBox(height: 12),
+                      _TodayStepRow(
+                        index: '2',
+                        title: 'Pray honestly',
+                        description:
+                            'Bring the real burden of the day to God in plain words.',
+                      ),
+                      SizedBox(height: 12),
+                      _TodayStepRow(
+                        index: '3',
+                        title: 'Carry one thought',
+                        description:
+                            'Take one line from the verse into the rest of the day.',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ],
             ),
           );
@@ -244,10 +251,9 @@ class TodayVerseDetailScreen extends StatelessWidget {
                 icon: Icons.volunteer_activism_outlined,
                 child: Text(
                   verse.prayer,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontStyle: FontStyle.italic),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -270,7 +276,8 @@ class TodayVerseDetailScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => _showTodayReflectionComposer(context, verse),
+                        onPressed: () =>
+                            _showTodayReflectionComposer(context, verse),
                         icon: const Icon(Icons.edit_note_outlined),
                         label: const Text('Add reflection'),
                       ),
@@ -291,7 +298,8 @@ class TodayVerseDetailScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        onPressed: () =>
+                            context.push(AppRoutes.todayVerseContext),
                         child: const Text('Read verse context'),
                       ),
                     ),
@@ -300,14 +308,16 @@ class TodayVerseDetailScreen extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => context.push(AppRoutes.todaySharePreview),
+                            onPressed: () =>
+                                context.push(AppRoutes.todaySharePreview),
                             child: const Text('Share preview'),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
+                            onPressed: () =>
+                                context.push(AppRoutes.todayVerseAiExplain),
                             child: const Text('AI explain'),
                           ),
                         ),
@@ -509,22 +519,23 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                           ),
                         ]
                       : verse.keyInsights
-                          .asMap()
-                          .entries
-                          .map(
-                            (MapEntry<int, String> entry) => Padding(
-                              padding: EdgeInsets.only(
-                                bottom: entry.key == verse.keyInsights.length - 1
-                                    ? 0
-                                    : 12,
+                            .asMap()
+                            .entries
+                            .map(
+                              (MapEntry<int, String> entry) => Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      entry.key == verse.keyInsights.length - 1
+                                      ? 0
+                                      : 12,
+                                ),
+                                child: _ExplainPointTile(
+                                  title: 'Key insight ${entry.key + 1}',
+                                  body: entry.value,
+                                ),
                               ),
-                              child: _ExplainPointTile(
-                                title: 'Key insight ${entry.key + 1}',
-                                body: entry.value,
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
+                            )
+                            .toList(growable: false),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -581,14 +592,16 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               TodayInfoCard(
                 title: 'Keep reading',
-                subtitle: 'Move easily between explanation, scripture, and context.',
+                subtitle:
+                    'Move easily between explanation, scripture, and context.',
                 icon: Icons.swap_horiz_rounded,
                 child: Column(
                   children: <Widget>[
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                        onPressed: () =>
+                            context.push(AppRoutes.todayVerseDetail),
                         child: const Text('Back to verse detail'),
                       ),
                     ),
@@ -596,7 +609,8 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseContext),
+                        onPressed: () =>
+                            context.push(AppRoutes.todayVerseContext),
                         child: const Text('Read verse context'),
                       ),
                     ),
@@ -604,7 +618,8 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todaySharePreview),
+                        onPressed: () =>
+                            context.push(AppRoutes.todaySharePreview),
                         child: const Text('Open share preview'),
                       ),
                     ),
@@ -634,13 +649,17 @@ class TodaySharePreviewScreen extends StatelessWidget {
         bootstrap: bootstrap,
         markAsOpened: true,
         builder: (BuildContext context, TodayVerse verse) {
+          final WidgetPreviewPalette palette = widgetPreviewPalette(
+            style: bootstrap.widgetPreviewStyle,
+            accentTone: bootstrap.widgetAccentTone,
+          );
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               TodayInfoCard(
-                title: 'See how today’s verse can look when shared',
+                title: "See how today's verse can look when shared",
                 subtitle:
-                    'A calm layout that keeps scripture central and easy to read.',
+                    'A compact share card that stays close to your widget theme while keeping scripture central.',
                 icon: Icons.ios_share_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,7 +680,7 @@ class TodaySharePreviewScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      'The preview reflects the same assigned verse your app and future widget use for this day window.',
+                      'This preview uses the same assigned verse and the same widget appearance direction you already chose for accent and background.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -669,22 +688,71 @@ class TodaySharePreviewScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               TodayInfoCard(
-                title: 'Square layout',
-                subtitle: 'A balanced card shape for a feed-style post.',
-                icon: Icons.crop_square_rounded,
+                title: 'Share card',
+                subtitle:
+                    'A compact, message-style preview that stays cozy and easy to scan.',
+                icon: Icons.chat_bubble_outline_rounded,
                 child: _SharePreviewSurface(
                   verse: verse,
-                  variant: _ShareVariant.square,
+                  palette: palette,
+                  styleLabel: styleLabel(bootstrap.widgetPreviewStyle),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               TodayInfoCard(
-                title: 'Story layout',
-                subtitle: 'A taller layout for a story-style share.',
-                icon: Icons.stay_current_portrait_rounded,
-                child: _SharePreviewSurface(
-                  verse: verse,
-                  variant: _ShareVariant.story,
+                title: 'Share destinations',
+                subtitle:
+                    'Platform buttons are ready here first, while real share wiring comes next.',
+                icon: Icons.send_outlined,
+                child: Column(
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _ShareDestinationButton(
+                            label: 'Facebook',
+                            icon: Icons.thumb_up_alt_outlined,
+                            foregroundColor: const Color(0xFFF6F8FF),
+                            backgroundColor: const Color(0xFF1877F2),
+                            onPressed: () => _showShareDestinationPlaceholder(
+                              context,
+                              'Facebook',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ShareDestinationButton(
+                            label: 'Instagram',
+                            icon: Icons.camera_alt_outlined,
+                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFFC13584),
+                            gradient: const LinearGradient(
+                              colors: <Color>[
+                                Color(0xFFFEDA75),
+                                Color(0xFFFA7E1E),
+                                Color(0xFFD62976),
+                                Color(0xFF962FBF),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            onPressed: () => _showShareDestinationPlaceholder(
+                              context,
+                              'Instagram',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'The preview card already mirrors your widget surface and accent choices so the shared look feels familiar across the app.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: palette.secondaryText,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -698,7 +766,8 @@ class TodaySharePreviewScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseDetail),
+                        onPressed: () =>
+                            context.push(AppRoutes.todayVerseDetail),
                         child: const Text('Back to verse detail'),
                       ),
                     ),
@@ -706,7 +775,8 @@ class TodaySharePreviewScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.todayVerseAiExplain),
+                        onPressed: () =>
+                            context.push(AppRoutes.todayVerseAiExplain),
                         child: const Text('Open AI explain'),
                       ),
                     ),
@@ -721,16 +791,15 @@ class TodaySharePreviewScreen extends StatelessWidget {
   }
 }
 
-
 Future<void> _saveTodayBookmark(BuildContext context, TodayVerse verse) async {
   await _savedRepository.saveBookmark(
     anchor: _buildTodayAnchor(verse),
     categoryLabel: verse.category,
   );
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Verse saved to Saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Verse saved to Saved.')));
   }
 }
 
@@ -785,9 +854,9 @@ Future<void> _showTodayReflectionComposer(
   );
 
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reflection saved to Saved.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Reflection saved to Saved.')));
   }
 }
 
@@ -819,8 +888,7 @@ _ParsedReference _parseTodayReference(String reference) {
   if (sameChapterMatch != null) {
     final String bookName = sameChapterMatch.group(1)!.trim();
     final int chapter = int.tryParse(sameChapterMatch.group(2)!) ?? 1;
-    final int verseStart =
-        int.tryParse(sameChapterMatch.group(3)!) ?? 1;
+    final int verseStart = int.tryParse(sameChapterMatch.group(3)!) ?? 1;
     final int verseEnd =
         int.tryParse(sameChapterMatch.group(4) ?? '') ?? verseStart;
     return _ParsedReference(
@@ -984,7 +1052,8 @@ class _TodayVerseLoader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      snapshot.error?.toString() ?? 'No verse available right now.',
+                      snapshot.error?.toString() ??
+                          'No verse available right now.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -1218,99 +1287,272 @@ class _ReflectionPromptCard extends StatelessWidget {
   }
 }
 
-enum _ShareVariant { square, story }
+void _showShareDestinationPlaceholder(
+  BuildContext context,
+  String destination,
+) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        '$destination sharing UI is staged here first. Real app handoff comes in a later pass.',
+      ),
+    ),
+  );
+}
 
 class _SharePreviewSurface extends StatelessWidget {
-  const _SharePreviewSurface({required this.verse, required this.variant});
+  const _SharePreviewSurface({
+    required this.verse,
+    required this.palette,
+    required this.styleLabel,
+  });
 
   final TodayVerse verse;
-  final _ShareVariant variant;
+  final WidgetPreviewPalette palette;
+  final String styleLabel;
 
   @override
   Widget build(BuildContext context) {
-    final bool isStory = variant == _ShareVariant.story;
-
     return Center(
-      child: Container(
-        width: isStory ? 230 : 280,
-        constraints: BoxConstraints(minHeight: isStory ? 420 : 280),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.borderStrong),
-          gradient: const LinearGradient(
-            colors: <Color>[Color(0xFFF7EFE7), Color(0xFFFDF9F5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: palette.border),
+            gradient: LinearGradient(
+              colors: <Color>[
+                palette.surface,
+                Color.lerp(palette.surface, palette.badge, 0.72) ??
+                    palette.surface,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(isStory ? 20 : 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                'Bible App',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: palette.accent.withOpacity(0.12),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
               ),
-              const SizedBox(height: 12),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    verse.category,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                verse.verseText,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: isStory ? 9 : 6,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-              Text(
-                verse.reference,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Daily verse',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: palette.badge,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: Icon(
+                        Icons.auto_stories_rounded,
+                        size: 18,
+                        color: palette.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'Bible App',
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: palette.primaryText,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$styleLabel share preview',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: palette.secondaryText,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.badge,
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: Text(
+                        verse.category,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: palette.secondaryText,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(
+                    minHeight: 172,
+                    maxHeight: 208,
+                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                  decoration: BoxDecoration(
+                    color:
+                        Color.lerp(palette.surface, palette.badge, 0.55) ??
+                        palette.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          "Today's verse",
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: palette.accent,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        verse.verseText,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              height: 1.32,
+                              fontWeight: FontWeight.w600,
+                              color: palette.primaryText,
+                            ),
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      const SizedBox(height: 12),
+                      Text(
+                        verse.reference,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: palette.accent,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.visibility_outlined,
+                      size: 16,
+                      color: palette.secondaryText,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Compact, message-style preview using your widget accent and background.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: palette.secondaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareDestinationButton extends StatelessWidget {
+  const _ShareDestinationButton({
+    required this.label,
+    required this.icon,
+    required this.foregroundColor,
+    required this.backgroundColor,
+    required this.onPressed,
+    this.gradient,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color foregroundColor;
+  final Color backgroundColor;
+  final VoidCallback onPressed;
+  final LinearGradient? gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: gradient == null ? backgroundColor : null,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: backgroundColor.withOpacity(0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(54),
+          backgroundColor: Colors.transparent,
+          foregroundColor: foregroundColor,
+          shadowColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.xl),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        ),
+        icon: Icon(icon, size: 18),
+        label: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: foregroundColor,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

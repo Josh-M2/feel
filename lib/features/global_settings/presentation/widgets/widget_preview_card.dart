@@ -190,12 +190,30 @@ class WidgetPreviewCard extends StatelessWidget {
                     ),
                   if (showCategory || sample.translationLabel.isNotEmpty)
                     SizedBox(height: isTransparent ? 10 : 14),
-                  Text(
-                    _styleHeadline(style),
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: palette.accent,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          _styleHeadline(style),
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: palette.accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (showDate && sample.translationLabel.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Text(
+                            sample.translationLabel.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: palette.secondaryText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   SizedBox(height: isTransparent ? 8 : AppSpacing.md),
                   Text(
@@ -220,7 +238,6 @@ class WidgetPreviewCard extends StatelessWidget {
                   if (showReference) SizedBox(height: isTransparent ? 8 : AppSpacing.sm),
                   Text(
                     _footerLabel(
-                      effectiveDateKey: showDate ? sample.effectiveDateKey : '',
                       updateTimeLabel: updateTimeLabel,
                     ),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -382,23 +399,6 @@ String accentToneLabel(WidgetAccentTone tone) {
   }
 }
 
-String accentToneDescription(WidgetAccentTone tone) {
-  switch (tone) {
-    case WidgetAccentTone.sky:
-      return 'Feels calm on blue, silver, and cloudy wallpapers.';
-    case WidgetAccentTone.sage:
-      return 'Works beautifully with green, beige, and nature backgrounds.';
-    case WidgetAccentTone.rose:
-      return 'Best for warm pink, sunset, and soft-photo wallpapers.';
-    case WidgetAccentTone.sand:
-      return 'A cozy fit for cream, brown, and warm neutral homescreens.';
-    case WidgetAccentTone.white:
-      return 'Perfect when your wallpaper is busy, colorful, or already dark.';
-    case WidgetAccentTone.black:
-      return 'Perfect for light wallpapers, bright gradients, and minimal layouts.';
-  }
-}
-
 String _styleHeadline(WidgetPreviewStyle style) {
   switch (style) {
     case WidgetPreviewStyle.cozy:
@@ -415,22 +415,20 @@ String _styleHeadline(WidgetPreviewStyle style) {
 String _captionForStyle(WidgetPreviewStyle style) {
   switch (style) {
     case WidgetPreviewStyle.cozy:
-      return 'A warmer card-style sample for the daily verse widget.';
+      return 'A warmer compact sample for the default widget size, with room to breathe more when expanded.';
     case WidgetPreviewStyle.minimal:
-      return 'A cleaner, lighter sample for the daily verse widget.';
+      return 'A cleaner compact sample that stays readable in the default homescreen size.';
     case WidgetPreviewStyle.softMist:
-      return 'A softly frosted sample that stays honest about native widget limits.';
+      return 'A softly frosted compact sample that can still expand into a taller verse card.';
     case WidgetPreviewStyle.transparent:
-      return 'A tighter, almost-clear sample for a more compact homescreen feel.';
+      return 'A tighter, almost-clear sample tuned for a more compact homescreen footprint.';
   }
 }
 
 String _footerLabel({
-  required String effectiveDateKey,
   required String updateTimeLabel,
 }) {
   final List<String> parts = <String>[
-    if (effectiveDateKey.trim().isNotEmpty) effectiveDateKey.trim(),
     if (updateTimeLabel.trim().isNotEmpty) updateTimeLabel.trim(),
   ];
 

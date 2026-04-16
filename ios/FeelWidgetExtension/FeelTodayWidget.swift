@@ -41,18 +41,20 @@ struct FeelTodayWidgetProvider: TimelineProvider {
 }
 
 struct FeelTodayWidgetEntryView: View {
+  @Environment(\.widgetFamily) private var family
   let entry: FeelTodayWidgetEntry
 
   var body: some View {
     let payload = entry.payload
     let palette = widgetPalette(for: payload)
+    let isCompact = family == .systemSmall
     let isMinimal = payload.previewStyle == "minimal"
 
     ZStack {
       RoundedRectangle(cornerRadius: 22, style: .continuous)
         .fill(palette.background)
 
-      VStack(alignment: .leading, spacing: isMinimal ? 8 : 10) {
+      VStack(alignment: .leading, spacing: isCompact ? 8 : (isMinimal ? 8 : 10)) {
         HStack(alignment: .firstTextBaseline) {
           if payload.showCategory && !payload.categoryLabel.isEmpty {
             Text(payload.categoryLabel)
@@ -63,8 +65,8 @@ struct FeelTodayWidgetEntryView: View {
 
           Spacer(minLength: 8)
 
-          if payload.showDate && !payload.effectiveDateKey.isEmpty {
-            Text(payload.effectiveDateKey)
+          if payload.showDate && !payload.translationLabel.isEmpty {
+            Text(payload.translationLabel.uppercased())
               .font(.caption2)
               .foregroundStyle(palette.secondaryText)
               .lineLimit(1)
@@ -72,9 +74,9 @@ struct FeelTodayWidgetEntryView: View {
         }
 
         Text(payload.verseText)
-          .font(isMinimal ? .footnote.weight(.semibold) : .body.weight(.semibold))
+          .font((isCompact || isMinimal) ? .footnote.weight(.semibold) : .body.weight(.semibold))
           .foregroundStyle(palette.primaryText)
-          .lineLimit(6)
+          .lineLimit(isCompact ? 3 : 6)
           .multilineTextAlignment(.leading)
           .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -87,14 +89,16 @@ struct FeelTodayWidgetEntryView: View {
             .lineLimit(1)
         }
 
-        Text([payload.translationLabel, payload.updateTimeLabel]
-          .filter { !$0.isEmpty }
-          .joined(separator: " | "))
-          .font(.caption2)
-          .foregroundStyle(palette.secondaryText)
-          .lineLimit(1)
+        if !isCompact {
+          Text([payload.updateTimeLabel]
+            .filter { !$0.isEmpty }
+            .joined(separator: " | "))
+            .font(.caption2)
+            .foregroundStyle(palette.secondaryText)
+            .lineLimit(1)
+        }
       }
-      .padding(isMinimal ? 14 : 16)
+      .padding(isCompact ? 14 : (isMinimal ? 14 : 16))
     }
   }
 }
@@ -168,7 +172,7 @@ struct FeelTodayWidget: Widget {
       FeelTodayWidgetEntryView(entry: entry)
     }
     .configurationDisplayName("Daily Verse")
-    .description("Shows the same daily verse assignment as the Today screen.")
+    .description("Shows the same daily verse assignment as the Today screen in compact and expanded sizes.")
     .supportedFamilies([.systemSmall, .systemMedium])
   }
 }
