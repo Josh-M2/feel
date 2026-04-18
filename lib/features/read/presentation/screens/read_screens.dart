@@ -80,9 +80,8 @@ class ReadBooksScreen extends StatelessWidget {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           continueSubtitle,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                       const SizedBox(height: AppSpacing.md),
@@ -497,7 +496,7 @@ class _ChapterReadScreenState extends State<ChapterReadScreen> {
                       if (data.chapter.isTranslationFallback) ...<Widget>[
                         const SizedBox(height: AppSpacing.md),
                         Text(
-                          'The requested translation was not available for this chapter yet, so the reading surface fell back to the seeded KJV scaffold.',
+                          'This chapter is not available in your preferred translation yet, so it is shown here in KJV for now.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: AppColors.textSecondary),
                         ),
@@ -1273,12 +1272,10 @@ class _ReadFailureBody extends StatelessWidget {
       children: <Widget>[
         ReadInfoCard(
           title: 'Read is unavailable right now',
-          subtitle:
-              'The repository could not return reading data for this screen.',
+          subtitle: 'Reading content could not be loaded right now.',
           icon: Icons.error_outline_rounded,
           child: Text(
-            error?.toString() ??
-                'Try again after checking your seed data or Supabase connection.',
+            error?.toString() ?? 'Please try again in a moment.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
@@ -1297,7 +1294,7 @@ class _ReadEmptyBody extends StatelessWidget {
       children: const <Widget>[
         _InlineStateCard(
           title: 'No reading content yet',
-          subtitle: 'Seed the public scripture tables to populate this screen.',
+          subtitle: 'Reading content is not available yet.',
           icon: Icons.menu_book_outlined,
         ),
       ],

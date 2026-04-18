@@ -73,7 +73,7 @@ class ProfileOverviewScreen extends StatelessWidget {
                     Text(
                       bootstrap.isGuestMode
                           ? 'This device keeps your starter preferences locally until you choose account sync.'
-                          : 'Your account session can now keep your phase 1 preferences in Supabase.',
+                          : 'Your account can now keep your preferences with you on this device.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -117,24 +117,26 @@ class ProfileOverviewScreen extends StatelessWidget {
                           'See whether you are currently using guest mode or account mode.',
                       icon: Icons.badge_outlined,
                       trailingLabel: _modeLabel,
-                      onTap: () =>
-                          context.push(_routeWithOrigin(context, AppRoutes.profileAuthStatus)),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.profileAuthStatus),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ProfileNavTile(
                       title: 'Data sync',
                       subtitle:
-                          'Review the local guest store boundary and the account-backed phase 1 sync layer.',
+                          'See what stays on this device and what can follow your account.',
                       icon: Icons.sync_outlined,
-                      onTap: () =>
-                          context.push(_routeWithOrigin(context, AppRoutes.profileDataSync)),
+                      onTap: () => context.push(
+                        _routeWithOrigin(context, AppRoutes.profileDataSync),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     if (bootstrap.isGuestMode) ...<Widget>[
                       ProfileNavTile(
                         title: 'Sign in',
                         subtitle:
-                            'Use Supabase email and password auth when you want account continuity.',
+                            'Sign in when you want your preferences to follow your account.',
                         icon: Icons.login_rounded,
                         onTap: () => context.push(
                           _routeWithReturnTo(context, AppRoutes.profileSignIn),
@@ -194,7 +196,7 @@ class AuthStatusScreen extends StatelessWidget {
                     ? 'Guest mode active'
                     : 'Account mode active',
                 subtitle:
-                    'A simple status view for the phase 1 auth foundation.',
+                    'A simple view of how you are using the app right now.',
                 icon: bootstrap.isGuestMode
                     ? Icons.person_outline_rounded
                     : Icons.verified_rounded,
@@ -202,10 +204,10 @@ class AuthStatusScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _StatusRow(
-                      label: 'Backend config',
+                      label: 'Account features',
                       value: bootstrap.cloudSyncAvailable
-                          ? 'Supabase ready'
-                          : 'Guest only until configured',
+                          ? 'Available'
+                          : 'Not available in this build',
                     ),
                     _StatusRow(
                       label: 'Mode',
@@ -226,7 +228,7 @@ class AuthStatusScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'Phase 1 boundary',
+                title: 'How access works',
                 icon: Icons.layers_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,11 +239,11 @@ class AuthStatusScreen extends StatelessWidget {
                     ),
                     _ProfileBullet(
                       text:
-                          'Account mode stores user_profiles, user_preferences, and category preferences in Supabase.',
+                          'Account mode keeps your main reading preferences connected to your sign-in.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Today refreshes against the account-backed assignment after sign-in, while guest-to-account merge for bookmarks, notes, highlights, and progress is intentionally deferred to a later phase.',
+                          'Some saved reading items still remain on this device for now.',
                     ),
                   ],
                 ),
@@ -276,7 +278,7 @@ class DataSyncScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Current sync view',
+                      'Your current sync view',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
@@ -285,15 +287,15 @@ class DataSyncScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       bootstrap.isGuestMode
-                          ? 'Your phase 1 preferences are currently tied to this device'
-                          : 'Your phase 1 preferences now have an account-backed home',
+                          ? 'Your preferences are currently tied to this device'
+                          : 'Your preferences can now follow your account',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'This build syncs onboarding, reminder, widget, and category preference data, and it refreshes Today against the signed-in assignment on this device. Saved reading content merge still comes in a later phase.',
+                      'Your main reading preferences can stay with this device now and expand to account-based continuity as support becomes available.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -308,55 +310,55 @@ class DataSyncScreen extends StatelessWidget {
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Onboarding completion, reminder toggle, reminder time, widget preferences, and selected categories stay in the guest local store.',
+                          'Onboarding, reminder choices, widget preferences, and selected categories stay on this device in guest mode.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Guest mode remains fully readable even when Supabase is not configured yet.',
+                          'Guest mode stays fully usable even when account features are unavailable.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What is cloud-backed in phase 1',
+                title: 'What can follow your account',
                 icon: Icons.cloud_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'user_profiles keeps the account display name and timezone shell.',
+                          'Your display name and key profile details can be tied to your account.',
                     ),
                     _ProfileBullet(
                       text:
-                          'user_preferences keeps onboarding, notification, and widget display settings.',
+                          'Reading, reminder, and widget preferences can follow your sign-in.',
                     ),
                     _ProfileBullet(
                       text:
-                          'user_category_preferences keeps the selected Today categories in order.',
+                          'Your selected Today categories can stay connected to your account.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Today rehydrates from the signed-in assignment after login so the app and widget stay aligned on this device.',
+                          'Today stays aligned after sign-in so your daily verse remains consistent.',
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               ProfileInfoCard(
-                title: 'What comes next',
+                title: 'What is still ahead',
                 icon: Icons.schedule_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     _ProfileBullet(
                       text:
-                          'Explicit guest-to-account import for bookmarks, highlights, notes, and progress.',
+                          'Bookmarks, highlights, notes, and progress still need fuller account sync support.',
                     ),
                     _ProfileBullet(
                       text:
-                          'Repository-backed saved content and reading continuity modules.',
+                          'Reading continuity will keep becoming smoother across devices over time.',
                     ),
                   ],
                 ),
@@ -370,11 +372,7 @@ class DataSyncScreen extends StatelessWidget {
 }
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({
-    super.key,
-    required this.bootstrap,
-    this.returnTo,
-  });
+  const SignInScreen({super.key, required this.bootstrap, this.returnTo});
 
   final AppBootstrapController bootstrap;
   final String? returnTo;
@@ -416,9 +414,9 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _sendRecovery() async {
     final String email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email first.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your email first.')));
       return;
     }
 
@@ -444,12 +442,12 @@ class _SignInScreenState extends State<SignInScreen> {
               ProfileInfoCard(
                 title: 'Sign in is optional',
                 subtitle:
-                    'Use account mode when you want your phase 1 preferences available beyond this device.',
+                    'Use an account when you want your preferences to follow you more easily.',
                 icon: Icons.login_rounded,
                 child: Text(
                   widget.bootstrap.cloudSyncAvailable
-                      ? 'Supabase email and password auth is wired. You can keep using guest mode, or sign in when you want account-backed continuity.'
-                      : 'Supabase is not configured yet, so this build will stay in guest mode until you add your project URL and anon key.',
+                      ? 'You can keep using guest mode, or sign in whenever you want account-based continuity.'
+                      : 'Account features are not available in this build yet, so you can keep using guest mode.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
@@ -475,7 +473,8 @@ class _SignInScreenState extends State<SignInScreen> {
                         validator: (value) {
                           final String text = (value ?? '').trim();
                           if (text.isEmpty) return 'Enter your email.';
-                          if (!text.contains('@')) return 'Enter a valid email.';
+                          if (!text.contains('@'))
+                            return 'Enter a valid email.';
                           return null;
                         },
                       ),
@@ -499,7 +498,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: FilledButton(
                           onPressed: widget.bootstrap.authBusy ? null : _submit,
                           child: Text(
-                            widget.bootstrap.authBusy ? 'Working...' : 'Sign in',
+                            widget.bootstrap.authBusy
+                                ? 'Working...'
+                                : 'Sign in',
                           ),
                         ),
                       ),
@@ -507,8 +508,9 @@ class _SignInScreenState extends State<SignInScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed:
-                              widget.bootstrap.authBusy ? null : _sendRecovery,
+                          onPressed: widget.bootstrap.authBusy
+                              ? null
+                              : _sendRecovery,
                           child: const Text('Send password recovery email'),
                         ),
                       ),
@@ -525,11 +527,7 @@ class _SignInScreenState extends State<SignInScreen> {
 }
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({
-    super.key,
-    required this.bootstrap,
-    this.returnTo,
-  });
+  const SignUpScreen({super.key, required this.bootstrap, this.returnTo});
 
   final AppBootstrapController bootstrap;
   final String? returnTo;
@@ -592,7 +590,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     'Reading stays open and available whether you create an account or not.',
                 icon: Icons.person_add_alt_1_rounded,
                 child: const Text(
-                  'This phase 1 build only syncs onboarding, categories, notifications, and widget preferences. Saved reading content import comes next.',
+                  'Your main preferences can follow your account, while some saved reading items still stay on this device for now.',
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -630,7 +628,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         validator: (value) {
                           final String text = (value ?? '').trim();
                           if (text.isEmpty) return 'Enter your email.';
-                          if (!text.contains('@')) return 'Enter a valid email.';
+                          if (!text.contains('@'))
+                            return 'Enter a valid email.';
                           return null;
                         },
                       ),
@@ -668,7 +667,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         child: FilledButton(
                           onPressed: widget.bootstrap.authBusy ? null : _submit,
                           child: Text(
-                            widget.bootstrap.authBusy ? 'Working...' : 'Create account',
+                            widget.bootstrap.authBusy
+                                ? 'Working...'
+                                : 'Create account',
                           ),
                         ),
                       ),
@@ -685,11 +686,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 }
 
 class SignOutScreen extends StatelessWidget {
-  const SignOutScreen({
-    super.key,
-    required this.bootstrap,
-    this.returnTo,
-  });
+  const SignOutScreen({super.key, required this.bootstrap, this.returnTo});
 
   final AppBootstrapController bootstrap;
   final String? returnTo;
@@ -727,7 +724,7 @@ class SignOutScreen extends StatelessWidget {
                 child: Text(
                   bootstrap.isGuestMode
                       ? 'There is no account session to end right now, so you can simply keep reading in guest mode.'
-                      : 'Signing out clears the current Supabase session while leaving this device usable in guest mode.',
+                      : 'Signing out ends your current account session while keeping the app usable in guest mode.',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
@@ -750,11 +747,7 @@ class SignOutScreen extends StatelessWidget {
 }
 
 class AuthCallbackScreen extends StatefulWidget {
-  const AuthCallbackScreen({
-    super.key,
-    required this.bootstrap,
-    this.returnTo,
-  });
+  const AuthCallbackScreen({super.key, required this.bootstrap, this.returnTo});
 
   final AppBootstrapController bootstrap;
   final String? returnTo;
@@ -776,7 +769,7 @@ class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
   Widget build(BuildContext context) {
     return GlobalScreenScaffold(
       title: 'Account ready',
-      subtitle: 'Auth callback completed',
+      subtitle: 'Sign-in completed',
       originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
@@ -784,7 +777,7 @@ class _AuthCallbackScreenState extends State<AuthCallbackScreen> {
           ProfileInfoCard(
             title: 'Session updated',
             subtitle:
-                'The deep link returned to the app and the auth session was exchanged successfully.',
+                'Your sign-in finished successfully and your account session is now ready.',
             icon: Icons.mark_email_read_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -871,15 +864,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       builder: (context, _) {
         return GlobalScreenScaffold(
           title: 'Reset password',
-          subtitle: 'Recovery deep link flow',
+          subtitle: 'Choose a new password',
           originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               ProfileInfoCard(
                 title: 'Choose a new password',
-                subtitle:
-                    'This screen is opened by the password recovery deep link event.',
+                subtitle: 'Create a new password to finish account recovery.',
                 icon: Icons.lock_reset_rounded,
                 child: Form(
                   key: _formKey,
@@ -916,8 +908,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed:
-                              widget.bootstrap.authBusy ? null : _submit,
+                          onPressed: widget.bootstrap.authBusy ? null : _submit,
                           child: Text(
                             widget.bootstrap.authBusy
                                 ? 'Working...'
@@ -950,10 +941,7 @@ class _NoticeBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.xl),
         border: Border.all(color: AppColors.border),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Text(message),
-      ),
+      child: Padding(padding: const EdgeInsets.all(14), child: Text(message)),
     );
   }
 }
@@ -975,9 +963,9 @@ class _StatusRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: AppColors.textSecondary),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -1042,11 +1030,7 @@ class _ProfileBullet extends StatelessWidget {
         children: <Widget>[
           const Padding(
             padding: EdgeInsets.only(top: 5),
-            child: Icon(
-              Icons.circle,
-              size: 8,
-              color: AppColors.primary,
-            ),
+            child: Icon(Icons.circle, size: 8, color: AppColors.primary),
           ),
           const SizedBox(width: 10),
           Expanded(child: Text(text)),
@@ -1070,7 +1054,9 @@ String _resolvePostAuthDestination(String? returnTo) {
   final String path = uri?.path ?? '';
   if (_isSafePostAuthPath(path)) {
     final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
-    final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+    final String fragment = uri?.fragment.isNotEmpty == true
+        ? '#${uri!.fragment}'
+        : '';
     return '$path$query$fragment';
   }
 
@@ -1099,8 +1085,8 @@ bool _isSafePostAuthPath(String path) {
 }
 
 String? _originRouteFromContext(BuildContext context) {
-  final String raw = (GoRouterState.of(context).uri.queryParameters['origin'] ?? '')
-      .trim();
+  final String raw =
+      (GoRouterState.of(context).uri.queryParameters['origin'] ?? '').trim();
   if (raw.isEmpty) {
     return null;
   }
@@ -1112,7 +1098,9 @@ String? _originRouteFromContext(BuildContext context) {
   }
 
   final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
-  final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+  final String fragment = uri?.fragment.isNotEmpty == true
+      ? '#${uri!.fragment}'
+      : '';
   return '$path$query$fragment';
 }
 

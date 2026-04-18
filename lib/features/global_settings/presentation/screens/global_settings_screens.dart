@@ -330,7 +330,7 @@ class SettingsHomeScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Privacy and information',
                 subtitle:
-                    'Important app information stays easy to find while support donations are hidden.',
+                    'Important app information stays easy to find in one place.',
                 icon: Icons.info_outline_rounded,
                 child: Column(
                   children: <Widget>[
@@ -474,7 +474,7 @@ class ContentPreferencesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Today, the widget preview, and the Read tab will prefer this translation when it is available. The reading surface can still fall back to the seeded KJV scaffold for chapters that are not yet resolved in the requested translation.',
+                      'Today, the widget preview, and Read will prefer this translation when it is available. If a chapter is not available yet, it will appear in KJV instead.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -651,7 +651,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
                     _SettingsSwitchRow(
                       title: 'Enable daily verse reminders',
                       subtitle: enabled
-                          ? 'A real daily reminder is scheduled on this device.'
+                          ? 'A daily reminder is scheduled on this device.'
                           : 'Turn reminders on whenever you want a daily prompt back into Today.',
                       value: enabled,
                       onChanged: (bool value) {
@@ -763,7 +763,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'The reminder body rotates across 12 curated phrases for each category, and tapping it opens Today.',
+                      'Reminder wording rotates by category, and tapping it opens Today.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -855,16 +855,16 @@ class WidgetPreferencesScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Widget preview',
                 subtitle:
-                    'See the compact default widget look. On Android it starts at 3x1 and can be resized taller, while iOS maps this to its small and medium widget families.',
+                    'See how your daily verse can look on the Home Screen.',
                 icon: Icons.widgets_outlined,
                 child: _TodayAlignedWidgetPreview(bootstrap: bootstrap),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Widget integration shell',
+                title: 'Widget setup',
                 subtitle:
-                    'Prepare the native widget bridge and push the latest daily assignment payload into the compact or expanded homescreen widget shell.',
-                icon: Icons.developer_mode_rounded,
+                    'Keep the Home Screen widget aligned with your latest daily verse.',
+                icon: Icons.widgets_rounded,
                 child: _WidgetIntegrationShellCard(bootstrap: bootstrap),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -1231,71 +1231,79 @@ class _WidgetIntegrationShellCardState
   Widget build(BuildContext context) {
     return FutureBuilder<WidgetShellStatus>(
       future: _statusFuture,
-      builder: (BuildContext context, AsyncSnapshot<WidgetShellStatus> snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const AppLoadingCard(
-            title: 'Checking widget shell status',
-            subtitle:
-                'Looking for widget support, pinning availability, and current shell readiness.',
-            icon: Icons.widgets_outlined,
-          );
-        }
+      builder:
+          (BuildContext context, AsyncSnapshot<WidgetShellStatus> snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const AppLoadingCard(
+                title: 'Checking widget status',
+                subtitle:
+                    'Checking widget support and availability on this device.',
+                icon: Icons.widgets_outlined,
+              );
+            }
 
-        final WidgetShellStatus status =
-            snapshot.data ??
-            const WidgetShellStatus(
-              isSupported: false,
-              isConfigured: false,
-              canRequestPin: false,
-              statusLabel: 'Checking',
-              message: 'Checking widget bridge availability on this device.',
-            );
+            final WidgetShellStatus status =
+                snapshot.data ??
+                const WidgetShellStatus(
+                  isSupported: false,
+                  isConfigured: false,
+                  canRequestPin: false,
+                  statusLabel: 'Checking',
+                  message: 'Checking widget availability on this device.',
+                );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Chip(label: Text(status.statusLabel)),
-                Chip(label: Text(widget.bootstrap.preferredTranslationLabel)),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    Chip(label: Text(status.statusLabel)),
+                    Chip(
+                      label: Text(widget.bootstrap.preferredTranslationLabel),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  status.message,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _syncShell(requestPin: false),
+                    icon: const Icon(Icons.sync_rounded),
+                    label: const Text('Update widget'),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy || !status.canRequestPin
+                        ? null
+                        : () => _syncShell(requestPin: true),
+                    icon: const Icon(Icons.add_to_home_screen_rounded),
+                    label: const Text('Add widget to Home Screen'),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _busy ? null : _refreshStatus,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Refresh widget status'),
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(status.message, style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: AppSpacing.lg),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _busy ? null : () => _syncShell(requestPin: false),
-                icon: const Icon(Icons.sync_rounded),
-                label: const Text('Sync current daily verse to widget shell'),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _busy || !status.canRequestPin
-                    ? null
-                    : () => _syncShell(requestPin: true),
-                icon: const Icon(Icons.add_to_home_screen_rounded),
-                label: const Text('Attempt pin widget request'),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _busy ? null : _refreshStatus,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Refresh shell status'),
-              ),
-            ),
-          ],
-        );
-      },
+            );
+          },
     );
   }
 }
@@ -1341,15 +1349,15 @@ class SupportHomeScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Support donations',
                 subtitle:
-                    'Support donations and coffee support are hidden for now while this area is being finalized.',
+                    'Support options are temporarily unavailable while this area is being prepared.',
                 icon: Icons.schedule_outlined,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     const _SupportComingSoonCard(
-                      title: 'Support donations will be available soon',
+                      title: 'Support options will be available soon',
                       body:
-                          'Maintenance support and Buy me a coffee are temporarily hidden while the support flow is being prepared.',
+                          'Maintenance support and Buy me a coffee are temporarily unavailable while the support flow is being prepared.',
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -1382,7 +1390,7 @@ class SupportHomeScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'Support donations are temporarily hidden while this area is being finalized.',
+                          'Support options are temporarily unavailable while this area is being prepared.',
                     ),
                     _SettingsBullet(
                       text:
@@ -1447,7 +1455,7 @@ class SupportTransparencyScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'That support donations are temporarily hidden while this area is being finalized.',
+                          'That support options are temporarily unavailable while this area is being prepared.',
                     ),
                     _SettingsBullet(
                       text:
@@ -1484,7 +1492,7 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
               SettingsInfoCard(
                 title: 'Support donations will be available soon',
                 subtitle:
-                    'The maintenance support flow is temporarily hidden while this area is being prepared.',
+                    'Maintenance support is temporarily unavailable while this area is being prepared.',
                 icon: Icons.schedule_outlined,
                 child: const _SupportComingSoonCard(
                   title: 'Temporarily hidden',
@@ -1540,7 +1548,7 @@ class SupportCoffeeScreen extends StatelessWidget {
           SettingsInfoCard(
             title: 'Support donations will be available soon',
             subtitle:
-                'Buy me a coffee is temporarily hidden while the support area is being finalized.',
+                'Buy me a coffee is temporarily unavailable while this area is being prepared.',
             icon: Icons.schedule_outlined,
             child: const _SupportComingSoonCard(
               title: 'Temporarily hidden',
@@ -1672,7 +1680,7 @@ class AboutScreen extends StatelessWidget {
           SettingsInfoCard(
             title: 'Feel',
             subtitle:
-                'A calm, guest-first Bible experience with daily verses, reading flows, plans, saved reflections, and widget support.',
+                'A calm Bible app with daily verses, reading plans, saved reflections, and optional widgets.',
             icon: Icons.auto_stories_rounded,
             child: Text(
               'The app is shaped to feel warm, clear, and approachable while keeping scripture central.',

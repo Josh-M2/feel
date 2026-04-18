@@ -37,10 +37,7 @@ class SupabaseSessionRepository implements SessionRepository {
     }
 
     return _client.auth.onAuthStateChange.map((AuthState data) {
-      return _mapSession(
-        session: data.session,
-        event: _mapEvent(data.event),
-      );
+      return _mapSession(session: data.session, event: _mapEvent(data.event));
     });
   }
 
@@ -53,8 +50,7 @@ class SupabaseSessionRepository implements SessionRepository {
     if (_client == null) {
       return const AuthActionResult(
         success: false,
-        message:
-            'Supabase is not configured yet. Add your project URL and anon key first.',
+        message: 'Account features are not available in this build yet.',
       );
     }
 
@@ -97,8 +93,7 @@ class SupabaseSessionRepository implements SessionRepository {
     if (_client == null) {
       return const AuthActionResult(
         success: false,
-        message:
-            'Supabase is not configured yet. Add your project URL and anon key first.',
+        message: 'Account features are not available in this build yet.',
       );
     }
 
@@ -123,8 +118,7 @@ class SupabaseSessionRepository implements SessionRepository {
     if (_client == null) {
       return const AuthActionResult(
         success: false,
-        message:
-            'Supabase is not configured yet. Add your project URL and anon key first.',
+        message: 'Account features are not available in this build yet.',
       );
     }
 
@@ -135,7 +129,8 @@ class SupabaseSessionRepository implements SessionRepository {
       );
       return const AuthActionResult(
         success: true,
-        message: 'Password recovery email sent. Follow the email link to continue.',
+        message:
+            'Password recovery email sent. Follow the email link to continue.',
       );
     } on AuthException catch (error) {
       return AuthActionResult(success: false, message: error.message);
@@ -152,8 +147,7 @@ class SupabaseSessionRepository implements SessionRepository {
     if (_client == null) {
       return const AuthActionResult(
         success: false,
-        message:
-            'Supabase is not configured yet. Add your project URL and anon key first.',
+        message: 'Account features are not available in this build yet.',
       );
     }
 
@@ -207,7 +201,8 @@ class SupabaseSessionRepository implements SessionRepository {
     }
 
     final User user = session.user;
-    final Map<String, dynamic> metadata = user.userMetadata ?? <String, dynamic>{};
+    final Map<String, dynamic> metadata =
+        user.userMetadata ?? <String, dynamic>{};
 
     return AppSessionSnapshot.account(
       userId: user.id,

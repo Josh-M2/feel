@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Calm, guest-first scripture reading with a modern cozy shell.',
+                  'A calm, welcoming place to return to scripture each day.',
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -78,25 +78,24 @@ class WelcomeScreen extends StatelessWidget {
     return _OnboardingScaffold(
       title: 'Start with a calmer daily Bible rhythm',
       subtitle:
-          'Choose verse themes, set a daily time, and keep everything guest-first for now.',
+          'Choose verse themes, set a daily time, and begin reading right away.',
       stepLabel: 'Welcome',
       body: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'What this starter supports',
+              'What you can set up',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.md),
+            const _Bullet(text: 'Daily verse themes and reminder timing'),
             const _Bullet(
-              text: 'UI/UX-first foundation with dummy local state',
+              text: 'A guest-friendly experience with optional sign-in later',
             ),
             const _Bullet(
-              text: 'Daily verse preferences and notification time',
+              text: 'A warm, simple reading flow you can adjust anytime',
             ),
-            const _Bullet(text: 'Guest-first usage with optional login later'),
-            const _Bullet(text: 'Rounded, soft, reusable component direction'),
           ],
         ),
       ),
@@ -223,7 +222,7 @@ class NotificationPermissionScreen extends StatelessWidget {
     return _OnboardingScaffold(
       title: 'Notifications are optional',
       subtitle:
-          'Skipping is allowed. If you enable them, this device will schedule a real daily reminder.',
+          'You can skip this now and turn reminders on later in settings.',
       stepLabel: 'Step 3 of 4',
       body: AppCard(
         child: Column(
@@ -235,7 +234,7 @@ class NotificationPermissionScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'This will later trigger the same daily assignment used in-app and in the widget.',
+              'When enabled, reminders stay aligned with the same daily verse you see in the app and on the widget.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -276,9 +275,9 @@ class FinishScreen extends StatelessWidget {
       animation: bootstrap,
       builder: (context, _) {
         return _OnboardingScaffold(
-          title: 'Your starter setup is ready',
+          title: 'Your setup is ready',
           subtitle:
-              'You can change all of this later in settings, and login still remains optional.',
+              'You can change these choices later in settings, and signing in stays optional.',
           stepLabel: 'Step 4 of 4',
           body: AppCard(
             child: Column(

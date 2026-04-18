@@ -68,7 +68,7 @@ class TodayHomeScreen extends StatelessWidget {
                   child: TodayInfoCard(
                     title: 'A gentle focus for today',
                     subtitle:
-                        'Your verse is assigned from your selected categories and stays aligned with the same daily refresh time used by the widget.',
+                        'Your verse follows your selected categories and stays in step with your daily reminder time and widget.',
                     icon: Icons.light_mode_outlined,
                     child: Text(
                       verse.encouragementLine,
@@ -106,7 +106,7 @@ class TodayHomeScreen extends StatelessWidget {
                             child: OutlinedButton(
                               onPressed: () =>
                                   context.push(AppRoutes.todayVerseAiExplain),
-                              child: const Text('AI explain'),
+                              child: const Text('Open explanation'),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -137,7 +137,7 @@ class TodayHomeScreen extends StatelessWidget {
                 TodayInfoCard(
                   title: 'Context preview',
                   subtitle:
-                      'Your daily assignment keeps the verse anchored in its wider message instead of treating it like an isolated quote.',
+                      'Today\'s verse stays rooted in its wider message instead of being read on its own.',
                   icon: Icons.menu_book_outlined,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +325,7 @@ class TodayVerseDetailScreen extends StatelessWidget {
                           child: OutlinedButton(
                             onPressed: () =>
                                 context.push(AppRoutes.todayVerseAiExplain),
-                            child: const Text('AI explain'),
+                            child: const Text('Open explanation'),
                           ),
                         ),
                       ],
@@ -483,7 +483,7 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
               TodayInfoCard(
                 title: 'A gentle explanation',
                 subtitle:
-                    'LLM stays in a support role here. It helps explain the assigned verse, but it does not choose scripture for you.',
+                    'This explanation is here to support your reading. It does not replace scripture or decide what verse you receive.',
                 icon: Icons.auto_awesome_outlined,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1174,7 +1174,7 @@ class _TodayVerseLoader extends StatelessWidget {
           return const AppPageLoader(
             title: 'Loading today\'s verse',
             subtitle:
-                'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
+                'Preparing your verse for today and keeping it aligned with your daily rhythm.',
             icon: Icons.wb_sunny_outlined,
           );
         }
@@ -1186,7 +1186,7 @@ class _TodayVerseLoader extends StatelessWidget {
               TodayInfoCard(
                 title: 'Loading today\'s verse',
                 subtitle:
-                    'Resolving the current daily assignment and keeping it aligned with your configured daily time.',
+                    'Preparing your verse for today and keeping it aligned with your daily rhythm.',
                 icon: Icons.hourglass_top_rounded,
                 child: Center(
                   child: DecoratedBox(
@@ -1220,14 +1220,14 @@ class _TodayVerseLoader extends StatelessWidget {
               TodayInfoCard(
                 title: 'Unable to load today\'s verse',
                 subtitle:
-                    'The assignment pipeline can fall back to local content, but this screen still needs a valid verse payload to continue.',
+                    'Your verse could not be loaded right now. Please try again in a moment.',
                 icon: Icons.error_outline_rounded,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       snapshot.error?.toString() ??
-                          'No verse available right now.',
+                          'No verse is available right now.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],

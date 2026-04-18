@@ -37,7 +37,7 @@ class AppConstants {
     BibleTranslationOption(
       code: 'kjv',
       label: 'KJV',
-      description: 'King James Version fallback and seeded reading scaffold.',
+      description: 'King James Version with classic public-domain wording.',
       isPreferredForToday: true,
     ),
     BibleTranslationOption(

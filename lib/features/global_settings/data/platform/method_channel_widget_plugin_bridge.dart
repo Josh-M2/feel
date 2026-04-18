@@ -14,20 +14,24 @@ class MethodChannelWidgetPluginBridge implements WidgetPluginBridge {
   @override
   Future<WidgetShellStatus> getStatus() async {
     try {
-      final Map<dynamic, dynamic>? raw = await _channel.invokeMapMethod<dynamic, dynamic>(
-        'getWidgetSupportStatus',
-      );
+      final Map<dynamic, dynamic>? raw = await _channel
+          .invokeMapMethod<dynamic, dynamic>('getWidgetSupportStatus');
       final Map<String, dynamic> data = <String, dynamic>{
-        for (final MapEntry<dynamic, dynamic> entry in (raw ?? const <dynamic, dynamic>{}).entries)
+        for (final MapEntry<dynamic, dynamic> entry
+            in (raw ?? const <dynamic, dynamic>{}).entries)
           entry.key.toString(): entry.value,
       };
       final bool isSupported = data['isSupported'] == true;
       final bool isConfigured = data['isConfigured'] == true;
       final bool canRequestPin = data['canRequestPin'] != false;
-      final String statusLabel = data['statusLabel']?.toString() ?? (isSupported ? 'Connected' : 'Shell only');
-      final String message = data['message']?.toString() ?? (isSupported
-          ? 'The native widget bridge is available on this device.'
-          : 'The Flutter method-channel shell is ready, but the native widget implementation is not wired yet.');
+      final String statusLabel =
+          data['statusLabel']?.toString() ??
+          (isSupported ? 'Connected' : 'Shell only');
+      final String message =
+          data['message']?.toString() ??
+          (isSupported
+              ? 'Widget support is available on this device.'
+              : 'Widget setup is still in progress on this device.');
       return WidgetShellStatus(
         isSupported: isSupported,
         isConfigured: isConfigured,
@@ -41,7 +45,7 @@ class MethodChannelWidgetPluginBridge implements WidgetPluginBridge {
         isConfigured: false,
         canRequestPin: false,
         statusLabel: 'Shell only',
-        message: 'No native widget plugin is connected yet. The integration shell is ready for Android and iOS wiring.',
+        message: 'Widget setup is still in progress on this device.',
       );
     } catch (error) {
       return WidgetShellStatus(
@@ -49,7 +53,7 @@ class MethodChannelWidgetPluginBridge implements WidgetPluginBridge {
         isConfigured: false,
         canRequestPin: false,
         statusLabel: 'Unavailable',
-        message: error.toString(),
+        message: 'Widget availability could not be checked right now.',
       );
     }
   }
@@ -60,7 +64,10 @@ class MethodChannelWidgetPluginBridge implements WidgetPluginBridge {
     bool requestPin = false,
   }) async {
     try {
-      await _channel.invokeMethod<void>('syncDailyVersePayload', payload.toJson());
+      await _channel.invokeMethod<void>(
+        'syncDailyVersePayload',
+        payload.toJson(),
+      );
       bool didRequestPin = false;
       if (requestPin) {
         final bool? pinResult = await _channel.invokeMethod<bool>(
@@ -73,20 +80,20 @@ class MethodChannelWidgetPluginBridge implements WidgetPluginBridge {
         didSendPayload: true,
         didRequestPin: didRequestPin,
         message: didRequestPin
-            ? 'The latest daily verse payload was sent to the widget shell and a pin request was attempted.'
-            : 'The latest daily verse payload was sent to the widget shell.',
+            ? 'Your latest daily verse was sent to the widget and a request to add it to the Home Screen was made.'
+            : 'Your latest daily verse was sent to the widget.',
       );
     } on MissingPluginException {
       return const WidgetShellSyncResult(
         didSendPayload: false,
         didRequestPin: false,
-        message: 'No native widget plugin is connected yet. The Flutter shell is ready, but native widget code still needs to be added.',
+        message: 'Widget setup is still in progress on this device.',
       );
     } catch (error) {
       return WidgetShellSyncResult(
         didSendPayload: false,
         didRequestPin: false,
-        message: error.toString(),
+        message: 'The widget could not be updated right now.',
       );
     }
   }

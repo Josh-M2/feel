@@ -26,7 +26,8 @@ class SavedBookmarksScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      valueListenable:
+          LocalFirstSavedLibraryRepository.libraryRevisionListenable,
       builder: (BuildContext context, int _, Widget? child) {
         return FutureBuilder<_SavedBookmarksScreenData>(
           future: _loadSavedBookmarksScreenData(),
@@ -37,122 +38,124 @@ class SavedBookmarksScreen extends StatelessWidget {
               subtitle: 'Bookmarks, highlights, notes, and history',
               snapshot: snapshot,
               dataBuilder: (context, data) => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              AppCard(
-                variant: AppCardVariant.primary,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Your saved library',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppColors.accentStrong,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'A calm place to return to verses that stayed with you',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(fontSize: 30),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Keep important verses, highlights, and reflections together in one simple space.',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: <Widget>[
+                  AppCard(
+                    variant: AppCardVariant.primary,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        _SummaryPill(
-                          label: 'Bookmarks',
-                          value: '${data.summary.bookmarkCount}',
+                        Text(
+                          'Your saved library',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: AppColors.accentStrong,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        _SummaryPill(
-                          label: 'Highlights',
-                          value: '${data.summary.highlightCount}',
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'A calm place to return to verses that stayed with you',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(fontSize: 30),
                         ),
-                        _SummaryPill(
-                          label: 'Notes',
-                          value: '${data.summary.noteCount}',
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Keep important verses, highlights, and reflections together in one simple space.',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: <Widget>[
+                            _SummaryPill(
+                              label: 'Bookmarks',
+                              value: '${data.summary.bookmarkCount}',
+                            ),
+                            _SummaryPill(
+                              label: 'Highlights',
+                              value: '${data.summary.highlightCount}',
+                            ),
+                            _SummaryPill(
+                              label: 'Notes',
+                              value: '${data.summary.noteCount}',
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SavedInfoCard(
-                title: 'Quick routes',
-                subtitle:
-                    'Move easily between bookmarks, highlights, notes, and recent activity.',
-                icon: Icons.auto_awesome_outlined,
-                child: Column(
-                  children: <Widget>[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.savedHighlights),
-                        child: const Text('Open highlights'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.savedNotes),
-                        child: const Text('Open notes'),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.savedHistory),
-                        child: const Text('Open history'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (data.pinnedNotes.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppSpacing.lg),
-                SavedInfoCard(
-                  title: 'Pinned reflections',
-                  subtitle:
-                      'A few thoughts worth returning to again and again.',
-                  icon: Icons.push_pin_outlined,
-                  child: Column(
-                    children: data.pinnedNotes
-                        .take(2)
-                        .map(
-                          (SavedNote note) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: SavedNoteCard(note: note),
-                          ),
-                        )
-                        .toList(),
                   ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Recent bookmarks',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ...data.bookmarks.map(
-                (SavedBookmark bookmark) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: SavedBookmarkCard(bookmark: bookmark),
-                ),
-              ),
-            ],
+                  const SizedBox(height: AppSpacing.lg),
+                  SavedInfoCard(
+                    title: 'Quick routes',
+                    subtitle:
+                        'Move easily between bookmarks, highlights, notes, and recent activity.',
+                    icon: Icons.auto_awesome_outlined,
+                    child: Column(
+                      children: <Widget>[
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () =>
+                                context.push(AppRoutes.savedHighlights),
+                            child: const Text('Open highlights'),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.savedNotes),
+                            child: const Text('Open notes'),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                context.push(AppRoutes.savedHistory),
+                            child: const Text('Open history'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (data.pinnedNotes.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: AppSpacing.lg),
+                    SavedInfoCard(
+                      title: 'Pinned reflections',
+                      subtitle:
+                          'A few thoughts worth returning to again and again.',
+                      icon: Icons.push_pin_outlined,
+                      child: Column(
+                        children: data.pinnedNotes
+                            .take(2)
+                            .map(
+                              (SavedNote note) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: SavedNoteCard(note: note),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Recent bookmarks',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ...data.bookmarks.map(
+                    (SavedBookmark bookmark) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SavedBookmarkCard(bookmark: bookmark),
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -180,7 +183,8 @@ class SavedHighlightsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      valueListenable:
+          LocalFirstSavedLibraryRepository.libraryRevisionListenable,
       builder: (BuildContext context, int _, Widget? child) {
         return FutureBuilder<List<SavedHighlight>>(
           future: _savedRepository.getHighlights(),
@@ -192,62 +196,62 @@ class SavedHighlightsScreen extends StatelessWidget {
               showBackButton: true,
               snapshot: snapshot,
               dataBuilder: (context, highlights) => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              SavedInfoCard(
-                title: 'Highlighted verses',
-                subtitle:
-                    'Use highlights to return to the lines that stayed with you most.',
-                icon: Icons.highlight_alt_rounded,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: const <Widget>[
-                        Chip(label: Text('Warm amber')),
-                        Chip(label: Text('Soft olive')),
-                        Chip(label: Text('Dusty rose')),
-                        Chip(label: Text('Most recent')),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: <Widget>[
+                  SavedInfoCard(
+                    title: 'Highlighted verses',
+                    subtitle:
+                        'Use highlights to return to the lines that stayed with you most.',
+                    icon: Icons.highlight_alt_rounded,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: const <Widget>[
+                            Chip(label: Text('Warm amber')),
+                            Chip(label: Text('Soft olive')),
+                            Chip(label: Text('Dusty rose')),
+                            Chip(label: Text('Most recent')),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          'Highlights can help you revisit a passage quickly and remember what first drew your attention.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Highlights can help you revisit a passage quickly and remember what first drew your attention.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  ...highlights.map(
+                    (SavedHighlight highlight) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SavedHighlightCard(highlight: highlight),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...highlights.map(
-                (SavedHighlight highlight) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: SavedHighlightCard(highlight: highlight),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Keep going',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Keep going',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () => context.push(AppRoutes.savedNotes),
+                            child: const Text('Open notes'),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => context.push(AppRoutes.savedNotes),
-                        child: const Text('Open notes'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
               ),
             );
           },
@@ -263,7 +267,8 @@ class SavedNotesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      valueListenable:
+          LocalFirstSavedLibraryRepository.libraryRevisionListenable,
       builder: (BuildContext context, int _, Widget? child) {
         return FutureBuilder<_SavedNotesScreenData>(
           future: _loadSavedNotesScreenData(),
@@ -275,60 +280,66 @@ class SavedNotesScreen extends StatelessWidget {
               showBackButton: true,
               snapshot: snapshot,
               dataBuilder: (context, data) => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              SavedInfoCard(
-                title: 'Private reflections',
-                subtitle:
-                    'A quiet place to keep personal thoughts connected to scripture.',
-                icon: Icons.edit_note_rounded,
-                child: Text(
-                  'Notes can help turn reading into something more personal, memorable, and prayerful.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-              if (data.pinnedNotes.isNotEmpty) ...<Widget>[
-                const SizedBox(height: AppSpacing.lg),
-                Text('Pinned', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: AppSpacing.md),
-                ...data.pinnedNotes.map(
-                  (SavedNote note) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: SavedNoteCard(note: note),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
-              Text('All notes', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.md),
-              ...data.regularNotes.map(
-                (SavedNote note) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: SavedNoteCard(note: note),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Keep going',
-                      style: Theme.of(context).textTheme.titleMedium,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: <Widget>[
+                  SavedInfoCard(
+                    title: 'Private reflections',
+                    subtitle:
+                        'A quiet place to keep personal thoughts connected to scripture.',
+                    icon: Icons.edit_note_rounded,
+                    child: Text(
+                      'Notes can help turn reading into something more personal, memorable, and prayerful.',
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
+                  ),
+                  if (data.pinnedNotes.isNotEmpty) ...<Widget>[
                     const SizedBox(height: AppSpacing.lg),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            context.push(AppRoutes.savedHighlights),
-                        child: const Text('Open highlights'),
+                    Text(
+                      'Pinned',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ...data.pinnedNotes.map(
+                      (SavedNote note) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: SavedNoteCard(note: note),
                       ),
                     ),
                   ],
-                ),
-              ),
-            ],
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'All notes',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  ...data.regularNotes.map(
+                    (SavedNote note) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: SavedNoteCard(note: note),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Keep going',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                context.push(AppRoutes.savedHighlights),
+                            child: const Text('Open highlights'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -376,7 +387,8 @@ class SavedHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
-      valueListenable: LocalFirstSavedLibraryRepository.libraryRevisionListenable,
+      valueListenable:
+          LocalFirstSavedLibraryRepository.libraryRevisionListenable,
       builder: (BuildContext context, int _, Widget? child) {
         return FutureBuilder<List<SavedHistoryEntry>>(
           future: _savedRepository.getHistory(),
@@ -388,60 +400,62 @@ class SavedHistoryScreen extends StatelessWidget {
               showBackButton: true,
               snapshot: snapshot,
               dataBuilder: (context, entries) => ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: <Widget>[
-              SavedInfoCard(
-                title: 'Recent activity',
-                subtitle:
-                    'A simple timeline of where you have been reading, saving, and reflecting.',
-                icon: Icons.history_rounded,
-                child: Text(
-                  'Use this to quickly remember the verses, notes, and reading moments you have revisited recently.',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ...entries.map(
-                (SavedHistoryEntry entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSoft,
-                      borderRadius: BorderRadius.circular(AppRadii.xl),
-                      border: Border.all(color: AppColors.border),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: <Widget>[
+                  SavedInfoCard(
+                    title: 'Recent activity',
+                    subtitle:
+                        'A simple timeline of where you have been reading, saving, and reflecting.',
+                    icon: Icons.history_rounded,
+                    child: Text(
+                      'Use this to quickly remember the verses, notes, and reading moments you have revisited recently.',
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: DecoratedBox(
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  ...entries.map(
+                    (SavedHistoryEntry entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
+                          color: AppColors.surfaceSoft,
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          border: Border.all(color: AppColors.border),
                         ),
-                        child: SizedBox(
-                          width: 42,
-                          height: 42,
-                          child: Icon(
-                            _iconForKind(entry.kind),
-                            color: AppColors.primary,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
+                            ),
+                            child: SizedBox(
+                              width: 42,
+                              height: 42,
+                              child: Icon(
+                                _iconForKind(entry.kind),
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            entry.title,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              '${entry.subtitle} · ${entry.timeLabel}',
+                            ),
                           ),
                         ),
                       ),
-                      title: Text(
-                        entry.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text('${entry.subtitle} · ${entry.timeLabel}'),
-                      ),
                     ),
                   ),
-                ),
-              ),
-            ],
+                ],
               ),
             );
           },
@@ -513,12 +527,10 @@ class _SavedFailureBody extends StatelessWidget {
       children: <Widget>[
         SavedInfoCard(
           title: 'Saved library unavailable',
-          subtitle:
-              'The local saved library could not be loaded for this screen.',
+          subtitle: 'Your saved items could not be loaded right now.',
           icon: Icons.error_outline_rounded,
           child: Text(
-            error?.toString() ??
-                'Try again after checking your local store and package setup.',
+            error?.toString() ?? 'Please try again in a moment.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
@@ -541,7 +553,7 @@ class _SavedEmptyBody extends StatelessWidget {
               'Bookmarks, highlights, notes, and history will appear here.',
           icon: Icons.bookmark_border_rounded,
           child: Text(
-            'This screen is now wired to the local saved store, so once records are added they will appear here instead of staying mock-only.',
+            'Save a verse, highlight, or reflection and it will appear here.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),
