@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/bootstrap/app_bootstrap_controller.dart';
@@ -15,8 +19,10 @@ import '../../../global_settings/presentation/widgets/widget_preview_card.dart';
 import '../../../saved/data/local/local_first_saved_library_repository.dart';
 import '../../../saved/domain/models/saved_library_local_snapshot.dart';
 import '../../../saved/domain/repositories/saved_library_repository.dart';
+import '../../data/platform/method_channel_social_share_bridge.dart';
 import '../../data/public/supabase_today_repository.dart';
 import '../../domain/models/today_verse.dart';
+import '../../domain/repositories/social_share_bridge.dart';
 import '../../domain/repositories/today_repository.dart';
 import '../widgets/today_badge.dart';
 import '../widgets/today_info_card.dart';
@@ -25,6 +31,7 @@ import '../widgets/today_verse_hero_card.dart';
 final TodayRepository _todayRepository = SupabaseTodayRepository();
 final SavedLibraryRepository _savedRepository =
     LocalFirstSavedLibraryRepository();
+final SocialShareBridge _socialShareBridge = MethodChannelSocialShareBridge();
 
 class TodayHomeScreen extends StatelessWidget {
   const TodayHomeScreen({super.key, required this.bootstrap});
@@ -634,10 +641,26 @@ class TodayVerseAiExplainScreen extends StatelessWidget {
   }
 }
 
-class TodaySharePreviewScreen extends StatelessWidget {
+class TodaySharePreviewScreen extends StatefulWidget {
   const TodaySharePreviewScreen({super.key, required this.bootstrap});
 
   final AppBootstrapController bootstrap;
+
+  @override
+  State<TodaySharePreviewScreen> createState() =>
+      _TodaySharePreviewScreenState();
+}
+
+class _TodaySharePreviewScreenState extends State<TodaySharePreviewScreen> {
+  final GlobalKey _sharePreviewKey = GlobalKey();
+  bool _isSharing = false;
+  Uint8List? _preparedShareImageBytes;
+  String? _preparedShareCacheKey;
+  bool _isPreparingShareImage = false;
+  int _sharePreparationGeneration = 0;
+
+  bool get _isShareImageReady => _preparedShareImageBytes != null;
+  bool get _isShareUiBusy => _isPreparingShareImage || _isSharing;
 
   @override
   Widget build(BuildContext context) {
@@ -646,13 +669,19 @@ class TodaySharePreviewScreen extends StatelessWidget {
       subtitle: 'Today',
       showBackButton: true,
       body: _TodayVerseLoader(
-        bootstrap: bootstrap,
+        bootstrap: widget.bootstrap,
         markAsOpened: true,
         builder: (BuildContext context, TodayVerse verse) {
           final WidgetPreviewPalette palette = widgetPreviewPalette(
-            style: bootstrap.widgetPreviewStyle,
-            accentTone: bootstrap.widgetAccentTone,
+            style: widget.bootstrap.widgetPreviewStyle,
+            accentTone: widget.bootstrap.widgetAccentTone,
           );
+          final String shareCacheKey = _shareCacheKeyFor(
+            verse: verse,
+            styleLabel: styleLabel(widget.bootstrap.widgetPreviewStyle),
+            palette: palette,
+          );
+          _scheduleShareImagePreparation(context, verse, shareCacheKey);
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
@@ -692,63 +721,50 @@ class TodaySharePreviewScreen extends StatelessWidget {
                 subtitle:
                     'A compact, message-style preview that stays cozy and easy to scan.',
                 icon: Icons.chat_bubble_outline_rounded,
-                child: _SharePreviewSurface(
-                  verse: verse,
-                  palette: palette,
-                  styleLabel: styleLabel(bootstrap.widgetPreviewStyle),
+                child: RepaintBoundary(
+                  key: _sharePreviewKey,
+                  child: _SharePreviewSurface(
+                    verse: verse,
+                    palette: palette,
+                    styleLabel: styleLabel(widget.bootstrap.widgetPreviewStyle),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               TodayInfoCard(
-                title: 'Share destinations',
+                title: 'Share image',
                 subtitle:
-                    'Platform buttons are ready here first, while real share wiring comes next.',
+                    'Prepare one verse image, then choose where to send it from the system share sheet.',
                 icon: Icons.send_outlined,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: _ShareDestinationButton(
-                            label: 'Facebook',
-                            icon: Icons.thumb_up_alt_outlined,
-                            foregroundColor: const Color(0xFFF6F8FF),
-                            backgroundColor: const Color(0xFF1877F2),
-                            onPressed: () => _showShareDestinationPlaceholder(
-                              context,
-                              'Facebook',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _ShareDestinationButton(
-                            label: 'Instagram',
-                            icon: Icons.camera_alt_outlined,
-                            foregroundColor: Colors.white,
-                            backgroundColor: const Color(0xFFC13584),
-                            gradient: const LinearGradient(
-                              colors: <Color>[
-                                Color(0xFFFEDA75),
-                                Color(0xFFFA7E1E),
-                                Color(0xFFD62976),
-                                Color(0xFF962FBF),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            onPressed: () => _showShareDestinationPlaceholder(
-                              context,
-                              'Instagram',
-                            ),
-                          ),
-                        ),
-                      ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ShareActionButton(
+                        label: 'Share image',
+                        icon: Icons.ios_share_rounded,
+                        isBusy: _isSharing,
+                        onPressed: _isShareUiBusy || !_isShareImageReady
+                            ? null
+                            : () => _shareCurrentPreview(context, verse),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'The preview card already mirrors your widget surface and accent choices so the shared look feels familiar across the app.',
+                      _isPreparingShareImage
+                          ? 'Preparing the verse image now so sharing feels instant when you are ready.'
+                          : _isShareImageReady
+                          ? 'Your verse image is ready. Tap share and choose any available app.'
+                          : 'The share image is still getting ready. The button will enable as soon as it is prepared.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: palette.secondaryText,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'The exported image keeps a transparent outer background, while the verse styling still follows your selected widget accent.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: palette.secondaryText,
                       ),
                     ),
@@ -788,6 +804,164 @@ class TodaySharePreviewScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _shareCurrentPreview(
+    BuildContext context,
+    TodayVerse verse,
+  ) async {
+    if (_preparedShareImageBytes == null) {
+      _showShareFailure(
+        context,
+        'The share image is still getting ready. Please try again in a moment.',
+      );
+      return;
+    }
+
+    setState(() {
+      _isSharing = true;
+    });
+
+    try {
+      final bool didLaunch = await _socialShareBridge.shareImage(
+        imageBytes: _preparedShareImageBytes!,
+        fileName: _shareFileNameFor(verse.reference),
+      );
+      if (!didLaunch && context.mounted) {
+        _showShareFailure(
+          context,
+          'Sharing is not available on this device right now.',
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showShareFailure(
+          context,
+          'The share image could not be sent right now. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
+        });
+      }
+    }
+  }
+
+  void _scheduleShareImagePreparation(
+    BuildContext context,
+    TodayVerse verse,
+    String shareCacheKey,
+  ) {
+    if (_preparedShareCacheKey == shareCacheKey &&
+        _preparedShareImageBytes != null) {
+      return;
+    }
+    if (_isPreparingShareImage && _preparedShareCacheKey == shareCacheKey) {
+      return;
+    }
+
+    final int generation = ++_sharePreparationGeneration;
+    _preparedShareCacheKey = shareCacheKey;
+    _preparedShareImageBytes = null;
+    _isPreparingShareImage = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _sharePreparationGeneration) {
+        return;
+      }
+      _prepareShareImage(context, retryRemaining: 1, generation: generation);
+    });
+  }
+
+  Future<void> _prepareShareImage(
+    BuildContext context, {
+    required int retryRemaining,
+    required int generation,
+  }) async {
+    await WidgetsBinding.instance.endOfFrame;
+    final Uint8List? imageBytes = await _captureSharePreviewPng(context);
+    if (!mounted || generation != _sharePreparationGeneration) {
+      return;
+    }
+
+    if (imageBytes != null) {
+      setState(() {
+        _preparedShareImageBytes = imageBytes;
+        _isPreparingShareImage = false;
+      });
+      return;
+    }
+
+    if (retryRemaining > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || generation != _sharePreparationGeneration) {
+          return;
+        }
+        _prepareShareImage(
+          context,
+          retryRemaining: retryRemaining - 1,
+          generation: generation,
+        );
+      });
+      return;
+    }
+
+    setState(() {
+      _isPreparingShareImage = false;
+    });
+  }
+
+  Future<Uint8List?> _captureSharePreviewPng(BuildContext context) async {
+    final RenderObject? renderObject = _sharePreviewKey.currentContext
+        ?.findRenderObject();
+    if (renderObject is! RenderRepaintBoundary) {
+      return null;
+    }
+
+    final double pixelRatio = MediaQuery.of(
+      context,
+    ).devicePixelRatio.clamp(2.0, 3.0);
+    final ui.Image image = await renderObject.toImage(pixelRatio: pixelRatio);
+    final ByteData? byteData = await image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    image.dispose();
+    return byteData?.buffer.asUint8List();
+  }
+
+  String _shareFileNameFor(String reference) {
+    final String slug = reference
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    return 'today_verse_${slug.isEmpty ? 'share' : slug}.png';
+  }
+
+  String _shareCacheKeyFor({
+    required TodayVerse verse,
+    required String styleLabel,
+    required WidgetPreviewPalette palette,
+  }) {
+    return <Object>[
+      verse.reference,
+      verse.verseText,
+      verse.category,
+      styleLabel,
+      palette.surface.value,
+      palette.border.value,
+      palette.badge.value,
+      palette.primaryText.value,
+      palette.secondaryText.value,
+      palette.accent.value,
+    ].join('|');
+  }
+
+  void _showShareFailure(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -1287,19 +1461,6 @@ class _ReflectionPromptCard extends StatelessWidget {
   }
 }
 
-void _showShareDestinationPlaceholder(
-  BuildContext context,
-  String destination,
-) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        '$destination sharing UI is staged here first. Real app handoff comes in a later pass.',
-      ),
-    ),
-  );
-}
-
 class _SharePreviewSurface extends StatelessWidget {
   const _SharePreviewSurface({
     required this.verse,
@@ -1316,118 +1477,104 @@ class _SharePreviewSurface extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 320),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: palette.border),
-            gradient: LinearGradient(
-              colors: <Color>[
-                palette.surface,
-                Color.lerp(palette.surface, palette.badge, 0.72) ??
-                    palette.surface,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: palette.accent.withOpacity(0.12),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: palette.badge,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: Icon(
-                        Icons.auto_stories_rounded,
-                        size: 18,
-                        color: palette.accent,
-                      ),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: palette.badge,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: palette.border),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            'Bible App',
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  color: palette.primaryText,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '$styleLabel share preview',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: palette.secondaryText,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ),
+                    child: Icon(
+                      Icons.auto_stories_rounded,
+                      size: 18,
+                      color: palette.accent,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.badge,
-                        borderRadius: BorderRadius.circular(AppRadii.lg),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: Text(
-                        verse.category,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: palette.secondaryText,
-                          fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Feel',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: palette.primaryText,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        const SizedBox(height: 2),
+                        Text(
+                          '$styleLabel share preview',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: palette.secondaryText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.badge,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(color: palette.border),
+                    ),
+                    child: Text(
+                      verse.category,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: palette.secondaryText,
+                        fontWeight: FontWeight.w700,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color:
+                      Color.lerp(palette.surface, palette.badge, 0.48) ??
+                      palette.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: palette.border),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: palette.accent.withOpacity(0.14),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Container(
+                child: Container(
                   width: double.infinity,
                   constraints: const BoxConstraints(
                     minHeight: 172,
                     maxHeight: 208,
                   ),
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                  decoration: BoxDecoration(
-                    color:
-                        Color.lerp(palette.surface, palette.badge, 0.55) ??
-                        palette.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: palette.border),
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
@@ -1474,27 +1621,27 @@ class _SharePreviewSurface extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: <Widget>[
-                    Icon(
-                      Icons.visibility_outlined,
-                      size: 16,
-                      color: palette.secondaryText,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Compact, message-style preview using your widget accent and background.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: palette.secondaryText,
-                        ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.visibility_outlined,
+                    size: 16,
+                    color: palette.secondaryText,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Compact, message-style preview using your widget accent with a transparent outer canvas for export.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: palette.secondaryText,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -1502,33 +1649,32 @@ class _SharePreviewSurface extends StatelessWidget {
   }
 }
 
-class _ShareDestinationButton extends StatelessWidget {
-  const _ShareDestinationButton({
+class _ShareActionButton extends StatelessWidget {
+  const _ShareActionButton({
     required this.label,
     required this.icon,
-    required this.foregroundColor,
-    required this.backgroundColor,
     required this.onPressed,
-    this.gradient,
+    required this.isBusy,
   });
 
   final String label;
   final IconData icon;
-  final Color foregroundColor;
-  final Color backgroundColor;
-  final VoidCallback onPressed;
-  final LinearGradient? gradient;
+  final VoidCallback? onPressed;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: gradient == null ? backgroundColor : null,
-        gradient: gradient,
+        gradient: const LinearGradient(
+          colors: <Color>[Color(0xFF3D8BFF), Color(0xFF5C53F5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppRadii.xl),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: backgroundColor.withOpacity(0.18),
+            color: const Color(0xFF3D8BFF).withOpacity(0.20),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -1539,7 +1685,7 @@ class _ShareDestinationButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(54),
           backgroundColor: Colors.transparent,
-          foregroundColor: foregroundColor,
+          foregroundColor: Colors.white,
           shadowColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
@@ -1547,11 +1693,20 @@ class _ShareDestinationButton extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
-        icon: Icon(icon, size: 18),
+        icon: isBusy
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Icon(icon, size: 18),
         label: Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: foregroundColor,
+            color: Colors.white,
             fontWeight: FontWeight.w700,
           ),
         ),

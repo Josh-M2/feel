@@ -1,11 +1,15 @@
 package com.example.feel
 
 import android.appwidget.AppWidgetManager
+import android.content.ClipData
 import android.content.ComponentName
+import android.content.Intent
 import android.os.Build
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -65,6 +69,67 @@ class MainActivity : FlutterActivity() {
 
                 else -> result.notImplemented()
             }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "feel/social_share",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "shareImage" -> {
+                    val args = call.arguments as? Map<*, *>
+                    val imageBytes = args?.get("imageBytes") as? ByteArray
+                    val fileName = args?.get("fileName")?.toString()
+                    if (imageBytes == null || fileName.isNullOrBlank()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+
+                    result.success(
+                        shareImage(imageBytes = imageBytes, fileName = fileName),
+                    )
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun shareImage(
+        imageBytes: ByteArray,
+        fileName: String,
+    ): Boolean {
+        val shareDirectory = File(cacheDir, "social_share").apply {
+            mkdirs()
+        }
+        val shareFile = File(shareDirectory, fileName).apply {
+            writeBytes(imageBytes)
+        }
+        val shareUri = FileProvider.getUriForFile(
+            applicationContext,
+            "${applicationContext.packageName}.fileprovider",
+            shareFile,
+        )
+
+        val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, shareUri)
+            clipData = ClipData.newUri(contentResolver, fileName, shareUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val chooserIntent = Intent.createChooser(
+            fallbackIntent,
+            "Share verse image",
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        return if (chooserIntent.resolveActivity(packageManager) != null) {
+            startActivity(chooserIntent)
+            true
+        } else {
+            false
         }
     }
 }

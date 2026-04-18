@@ -22,55 +22,85 @@ class SettingsNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSecondary,
-        borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: AppColors.borderStrong),
-      ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        leading: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceInteractive,
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, size: 20, color: AppColors.accentStrong),
+    final BorderRadius borderRadius = BorderRadius.circular(AppRadii.xl);
+
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSecondary,
+          borderRadius: borderRadius,
+          border: Border.all(color: AppColors.borderStrong),
+        ),
+        child: InkWell(
+          borderRadius: borderRadius,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceInteractive,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(icon, size: 20, color: AppColors.accentStrong),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(subtitle),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                trailingLabel == null
+                    ? const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                              trailingLabel!,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: AppColors.accentStrong,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: AppColors.textSecondary,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+              ],
+            ),
           ),
         ),
-        title: Text(title, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(subtitle),
-        ),
-        trailing: trailingLabel == null
-            ? const Icon(
-                Icons.arrow_forward_rounded,
-                color: AppColors.textSecondary,
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    trailingLabel!,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.accentStrong,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: AppColors.textSecondary,
-                    size: 20,
-                  ),
-                ],
-              ),
       ),
     );
   }

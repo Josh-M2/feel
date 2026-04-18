@@ -27,9 +27,9 @@ import '../../domain/models/widget_shell_status.dart';
 import '../../domain/models/widget_shell_sync_result.dart';
 import '../../domain/repositories/widget_plugin_bridge.dart';
 
-
 final WidgetDataBridge _widgetDataBridge = LocalTodayWidgetDataBridge();
-final WidgetPluginBridge _widgetPluginBridge = MethodChannelWidgetPluginBridge();
+final WidgetPluginBridge _widgetPluginBridge =
+    MethodChannelWidgetPluginBridge();
 final LocalNotificationScheduler _debugNotificationScheduler =
     LocalNotificationScheduler();
 
@@ -42,8 +42,8 @@ String _routeWithOrigin(BuildContext context, String route) {
 }
 
 String? _originRouteFromContext(BuildContext context) {
-  final String raw = (GoRouterState.of(context).uri.queryParameters['origin'] ?? '')
-      .trim();
+  final String raw =
+      (GoRouterState.of(context).uri.queryParameters['origin'] ?? '').trim();
   if (raw.isEmpty) {
     return null;
   }
@@ -55,7 +55,9 @@ String? _originRouteFromContext(BuildContext context) {
   }
 
   final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
-  final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+  final String fragment = uri?.fragment.isNotEmpty == true
+      ? '#${uri!.fragment}'
+      : '';
   return '$path$query$fragment';
 }
 
@@ -82,7 +84,6 @@ DailyNotificationCopy _notificationPreview(AppBootstrapController bootstrap) {
   );
 }
 
-
 class _TodayAlignedWidgetPreview extends StatelessWidget {
   const _TodayAlignedWidgetPreview({required this.bootstrap});
 
@@ -104,29 +105,35 @@ class _TodayAlignedWidgetPreview extends StatelessWidget {
           notificationsEnabled: bootstrap.notificationsEnabled,
         ),
       ),
-      builder: (BuildContext context, AsyncSnapshot<WidgetDailyVersePayload> snapshot) {
-        final WidgetDailyVersePayload? payload = snapshot.data;
-        final String categoryLabel = payload?.categoryLabel ?? _primaryWidgetCategory(bootstrap);
-        final WidgetPreviewSample sample = payload != null
-            ? WidgetPreviewSample(
-                verseText: payload.verseText,
-                reference: payload.reference,
-                translationLabel: payload.translationLabel,
-                effectiveDateKey: payload.effectiveDateKey,
-              )
-            : buildWidgetPreviewSample(categoryLabel);
+      builder:
+          (
+            BuildContext context,
+            AsyncSnapshot<WidgetDailyVersePayload> snapshot,
+          ) {
+            final WidgetDailyVersePayload? payload = snapshot.data;
+            final String categoryLabel =
+                payload?.categoryLabel ?? _primaryWidgetCategory(bootstrap);
+            final WidgetPreviewSample sample = payload != null
+                ? WidgetPreviewSample(
+                    verseText: payload.verseText,
+                    reference: payload.reference,
+                    translationLabel: payload.translationLabel,
+                    effectiveDateKey: payload.effectiveDateKey,
+                  )
+                : buildWidgetPreviewSample(categoryLabel);
 
-        return WidgetPreviewCard(
-          sample: sample,
-          categoryLabel: categoryLabel,
-          updateTimeLabel: payload?.updateTimeLabel ?? bootstrap.dailyNotificationLabel,
-          style: bootstrap.widgetPreviewStyle,
-          accentTone: bootstrap.widgetAccentTone,
-          showReference: bootstrap.widgetShowReference,
-          showCategory: bootstrap.widgetShowCategory,
-          showDate: bootstrap.widgetShowDate,
-        );
-      },
+            return WidgetPreviewCard(
+              sample: sample,
+              categoryLabel: categoryLabel,
+              updateTimeLabel:
+                  payload?.updateTimeLabel ?? bootstrap.dailyNotificationLabel,
+              style: bootstrap.widgetPreviewStyle,
+              accentTone: bootstrap.widgetAccentTone,
+              showReference: bootstrap.widgetShowReference,
+              showCategory: bootstrap.widgetShowCategory,
+              showDate: bootstrap.widgetShowDate,
+            );
+          },
     );
   }
 }
@@ -255,13 +262,12 @@ class SettingsHomeScreen extends StatelessWidget {
                           'Choose the verse categories you want to see most often.',
                       icon: Icons.auto_stories_outlined,
                       trailingLabel: '$categoryCount selected',
-                      onTap: () =>
-                          context.push(
-                            _routeWithOrigin(
-                              context,
-                              AppRoutes.settingsContentPreferences,
-                            ),
-                          ),
+                      onTap: () => context.push(
+                        _routeWithOrigin(
+                          context,
+                          AppRoutes.settingsContentPreferences,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
@@ -271,7 +277,10 @@ class SettingsHomeScreen extends StatelessWidget {
                       icon: Icons.notifications_none_rounded,
                       trailingLabel: notificationsEnabled ? 'On' : 'Off',
                       onTap: () => context.push(
-                        _routeWithOrigin(context, AppRoutes.settingsNotifications),
+                        _routeWithOrigin(
+                          context,
+                          AppRoutes.settingsNotifications,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -279,10 +288,8 @@ class SettingsHomeScreen extends StatelessWidget {
                       title: 'Widget preferences',
                       subtitle:
                           'Choose how the daily verse looks on the widget.',
-                        icon: Icons.widgets_outlined,
-                        trailingLabel: styleLabel(
-                          bootstrap.widgetPreviewStyle,
-                        ),
+                      icon: Icons.widgets_outlined,
+                      trailingLabel: styleLabel(bootstrap.widgetPreviewStyle),
                       onTap: () => context.push(
                         _routeWithOrigin(
                           context,
@@ -321,23 +328,12 @@ class SettingsHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Support and information',
+                title: 'Privacy and information',
                 subtitle:
-                    'Support stays optional, and important app information stays easy to find.',
-                icon: Icons.favorite_border_rounded,
+                    'Important app information stays easy to find while support donations are hidden.',
+                icon: Icons.info_outline_rounded,
                 child: Column(
                   children: <Widget>[
-                    SettingsNavTile(
-                      title: 'Support',
-                      subtitle:
-                          'See support availability, transparency, and coffee support.',
-                      icon: Icons.volunteer_activism_outlined,
-                      trailingLabel: _supportStateLabel(bootstrap.supportState),
-                      onTap: () => context.push(
-                        _routeWithOrigin(context, AppRoutes.settingsSupportHome),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
                       title: 'Privacy',
                       subtitle:
@@ -384,10 +380,10 @@ class ContentPreferencesScreen extends StatelessWidget {
           title: 'Content preferences',
           subtitle: 'Category choices and reading focus',
           originRoute: _originRouteFromContext(context),
-            body: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              children: <Widget>[
-                SettingsInfoCard(
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            children: <Widget>[
+              SettingsInfoCard(
                 title: 'Verse categories',
                 subtitle:
                     'Choose the themes you would like to see more often in daily reading.',
@@ -459,19 +455,22 @@ class ContentPreferencesScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Column(
-                      children: AppConstants.supportedTranslations.map((option) {
-                        final bool selectedTranslation =
-                            bootstrap.preferredTranslationCode == option.code;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _TranslationOptionTile(
-                            option: option,
-                            selected: selectedTranslation,
-                            onTap: () =>
-                                bootstrap.setPreferredTranslationCode(option.code),
-                          ),
-                        );
-                      }).toList(growable: false),
+                      children: AppConstants.supportedTranslations
+                          .map((option) {
+                            final bool selectedTranslation =
+                                bootstrap.preferredTranslationCode ==
+                                option.code;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _TranslationOptionTile(
+                                option: option,
+                                selected: selectedTranslation,
+                                onTap: () => bootstrap
+                                    .setPreferredTranslationCode(option.code),
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
@@ -489,7 +488,6 @@ class ContentPreferencesScreen extends StatelessWidget {
   }
 }
 
-
 class _TranslationOptionTile extends StatelessWidget {
   const _TranslationOptionTile({
     required this.option,
@@ -503,49 +501,55 @@ class _TranslationOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadii.xl),
-      onTap: onTap,
-      child: DecoratedBox(
+    final BorderRadius borderRadius = BorderRadius.circular(AppRadii.xl);
+
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
         decoration: BoxDecoration(
           color: selected ? AppColors.surfaceMuted : AppColors.surfaceSoft,
-          borderRadius: BorderRadius.circular(AppRadii.xl),
+          borderRadius: borderRadius,
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.border,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Icon(
-                selected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_off_rounded,
-                color: selected ? AppColors.primary : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      option.label,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      option.description,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+        child: InkWell(
+          borderRadius: borderRadius,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_off_rounded,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        option.label,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        option.description,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -614,7 +618,9 @@ class NotificationsSettingsScreen extends StatelessWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Debug notification scheduled for 10 seconds from now.'),
+            content: Text(
+              'Debug notification scheduled for 10 seconds from now.',
+            ),
           ),
         );
     }
@@ -635,190 +641,192 @@ class NotificationsSettingsScreen extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
-                SettingsInfoCard(
-                  title: 'Daily reminders',
-                  subtitle:
-                      'Keep reminders simple, calm, and aligned with your daily verse.',
-                  icon: Icons.notifications_active_outlined,
-                  child: Column(
-                    children: <Widget>[
-                      _SettingsSwitchRow(
-                        title: 'Enable daily verse reminders',
-                        subtitle: enabled
-                            ? 'A real daily reminder is scheduled on this device.'
-                            : 'Turn reminders on whenever you want a daily prompt back into Today.',
-                        value: enabled,
-                        onChanged: (bool value) {
-                          bootstrap.setNotificationsEnabled(value);
-                        },
-                      ),
-                    ],
-                  ),
+              SettingsInfoCard(
+                title: 'Daily reminders',
+                subtitle:
+                    'Keep reminders simple, calm, and aligned with your daily verse.',
+                icon: Icons.notifications_active_outlined,
+                child: Column(
+                  children: <Widget>[
+                    _SettingsSwitchRow(
+                      title: 'Enable daily verse reminders',
+                      subtitle: enabled
+                          ? 'A real daily reminder is scheduled on this device.'
+                          : 'Turn reminders on whenever you want a daily prompt back into Today.',
+                      value: enabled,
+                      onChanged: (bool value) {
+                        bootstrap.setNotificationsEnabled(value);
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SettingsInfoCard(
-                  title: 'Reminder time',
-                  subtitle:
-                      'A single daily time keeps the reminder clear and predictable.',
-                  icon: Icons.schedule_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(AppRadii.xl),
-                          border: Border.all(color: AppColors.borderStrong),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      'Selected time',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(height: AppSpacing.sm),
-                                    Text(
-                                      bootstrap.dailyNotificationLabel,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineMedium
-                                          ?.copyWith(
-                                            fontSize: 30,
-                                            color: AppColors.primary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              OutlinedButton(
-                                onPressed: () => _pickTime(context),
-                                child: const Text('Adjust'),
-                              ),
-                            ],
-                          ),
-                        ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Reminder time',
+                subtitle:
+                    'A single daily time keeps the reminder clear and predictable.',
+                icon: Icons.schedule_rounded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(AppRadii.xl),
+                        border: Border.all(color: AppColors.borderStrong),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Text(
-                        enabled
-                            ? 'This device will use ${bootstrap.dailyNotificationLabel} for the daily reminder.'
-                            : 'You can set the rhythm now and turn reminders on later without losing your preferred time.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                  SettingsInfoCard(
-                    title: 'Reminder preview',
-                    subtitle:
-                        'Copy rotates by category so the daily prompt does not feel identical every day.',
-                  icon: Icons.mark_chat_read_outlined,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceSoft,
-                          borderRadius: BorderRadius.circular(AppRadii.xl),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                preview.title,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                preview.body,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                              Chip(label: Text(preview.category)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'The reminder body rotates across 12 curated phrases for each category, and tapping it opens Today.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (kDebugMode) ...<Widget>[
-                    SettingsInfoCard(
-                      title: 'Debug notification testing',
-                      subtitle:
-                          'Visible only in debug builds so reminder delivery can be checked without waiting for the real schedule.',
-                      icon: Icons.bug_report_outlined,
-                      child: Column(
-                        children: <Widget>[
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.tonalIcon(
-                              onPressed: () => _sendTestNotificationNow(context),
-                              icon: const Icon(Icons.notification_important_outlined),
-                              label: const Text('Send test notification now'),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () => _scheduleTestNotification(context),
-                              icon: const Icon(Icons.timer_outlined),
-                              label: const Text(
-                                'Schedule test notification in 10 seconds',
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    'Selected time',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text(
+                                    bootstrap.dailyNotificationLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(
+                                          fontSize: 30,
+                                          color: AppColors.primary,
+                                        ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                            OutlinedButton(
+                              onPressed: () => _pickTime(context),
+                              child: const Text('Adjust'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      enabled
+                          ? 'This device will use ${bootstrap.dailyNotificationLabel} for the daily reminder.'
+                          : 'You can set the rhythm now and turn reminders on later without losing your preferred time.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ],
-                  SettingsInfoCard(
-                    title: 'How reminders fit in',
-                    subtitle:
-                      'A gentle reminder flow works best when it supports reading rather than interrupting it.',
-                  icon: Icons.info_outline_rounded,
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              SettingsInfoCard(
+                title: 'Reminder preview',
+                subtitle:
+                    'Copy rotates by category so the daily prompt does not feel identical every day.',
+                icon: Icons.mark_chat_read_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceSoft,
+                        borderRadius: BorderRadius.circular(AppRadii.xl),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              preview.title,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              preview.body,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Chip(label: Text(preview.category)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'The reminder body rotates across 12 curated phrases for each category, and tapping it opens Today.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              if (kDebugMode) ...<Widget>[
+                SettingsInfoCard(
+                  title: 'Debug notification testing',
+                  subtitle:
+                      'Visible only in debug builds so reminder delivery can be checked without waiting for the real schedule.',
+                  icon: Icons.bug_report_outlined,
+                  child: Column(
                     children: <Widget>[
-                      _SettingsBullet(
-                        text:
-                            'Reminders should make it easier to return to scripture, not create pressure.',
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => _sendTestNotificationNow(context),
+                          icon: const Icon(
+                            Icons.notification_important_outlined,
+                          ),
+                          label: const Text('Send test notification now'),
+                        ),
                       ),
-                      _SettingsBullet(
-                        text:
-                            'Category-based reminder wording changes with your content preferences without silently replacing today\'s assigned verse.',
-                      ),
-                      _SettingsBullet(
-                        text:
-                            'The daily verse, reminder time, and widget cadence are designed to stay aligned.',
+                      const SizedBox(height: AppSpacing.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _scheduleTestNotification(context),
+                          icon: const Icon(Icons.timer_outlined),
+                          label: const Text(
+                            'Schedule test notification in 10 seconds',
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              SettingsInfoCard(
+                title: 'How reminders fit in',
+                subtitle:
+                    'A gentle reminder flow works best when it supports reading rather than interrupting it.',
+                icon: Icons.info_outline_rounded,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    _SettingsBullet(
+                      text:
+                          'Reminders should make it easier to return to scripture, not create pressure.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'Category-based reminder wording changes with your content preferences without silently replacing today\'s assigned verse.',
+                    ),
+                    _SettingsBullet(
+                      text:
+                          'The daily verse, reminder time, and widget cadence are designed to stay aligned.',
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -904,19 +912,22 @@ class WidgetPreferencesScreen extends StatelessWidget {
                   runSpacing: 10,
                   children: WidgetAccentTone.values
                       .map((WidgetAccentTone tone) {
-                        final WidgetPreviewPalette palette = widgetPreviewPalette(
-                          style: bootstrap.widgetPreviewStyle,
-                          accentTone: tone,
-                        );
+                        final WidgetPreviewPalette palette =
+                            widgetPreviewPalette(
+                              style: bootstrap.widgetPreviewStyle,
+                              accentTone: tone,
+                            );
                         final bool selected =
                             bootstrap.widgetAccentTone == tone;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(AppRadii.xl),
-                          onTap: () => bootstrap.setWidgetAccentTone(tone),
-                          child: DecoratedBox(
+                        final BorderRadius borderRadius = BorderRadius.circular(
+                          AppRadii.xl,
+                        );
+                        return Material(
+                          color: Colors.transparent,
+                          child: Ink(
                             decoration: BoxDecoration(
                               color: palette.badge,
-                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                              borderRadius: borderRadius,
                               border: Border.all(
                                 color: selected
                                     ? palette.accent
@@ -924,31 +935,40 @@ class WidgetPreferencesScreen extends StatelessWidget {
                                 width: selected ? 2 : 1,
                               ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: palette.accent,
-                                      shape: BoxShape.circle,
+                            child: InkWell(
+                              borderRadius: borderRadius,
+                              onTap: () => bootstrap.setWidgetAccentTone(tone),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  12,
+                                  14,
+                                  12,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: palette.accent,
+                                        shape: BoxShape.circle,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    accentToneLabel(tone),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: palette.primaryText,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      accentToneLabel(tone),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge
+                                          ?.copyWith(
+                                            color: palette.primaryText,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -982,7 +1002,8 @@ class WidgetPreferencesScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.md),
                     _SettingsSwitchRow(
                       title: 'Show version label',
-                      subtitle: 'Display the Bible version at the top of the widget.',
+                      subtitle:
+                          'Display the Bible version at the top of the widget.',
                       value: bootstrap.widgetShowDate,
                       onChanged: bootstrap.setWidgetShowDate,
                     ),
@@ -1078,68 +1099,73 @@ class _AppearanceOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadii.xl),
-      onTap: onTap,
-      child: DecoratedBox(
+    final BorderRadius borderRadius = BorderRadius.circular(AppRadii.xl);
+
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
         decoration: BoxDecoration(
           color: selected ? AppColors.surfaceMuted : AppColors.surfaceSoft,
-          borderRadius: BorderRadius.circular(AppRadii.xl),
+          borderRadius: borderRadius,
           border: Border.all(
             color: selected ? AppColors.borderStrong : AppColors.border,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.lg),
-                  border: Border.all(color: AppColors.border),
+        child: InkWell(
+          borderRadius: borderRadius,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(icon, color: AppColors.primary),
+                  ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Icon(icon, color: AppColors.primary),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.accentStrong,
-                        fontWeight: FontWeight.w700,
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppColors.accentStrong,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                color: selected ? AppColors.primary : AppColors.textTertiary,
-              ),
-            ],
+                const SizedBox(width: AppSpacing.md),
+                Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: selected ? AppColors.primary : AppColors.textTertiary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
 
 class _WidgetIntegrationShellCard extends StatefulWidget {
   const _WidgetIntegrationShellCard({required this.bootstrap});
@@ -1151,7 +1177,8 @@ class _WidgetIntegrationShellCard extends StatefulWidget {
       _WidgetIntegrationShellCardState();
 }
 
-class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard> {
+class _WidgetIntegrationShellCardState
+    extends State<_WidgetIntegrationShellCard> {
   late Future<WidgetShellStatus> _statusFuture;
   bool _busy = false;
 
@@ -1171,23 +1198,23 @@ class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard
     if (_busy) return;
     setState(() => _busy = true);
     try {
-        final WidgetDailyVersePayload payload = await _widgetDataBridge.getPayload(
-          preferences: AppPreferenceSnapshot.defaults().copyWith(
-            selectedCategories: widget.bootstrap.selectedCategories,
-            dailyNotificationTime: widget.bootstrap.dailyNotificationTime,
-            preferredTranslationCode: widget.bootstrap.preferredTranslationCode,
-            widgetPreviewStyle: widget.bootstrap.widgetPreviewStyle,
-            widgetAccentTone: widget.bootstrap.widgetAccentTone,
-            widgetShowReference: widget.bootstrap.widgetShowReference,
-            widgetShowCategory: widget.bootstrap.widgetShowCategory,
-            widgetShowDate: widget.bootstrap.widgetShowDate,
-            notificationsEnabled: widget.bootstrap.notificationsEnabled,
-          ),
-      );
-      final WidgetShellSyncResult result = await _widgetPluginBridge.syncDailyVersePayload(
-        payload: payload,
-        requestPin: requestPin,
-      );
+      final WidgetDailyVersePayload payload = await _widgetDataBridge
+          .getPayload(
+            preferences: AppPreferenceSnapshot.defaults().copyWith(
+              selectedCategories: widget.bootstrap.selectedCategories,
+              dailyNotificationTime: widget.bootstrap.dailyNotificationTime,
+              preferredTranslationCode:
+                  widget.bootstrap.preferredTranslationCode,
+              widgetPreviewStyle: widget.bootstrap.widgetPreviewStyle,
+              widgetAccentTone: widget.bootstrap.widgetAccentTone,
+              widgetShowReference: widget.bootstrap.widgetShowReference,
+              widgetShowCategory: widget.bootstrap.widgetShowCategory,
+              widgetShowDate: widget.bootstrap.widgetShowDate,
+              notificationsEnabled: widget.bootstrap.notificationsEnabled,
+            ),
+          );
+      final WidgetShellSyncResult result = await _widgetPluginBridge
+          .syncDailyVersePayload(payload: payload, requestPin: requestPin);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -1214,13 +1241,15 @@ class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard
           );
         }
 
-        final WidgetShellStatus status = snapshot.data ?? const WidgetShellStatus(
-          isSupported: false,
-          isConfigured: false,
-          canRequestPin: false,
-          statusLabel: 'Checking',
-          message: 'Checking widget bridge availability on this device.',
-        );
+        final WidgetShellStatus status =
+            snapshot.data ??
+            const WidgetShellStatus(
+              isSupported: false,
+              isConfigured: false,
+              canRequestPin: false,
+              statusLabel: 'Checking',
+              message: 'Checking widget bridge availability on this device.',
+            );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1234,10 +1263,7 @@ class _WidgetIntegrationShellCardState extends State<_WidgetIntegrationShellCard
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              status.message,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
+            Text(status.message, style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: AppSpacing.lg),
             SizedBox(
               width: double.infinity,
@@ -1313,42 +1339,23 @@ class SupportHomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'Current support path',
+                title: 'Support donations',
                 subtitle:
-                    'Support visibility changes depending on whether the monthly maintenance goal is open or closed.',
-                icon: Icons.account_tree_outlined,
+                    'Support donations and coffee support are hidden for now while this area is being finalized.',
+                icon: Icons.schedule_outlined,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    if (isOpen)
-                      SettingsNavTile(
-                        title: 'Maintenance fund',
-                        subtitle:
-                            'This is the current support path while maintenance support is open.',
-                        icon: Icons.savings_outlined,
-                        trailingLabel: 'OPEN',
-                        onTap: () => context.push(
-                          _routeWithOrigin(
-                            context,
-                            AppRoutes.settingsSupportMaintenanceFund,
-                          ),
-                        ),
-                      )
-                    else
-                      SettingsNavTile(
-                        title: 'Buy me a coffee',
-                        subtitle:
-                            'This becomes the visible support path when the maintenance goal has been reached.',
-                        icon: Icons.coffee_outlined,
-                        trailingLabel: 'AVAILABLE',
-                        onTap: () => context.push(
-                          _routeWithOrigin(context, AppRoutes.settingsSupportCoffee),
-                        ),
-                      ),
+                    const _SupportComingSoonCard(
+                      title: 'Support donations will be available soon',
+                      body:
+                          'Maintenance support and Buy me a coffee are temporarily hidden while the support flow is being prepared.',
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     SettingsNavTile(
                       title: 'Support transparency',
                       subtitle:
-                          'This page stays available so the current support state is always easy to understand.',
+                          'This page stays available so the support posture remains easy to understand.',
                       icon: Icons.receipt_long_outlined,
                       trailingLabel: 'ALWAYS',
                       onTap: () => context.push(
@@ -1375,7 +1382,7 @@ class SupportHomeScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'Maintenance support is visible only while the monthly target is open.',
+                          'Support donations are temporarily hidden while this area is being finalized.',
                     ),
                     _SettingsBullet(
                       text:
@@ -1440,11 +1447,11 @@ class SupportTransparencyScreen extends StatelessWidget {
                     ),
                     _SettingsBullet(
                       text:
-                          'How the monthly target affects support visibility.',
+                          'That support donations are temporarily hidden while this area is being finalized.',
                     ),
                     _SettingsBullet(
                       text:
-                          'Why coffee support is shown only when the maintenance goal has already been reached.',
+                          'That transparency remains visible even while donation actions are unavailable.',
                     ),
                   ],
                 ),
@@ -1467,38 +1474,29 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: bootstrap,
       builder: (context, _) {
-        final bool isOpen = bootstrap.supportState == SupportState.open;
-        final _SupportPreviewMetrics metrics = _supportMetrics(
-          bootstrap.supportState,
-        );
-
         return GlobalScreenScaffold(
           title: 'Maintenance fund',
-          subtitle: 'Optional support',
+          subtitle: 'Temporarily unavailable',
           originRoute: _originRouteFromContext(context),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: <Widget>[
               SettingsInfoCard(
-                title: isOpen
-                    ? 'Maintenance support is available'
-                    : 'Maintenance support is currently closed',
+                title: 'Support donations will be available soon',
                 subtitle:
-                    'This support path opens and closes with the monthly maintenance target.',
-                icon: Icons.savings_outlined,
-                child: SupportProgressCard(
-                  statusLabel: metrics.statusLabel,
-                  caption: metrics.caption,
-                  currentAmount: metrics.currentAmount,
-                  targetAmount: metrics.targetAmount,
-                  supporterCount: metrics.supporterCount,
+                    'The maintenance support flow is temporarily hidden while this area is being prepared.',
+                icon: Icons.schedule_outlined,
+                child: const _SupportComingSoonCard(
+                  title: 'Temporarily hidden',
+                  body:
+                      'Maintenance support is not available in the app right now. It will return once the support experience is ready.',
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsInfoCard(
-                title: 'What this support helps with',
+                title: 'What will stay true later',
                 subtitle:
-                    'The focus is on maintaining the app rather than creating access tiers.',
+                    'The support rules remain the same even while the donation flow is hidden.',
                 icon: Icons.build_circle_outlined,
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1517,37 +1515,6 @@ class SupportMaintenanceFundScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              if (!isOpen)
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        'When it is closed',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'When the maintenance goal has already been reached, coffee support becomes the visible support path instead.',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => context.push(
-                            _routeWithOrigin(
-                              context,
-                              AppRoutes.settingsSupportCoffee,
-                            ),
-                          ),
-                          child: const Text('Open coffee support'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         );
@@ -1563,27 +1530,22 @@ class SupportCoffeeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isOpen = bootstrap.supportState == SupportState.open;
-
     return GlobalScreenScaffold(
       title: 'Buy me a coffee',
-      subtitle: 'A simple way to show appreciation',
+      subtitle: 'Temporarily unavailable',
       originRoute: _originRouteFromContext(context),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SettingsInfoCard(
-            title: isOpen
-                ? 'Coffee support appears after maintenance support closes'
-                : 'Coffee support is currently available',
+            title: 'Support donations will be available soon',
             subtitle:
-                'This support path is shown once the monthly maintenance goal has already been reached.',
-            icon: Icons.coffee_outlined,
-            child: Text(
-              isOpen
-                  ? 'Maintenance support is the current visible path right now.'
-                  : 'Coffee support is a lighter, optional way to show appreciation once maintenance support is closed.',
-              style: Theme.of(context).textTheme.bodyLarge,
+                'Buy me a coffee is temporarily hidden while the support area is being finalized.',
+            icon: Icons.schedule_outlined,
+            child: const _SupportComingSoonCard(
+              title: 'Temporarily hidden',
+              body:
+                  'Coffee support is not available in the app right now. It will return once the support experience is ready.',
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -1708,7 +1670,7 @@ class AboutScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: <Widget>[
           SettingsInfoCard(
-            title: 'Bible App',
+            title: 'Feel',
             subtitle:
                 'A calm, guest-first Bible experience with daily verses, reading flows, plans, saved reflections, and widget support.',
             icon: Icons.auto_stories_rounded,
@@ -1848,6 +1810,27 @@ class _SettingsSwitchRow extends StatelessWidget {
             Switch.adaptive(value: value, onChanged: onChanged),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SupportComingSoonCard extends StatelessWidget {
+  const _SupportComingSoonCard({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          Text(body, style: Theme.of(context).textTheme.bodyLarge),
+        ],
       ),
     );
   }

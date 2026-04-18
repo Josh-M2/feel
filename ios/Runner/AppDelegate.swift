@@ -5,6 +5,7 @@ import WidgetKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let widgetChannelName = "feel/widget_bridge"
+  private let socialShareChannelName = "feel/social_share"
   private let widgetAppGroup = "group.com.example.feel.shared"
   private let widgetPayloadKey = "today_widget_payload"
 
@@ -19,6 +20,7 @@ import WidgetKit
 
     if let controller = window?.rootViewController as? FlutterViewController {
       configureWidgetBridge(binaryMessenger: controller.binaryMessenger)
+      configureSocialShareBridge(binaryMessenger: controller.binaryMessenger)
     }
 
     return didFinishLaunching
@@ -85,5 +87,79 @@ import WidgetKit
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  private func configureSocialShareBridge(binaryMessenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: socialShareChannelName, binaryMessenger: binaryMessenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else {
+        result(false)
+        return
+      }
+
+      switch call.method {
+      case "shareImage":
+        guard
+          let args = call.arguments as? [String: Any],
+          let imageData = (args["imageBytes"] as? FlutterStandardTypedData)?.data,
+          !imageData.isEmpty
+        else {
+          result(false)
+          return
+        }
+
+        DispatchQueue.main.async {
+          result(self.shareImage(imageData: imageData))
+        }
+
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func shareImage(imageData: Data) -> Bool {
+    guard let image = UIImage(data: imageData) else {
+      return false
+    }
+    guard let presenter = topViewController() else {
+      return false
+    }
+
+    let controller = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+    if let popover = controller.popoverPresentationController {
+      popover.sourceView = presenter.view
+      popover.sourceRect = CGRect(
+        x: presenter.view.bounds.midX,
+        y: presenter.view.bounds.maxY - 44,
+        width: 1,
+        height: 1
+      )
+    }
+    presenter.present(controller, animated: true)
+    return true
+  }
+
+  private func topViewController(base: UIViewController? = nil) -> UIViewController? {
+    let rootController =
+      base ??
+      window?.rootViewController ??
+      UIApplication.shared.connectedScenes
+        .compactMap { scene in
+          (scene as? UIWindowScene)?.windows.first(where: \.isKeyWindow)
+        }
+        .first?
+        .rootViewController
+
+    if let navigationController = rootController as? UINavigationController {
+      return topViewController(base: navigationController.visibleViewController)
+    }
+    if let tabController = rootController as? UITabBarController {
+      return topViewController(base: tabController.selectedViewController)
+    }
+    if let presented = rootController?.presentedViewController {
+      return topViewController(base: presented)
+    }
+    return rootController
   }
 }

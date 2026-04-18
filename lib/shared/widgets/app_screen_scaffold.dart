@@ -54,8 +54,9 @@ class TabScreenScaffold extends StatelessWidget {
           AppActionIconButton(
             icon: Icons.person_outline_rounded,
             tooltip: 'Profile',
-            onPressed: () =>
-                context.push(_routeWithOrigin(context, AppRoutes.profileOverview)),
+            onPressed: () => context.push(
+              _routeWithOrigin(context, AppRoutes.profileOverview),
+            ),
           ),
           const SizedBox(width: 8),
           AppActionIconButton(
@@ -117,6 +118,53 @@ class GlobalScreenScaffold extends StatelessWidget {
     return AppRoutes.todayHome;
   }
 
+  int _selectedTabIndex(BuildContext context) {
+    final String candidate =
+        _safeOriginRoute(originRoute) ??
+        _safeOriginRoute(GoRouterState.of(context).uri.toString()) ??
+        AppRoutes.todayHome;
+    if (candidate.startsWith('/tab_read/')) {
+      return 1;
+    }
+    if (candidate.startsWith('/tab_plans/')) {
+      return 2;
+    }
+    if (candidate.startsWith('/tab_saved/')) {
+      return 3;
+    }
+    return 0;
+  }
+
+  String _routeForTabIndex(int index) {
+    final String? safeOrigin = _safeOriginRoute(originRoute);
+    if (safeOrigin != null) {
+      if (index == 0 && safeOrigin.startsWith('/tab_today/')) {
+        return safeOrigin;
+      }
+      if (index == 1 && safeOrigin.startsWith('/tab_read/')) {
+        return safeOrigin;
+      }
+      if (index == 2 && safeOrigin.startsWith('/tab_plans/')) {
+        return safeOrigin;
+      }
+      if (index == 3 && safeOrigin.startsWith('/tab_saved/')) {
+        return safeOrigin;
+      }
+    }
+
+    switch (index) {
+      case 1:
+        return AppRoutes.readBooks;
+      case 2:
+        return AppRoutes.plansList;
+      case 3:
+        return AppRoutes.savedBookmarks;
+      case 0:
+      default:
+        return AppRoutes.todayHome;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,6 +193,34 @@ class GlobalScreenScaffold extends StatelessWidget {
         ),
       ),
       body: body,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedTabIndex(context),
+        onDestinationSelected: (int index) {
+          context.go(_routeForTabIndex(index));
+        },
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
+            icon: Icon(Icons.wb_sunny_outlined),
+            selectedIcon: Icon(Icons.wb_sunny_rounded),
+            label: 'Today',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book_rounded),
+            label: 'Read',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note_rounded),
+            label: 'Plans',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bookmark_border_rounded),
+            selectedIcon: Icon(Icons.bookmark_rounded),
+            label: 'Saved',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -173,7 +249,9 @@ String? _safeOriginRoute(String? candidate) {
   }
 
   final String query = uri?.hasQuery == true ? '?${uri!.query}' : '';
-  final String fragment = uri?.fragment.isNotEmpty == true ? '#${uri!.fragment}' : '';
+  final String fragment = uri?.fragment.isNotEmpty == true
+      ? '#${uri!.fragment}'
+      : '';
   return '$path$query$fragment';
 }
 
