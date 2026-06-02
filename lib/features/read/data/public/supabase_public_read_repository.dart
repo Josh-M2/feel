@@ -8,8 +8,6 @@ import '../../domain/repositories/read_repository.dart';
 import '../local/read_progress_local_snapshot.dart';
 import '../local/read_progress_local_store.dart';
 import '../local/shared_prefs_read_progress_local_store.dart';
-import '../mock/mock_read_repository.dart';
-import '../mock/mock_read_repository_adapter.dart';
 
 class SupabasePublicReadRepository implements ReadRepository {
   SupabasePublicReadRepository({
@@ -20,7 +18,6 @@ class SupabasePublicReadRepository implements ReadRepository {
 
   final SupabaseClient? _client;
   final ReadProgressLocalStore _localStore;
-  static const MockReadRepository _fallback = MockReadRepository();
   static const int _localQueueLimit = 5;
 
   static SupabaseClient? _resolveClient(SupabaseClient? client) {
@@ -36,10 +33,16 @@ class SupabasePublicReadRepository implements ReadRepository {
   bool get _isConfigured => _client != null;
   String? get _authenticatedUserId => _client?.auth.currentUser?.id;
 
+  Never _throwUnavailable(String message) {
+    throw StateError(message);
+  }
+
   @override
   Future<List<ReadBook>> getBooks() async {
     if (!_isConfigured) {
-      return _fallback.getBooks();
+      _throwUnavailable(
+        'Read content is unavailable until Supabase scripture content is configured.',
+      );
     }
 
     final List<dynamic> rows = await _client!
@@ -49,10 +52,6 @@ class SupabasePublicReadRepository implements ReadRepository {
         )
         .eq('is_active', true)
         .order('sort_order', ascending: true);
-
-    if (rows.isEmpty) {
-      return _fallback.getBooks();
-    }
 
     final List<ReadBook> books = <ReadBook>[];
     for (final dynamic item in rows) {
@@ -64,8 +63,14 @@ class SupabasePublicReadRepository implements ReadRepository {
 
   @override
   Future<ReadBook> getBookById(String? bookId) async {
-    if (!_isConfigured || bookId == null || bookId.trim().isEmpty) {
-      return _fallback.getBookById(bookId);
+    if (!_isConfigured) {
+      _throwUnavailable(
+        'Read content is unavailable until Supabase scripture content is configured.',
+      );
+    }
+
+    if (bookId == null || bookId.trim().isEmpty) {
+      _throwUnavailable('No book was selected.');
     }
 
     final dynamic row = await _client!
@@ -78,7 +83,7 @@ class SupabasePublicReadRepository implements ReadRepository {
         .maybeSingle();
 
     if (row == null) {
-      return _fallback.getBookById(bookId);
+      _throwUnavailable('This book is not available right now.');
     }
 
     return _mapBookRow(Map<String, dynamic>.from(row as Map));
@@ -89,15 +94,16 @@ class SupabasePublicReadRepository implements ReadRepository {
     final List<ReadContinuePoint> queue = await getContinueReadingQueue(
       versionCode: versionCode,
     );
-    if (queue.isEmpty) {
-      return _fallback.getContinueReadingBook();
+    if (queue.isNotEmpty) {
+      return getBookById(queue.first.bookId);
     }
 
-    try {
-      return await getBookById(queue.first.bookId);
-    } catch (_) {
-      return _fallback.getContinueReadingBook();
+    final List<ReadBook> books = await getBooks();
+    if (books.isEmpty) {
+      _throwUnavailable('No reading content is available right now.');
     }
+
+    return books.first;
   }
 
   @override
@@ -108,10 +114,8 @@ class SupabasePublicReadRepository implements ReadRepository {
   }) async {
     final String requestedVersionCode = _sanitizeVersionCode(versionCode);
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().getChapter(
-        bookId: bookId,
-        chapterNumber: chapterNumber,
-        versionCode: requestedVersionCode,
+      _throwUnavailable(
+        'Chapter reading is unavailable until Supabase scripture content is configured.',
       );
     }
 
@@ -126,11 +130,7 @@ class SupabasePublicReadRepository implements ReadRepository {
         .maybeSingle();
 
     if (chapterRow == null) {
-      return const MockReadRepositoryAdapter().getChapter(
-        bookId: bookId,
-        chapterNumber: chapterNumber,
-        versionCode: requestedVersionCode,
-      );
+      _throwUnavailable('This chapter is not available right now.');
     }
 
     final List<dynamic> sectionRows = await _client!
@@ -172,10 +172,8 @@ class SupabasePublicReadRepository implements ReadRepository {
     }
 
     if (verseRows.isEmpty) {
-      return const MockReadRepositoryAdapter().getChapter(
-        bookId: bookId,
-        chapterNumber: chapterNumber,
-        versionCode: requestedVersionCode,
+      _throwUnavailable(
+        'This chapter has not been imported yet for the selected translation.',
       );
     }
 
@@ -197,10 +195,8 @@ class SupabasePublicReadRepository implements ReadRepository {
     String? versionCode,
   }) async {
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().getPreviousChapter(
-        bookId: bookId,
-        chapterNumber: chapterNumber,
-        versionCode: versionCode,
+      _throwUnavailable(
+        'Chapter navigation is unavailable until Supabase scripture content is configured.',
       );
     }
 
@@ -230,10 +226,8 @@ class SupabasePublicReadRepository implements ReadRepository {
     String? versionCode,
   }) async {
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().getNextChapter(
-        bookId: bookId,
-        chapterNumber: chapterNumber,
-        versionCode: versionCode,
+      _throwUnavailable(
+        'Chapter navigation is unavailable until Supabase scripture content is configured.',
       );
     }
 
@@ -262,9 +256,8 @@ class SupabasePublicReadRepository implements ReadRepository {
     String? versionCode,
   }) async {
     if (!_isConfigured) {
-      return const MockReadRepositoryAdapter().searchReferences(
-        query,
-        versionCode: versionCode,
+      _throwUnavailable(
+        'Reference search is unavailable until Supabase scripture content is configured.',
       );
     }
 
@@ -282,6 +275,16 @@ class SupabasePublicReadRepository implements ReadRepository {
         (await _client!.from('content_book_aliases').select('book_id, alias'))
             .map((dynamic item) => Map<String, dynamic>.from(item as Map))
             .toList();
+    final List<Map<String, dynamic>> chapterRows =
+        (await _client!
+                .from('content_bible_chapters')
+                .select(
+                  'book_id, chapter_number, title, introduction, focus_line',
+                )
+                .order('book_id', ascending: true)
+                .order('chapter_number', ascending: true))
+            .map((dynamic item) => Map<String, dynamic>.from(item as Map))
+            .toList(growable: false);
 
     bool matchesBook(ReadBook book) {
       final String name = book.name.toLowerCase();
@@ -303,14 +306,10 @@ class SupabasePublicReadRepository implements ReadRepository {
 
     for (final ReadBook book in books) {
       final bool bookMatched = matchesBook(book);
-      final List<dynamic> chapterRows = await _client!
-          .from('content_bible_chapters')
-          .select('chapter_number, title, introduction, focus_line')
-          .eq('book_id', book.id)
-          .order('chapter_number', ascending: true);
-
-      for (final dynamic item in chapterRows) {
-        final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
+      for (final Map<String, dynamic> row in chapterRows) {
+        if (row['book_id']?.toString() != book.id) {
+          continue;
+        }
         final int chapter = (row['chapter_number'] as num).toInt();
         if (requestedChapter != null &&
             chapter != requestedChapter &&
@@ -342,13 +341,6 @@ class SupabasePublicReadRepository implements ReadRepository {
           ),
         );
       }
-    }
-
-    if (results.isEmpty) {
-      return const MockReadRepositoryAdapter().searchReferences(
-        query,
-        versionCode: versionCode,
-      );
     }
 
     return results;
@@ -397,9 +389,7 @@ class SupabasePublicReadRepository implements ReadRepository {
       }
     }
 
-    return const MockReadRepositoryAdapter().getContinueReadingQueue(
-      versionCode: versionCode,
-    );
+    return const <ReadContinuePoint>[];
   }
 
   @override
@@ -633,7 +623,7 @@ class SupabasePublicReadRepository implements ReadRepository {
           .map((dynamic item) => item.toString())
           .toList(growable: false),
       continueChapterNumber: safeContinueChapter,
-      mockChapters: chapterStubs,
+      chapters: chapterStubs,
     );
   }
 

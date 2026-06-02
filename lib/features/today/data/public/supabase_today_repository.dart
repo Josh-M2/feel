@@ -436,6 +436,10 @@ class SupabaseTodayRepository implements TodayRepository {
   bool get _isConfigured => _client != null;
   String? get _authenticatedUserId => _client?.auth.currentUser?.id;
 
+  Never _throwUnavailable(String message) {
+    throw StateError(message);
+  }
+
   @override
   Future<TodayVerse> getTodayVerse({
     required List<String> selectedCategories,
@@ -499,6 +503,12 @@ class SupabaseTodayRepository implements TodayRepository {
       );
     }
 
+    if (!_isConfigured) {
+      _throwUnavailable(
+        'Today is unavailable until Supabase daily verse content is configured.',
+      );
+    }
+
     final List<DailyVersePoolEntry> editorialOverrides = await _loadPool(
       preferredTranslationCode: effectiveTranslationCode,
     );
@@ -514,6 +524,11 @@ class SupabaseTodayRepository implements TodayRepository {
     final List<_DailyVerseCandidate> catalogCandidates = await _loadVerseCatalog(
       preferredTranslationCode: effectiveTranslationCode,
     );
+    if (mappedCandidates.isEmpty && catalogCandidates.isEmpty) {
+      _throwUnavailable(
+        'No daily verse content is available yet for the current configuration.',
+      );
+    }
     final List<String> recentReferences = await _loadRecentReferences(
       localSnapshot: localSnapshot,
       userId: userId,
@@ -1030,7 +1045,7 @@ class SupabaseTodayRepository implements TodayRepository {
   Future<List<DailyVersePoolEntry>> _loadPool({
     required String preferredTranslationCode,
   }) async {
-    if (!_isConfigured) return _fallbackPool;
+    if (!_isConfigured) return const <DailyVersePoolEntry>[];
     try {
       List<dynamic> rows = await _client!
           .from('content_daily_verse_pool')
@@ -1053,7 +1068,7 @@ class SupabaseTodayRepository implements TodayRepository {
             .eq('translation_code', 'kjv')
             .order('sort_order', ascending: true);
       }
-      if (rows.isEmpty) return _fallbackPool;
+      if (rows.isEmpty) return const <DailyVersePoolEntry>[];
       return rows
           .map(
             (dynamic item) => DailyVersePoolEntry.fromSupabaseRow(
@@ -1062,7 +1077,7 @@ class SupabaseTodayRepository implements TodayRepository {
           )
           .toList(growable: false);
     } catch (_) {
-      return _fallbackPool;
+      return const <DailyVersePoolEntry>[];
     }
   }
 
@@ -1160,22 +1175,7 @@ class SupabaseTodayRepository implements TodayRepository {
   Future<List<_DailyVerseCandidate>> _loadVerseCatalog({
     required String preferredTranslationCode,
   }) async {
-    if (!_isConfigured) {
-      return _fallbackPool
-          .map(
-            (DailyVersePoolEntry item) => _DailyVerseCandidate(
-              category: item.category,
-              translationCode: item.translationCode,
-              bookId: item.bookId,
-              chapterNumber: item.chapterNumber,
-              verseStart: item.verseStart,
-              verseEnd: item.verseEnd,
-              reference: item.reference,
-              weight: 1,
-            ),
-          )
-          .toList(growable: false);
-    }
+    if (!_isConfigured) return const <_DailyVerseCandidate>[];
 
     final String translationCode = AppConstants.sanitizeTranslationCode(
       preferredTranslationCode,
@@ -1214,20 +1214,7 @@ class SupabaseTodayRepository implements TodayRepository {
           )
           .toList(growable: false);
     } catch (_) {
-      return _fallbackPool
-          .map(
-            (DailyVersePoolEntry item) => _DailyVerseCandidate(
-              category: item.category,
-              translationCode: item.translationCode,
-              bookId: item.bookId,
-              chapterNumber: item.chapterNumber,
-              verseStart: item.verseStart,
-              verseEnd: item.verseEnd,
-              reference: item.reference,
-              weight: 1,
-            ),
-          )
-          .toList(growable: false);
+      return const <_DailyVerseCandidate>[];
     }
   }
 
@@ -1278,18 +1265,7 @@ class SupabaseTodayRepository implements TodayRepository {
       return mappedCandidates[_stableHash(dateKey) % mappedCandidates.length];
     }
 
-    final DailyVersePoolEntry fallback =
-        _fallbackPool[_stableHash(dateKey) % _fallbackPool.length];
-    return _DailyVerseCandidate(
-      category: fallback.category,
-      translationCode: fallback.translationCode,
-      bookId: fallback.bookId,
-      chapterNumber: fallback.chapterNumber,
-      verseStart: fallback.verseStart,
-      verseEnd: fallback.verseEnd,
-      reference: fallback.reference,
-      weight: 1,
-    );
+    _throwUnavailable('No daily verse assignment candidates are available yet.');
   }
 
   List<_DailyVerseCandidate> _withoutRecentCandidateReferences(

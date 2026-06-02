@@ -18,7 +18,7 @@ class MockReadRepository {
             'John is strong for both new and returning readers because it keeps pointing back to the identity of Jesus and the invitation to believe and remain in Him.',
         keyThemes: <String>['Belief', 'Life in Christ', 'Love', 'Abiding'],
         continueChapterNumber: 2,
-        mockChapters: <ReadChapter>[
+        chapters: <ReadChapter>[
           ReadChapter(
             number: 1,
             title: 'The Word made flesh',
@@ -173,7 +173,7 @@ class MockReadRepository {
             'Psalms is especially good when the user wants to pray with scripture, process emotions before God, or find words for difficult seasons.',
         keyThemes: <String>['Prayer', 'Worship', 'Trust', 'God’s nearness'],
         continueChapterNumber: 23,
-        mockChapters: <ReadChapter>[
+        chapters: <ReadChapter>[
           ReadChapter(
             number: 23,
             title: 'The Lord my shepherd',
@@ -314,7 +314,7 @@ class MockReadRepository {
             'Philippians works well for users who want encouragement, peace in difficulty, and a strong reminder to center life on Christ.',
         keyThemes: <String>['Joy', 'Peace', 'Humility', 'Steadfastness'],
         continueChapterNumber: 4,
-        mockChapters: <ReadChapter>[
+        chapters: <ReadChapter>[
           ReadChapter(
             number: 1,
             title: 'Confidence in God’s work',
@@ -419,9 +419,9 @@ class MockReadRepository {
 
   ReadChapter getChapter({String? bookId, int? chapterNumber}) {
     final ReadBook book = getBookById(bookId);
-    return book.mockChapters.firstWhere(
+    return book.chapters.firstWhere(
       (ReadChapter chapter) => chapter.number == chapterNumber,
-      orElse: () => book.mockChapters.first,
+      orElse: () => book.chapters.first,
     );
   }
 
@@ -430,13 +430,13 @@ class MockReadRepository {
     required int chapterNumber,
   }) {
     final ReadBook book = getBookById(bookId);
-    final int currentIndex = book.mockChapters.indexWhere(
+    final int currentIndex = book.chapters.indexWhere(
       (ReadChapter chapter) => chapter.number == chapterNumber,
     );
 
     if (currentIndex == -1) return null;
-    if (currentIndex + 1 >= book.mockChapters.length) return null;
-    return book.mockChapters[currentIndex + 1];
+    if (currentIndex + 1 >= book.chapters.length) return null;
+    return book.chapters[currentIndex + 1];
   }
 
   ReadChapter? getPreviousMockChapter({
@@ -444,11 +444,11 @@ class MockReadRepository {
     required int chapterNumber,
   }) {
     final ReadBook book = getBookById(bookId);
-    final int currentIndex = book.mockChapters.indexWhere(
+    final int currentIndex = book.chapters.indexWhere(
       (ReadChapter chapter) => chapter.number == chapterNumber,
     );
 
     if (currentIndex <= 0) return null;
-    return book.mockChapters[currentIndex - 1];
+    return book.chapters[currentIndex - 1];
   }
 }

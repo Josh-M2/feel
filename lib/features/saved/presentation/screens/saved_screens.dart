@@ -496,6 +496,20 @@ Widget _buildSavedScaffold<T>({
           return const _SavedEmptyBody();
         }
 
+        if (data is _SavedBookmarksScreenData &&
+            data.bookmarks.isEmpty &&
+            data.summary.bookmarkCount == 0 &&
+            data.summary.highlightCount == 0 &&
+            data.summary.noteCount == 0) {
+          return const _SavedEmptyBody();
+        }
+
+        if (data is _SavedNotesScreenData &&
+            data.pinnedNotes.isEmpty &&
+            data.regularNotes.isEmpty) {
+          return const _SavedEmptyBody();
+        }
+
         return AppReveal(child: dataBuilder(context, data));
       },
     ),
@@ -553,7 +567,7 @@ class _SavedEmptyBody extends StatelessWidget {
               'Bookmarks, highlights, notes, and history will appear here.',
           icon: Icons.bookmark_border_rounded,
           child: Text(
-            'Save a verse, highlight, or reflection and it will appear here.',
+            'Save a verse, highlight, or reflection from Today or Read and it will appear here.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ),

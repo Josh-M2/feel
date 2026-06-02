@@ -111,8 +111,8 @@ class MockReadRepositoryAdapter implements ReadRepository {
     for (final ReadBook book in _source.getBooks()) {
       final bool bookMatched = matchesBook(book);
       final Iterable<ReadChapter> chapters = requestedChapter != null
-          ? book.mockChapters.where((ReadChapter chapter) => chapter.number == requestedChapter)
-          : book.mockChapters;
+          ? book.chapters.where((ReadChapter chapter) => chapter.number == requestedChapter)
+          : book.chapters;
 
       for (final ReadChapter chapter in chapters) {
         final bool chapterMatchedByNumber =

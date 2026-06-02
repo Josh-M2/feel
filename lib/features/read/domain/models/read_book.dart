@@ -9,7 +9,7 @@ class ReadBook {
     required this.whyRead,
     required this.keyThemes,
     required this.continueChapterNumber,
-    required this.mockChapters,
+    required this.chapters,
   });
 
   final String id;
@@ -21,7 +21,7 @@ class ReadBook {
   final String whyRead;
   final List<String> keyThemes;
   final int continueChapterNumber;
-  final List<ReadChapter> mockChapters;
+  final List<ReadChapter> chapters;
 }
 
 class ReadChapter {

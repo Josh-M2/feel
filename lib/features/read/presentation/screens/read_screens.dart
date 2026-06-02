@@ -45,11 +45,11 @@ class ReadBooksScreen extends StatelessWidget {
           snapshot: snapshot,
           dataBuilder: (context, data) {
             final String continueTitle =
-                '${data.continueBook.name} ${data.continueChapter.number}';
+                '${data.continueBook!.name} ${data.continueChapter!.number}';
             final String continueSubtitle = _displayContinueSubtitle(
               title: continueTitle,
-              chapter: data.continueChapter,
-              bookName: data.continueBook.name,
+              chapter: data.continueChapter!,
+              bookName: data.continueBook!.name,
             );
 
             return ListView(
@@ -86,7 +86,7 @@ class ReadBooksScreen extends StatelessWidget {
                       ],
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        data.continueChapter.focusLine,
+                        data.continueChapter!.focusLine,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.lg),
@@ -97,8 +97,8 @@ class ReadBooksScreen extends StatelessWidget {
                             context.push(
                               AppRoutes.readChapterRead,
                               extra: ChapterReadRouteArgs(
-                                bookId: data.continueBook.id,
-                                chapterNumber: data.continueChapter.number,
+                                bookId: data.continueBook!.id,
+                                chapterNumber: data.continueChapter!.number,
                               ),
                             );
                           },
@@ -157,6 +157,9 @@ class ReadBooksScreen extends StatelessWidget {
 
   Future<_ReadBooksScreenData> _loadReadBooksScreenData() async {
     final List<ReadBook> books = await _repository.getBooks();
+    if (books.isEmpty) {
+      return const _ReadBooksScreenData.empty();
+    }
     final List<ReadContinuePoint> queue = await _repository
         .getContinueReadingQueue(
           versionCode: bootstrap.preferredTranslationCode,
@@ -261,13 +264,12 @@ class ReadBookDetailScreen extends StatelessWidget {
                                   AppRoutes.readChapterRead,
                                   extra: ChapterReadRouteArgs(
                                     bookId: book.id,
-                                    chapterNumber:
-                                        book.mockChapters.first.number,
+                                    chapterNumber: book.chapters.first.number,
                                   ),
                                 );
                               },
                               child: Text(
-                                'Read chapter ${book.mockChapters.first.number}',
+                                'Read chapter ${book.chapters.first.number}',
                               ),
                             ),
                           ),
@@ -330,7 +332,7 @@ class ReadBookDetailScreen extends StatelessWidget {
                   subtitle: 'Choose a chapter to begin or return to.',
                   icon: Icons.view_list_outlined,
                   child: Column(
-                    children: book.mockChapters
+                    children: book.chapters
                         .map(
                           (ReadChapter chapter) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
@@ -1241,6 +1243,10 @@ Widget _buildReadScaffold<T>({
           return const _ReadEmptyBody();
         }
 
+        if (data is _ReadBooksScreenData && data.books.isEmpty) {
+          return const _ReadEmptyBody();
+        }
+
         return AppReveal(child: dataBuilder(context, data));
       },
     ),
@@ -1294,8 +1300,10 @@ class _ReadEmptyBody extends StatelessWidget {
       children: const <Widget>[
         _InlineStateCard(
           title: 'No reading content yet',
-          subtitle: 'Reading content is not available yet.',
+          subtitle: 'Bible books and chapters have not been published here yet.',
           icon: Icons.menu_book_outlined,
+          body:
+              'Once the Supabase-hosted scripture catalog is ready, books and chapters will appear here.',
         ),
       ],
     );
@@ -1352,9 +1360,14 @@ class _ReadBooksScreenData {
     required this.continueChapter,
   });
 
+  const _ReadBooksScreenData.empty()
+    : books = const <ReadBook>[],
+      continueBook = null,
+      continueChapter = null;
+
   final List<ReadBook> books;
-  final ReadBook continueBook;
-  final ReadChapter continueChapter;
+  final ReadBook? continueBook;
+  final ReadChapter? continueChapter;
 }
 
 class _ChapterReadScreenData {
